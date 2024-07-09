@@ -135,7 +135,7 @@ public class OptimizerUtils
 	public static boolean ALLOW_CONSTANT_FOLDING = true;
 	
 	public static boolean ALLOW_ALGEBRAIC_SIMPLIFICATION = true;
-	public static boolean ALLOW_OPERATOR_FUSION = true;
+	public static boolean ALLOW_OPERATOR_FUSION = false;
 	
 	/**
 	 * Enables if-else branch removal for constant predicates (original literals or 
@@ -194,7 +194,7 @@ public class OptimizerUtils
 	 * Enables sum product rewrites such as mapmultchains. In the future, this will cover 
 	 * all sum-product related rewrites.
 	 */
-	public static boolean ALLOW_SUM_PRODUCT_REWRITES = true;
+	public static boolean ALLOW_SUM_PRODUCT_REWRITES = false;
 	
 	/**
 	 * Enables a specific hop dag rewrite that splits hop dags after csv persistent reads with 
