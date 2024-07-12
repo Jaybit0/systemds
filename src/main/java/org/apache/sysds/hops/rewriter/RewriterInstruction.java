@@ -1,13 +1,29 @@
 package org.apache.sysds.hops.rewriter;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
 public class RewriterInstruction implements RewriterStatement {
+
+	public static final Iterable<RewriterStatement> emptyIterable = () -> new Iterator<>() {
+		@Override
+		public boolean hasNext() {
+			return false;
+		}
+
+		@Override
+		public RewriterStatement next() {
+			throw new IllegalStateException("No more elements");
+		}
+	};
 	private static final HashMap<String, Function<List<RewriterStatement>, Long>> instrCosts = new HashMap<>()
 	{
 		{
@@ -67,6 +83,33 @@ public class RewriterInstruction implements RewriterStatement {
 	@Override
 	public boolean isConsolidated() {
 		return consolidated;
+	}
+
+	@Override
+	public boolean match(RewriterStatement stmt, HashMap<RewriterDataType, RewriterStatement> dependencyMap) {
+		if (stmt instanceof RewriterInstruction
+				&& getResultingDataType().equals(stmt.getResultingDataType())) {
+			RewriterInstruction inst = (RewriterInstruction)stmt;
+			if(!inst.instr.equals(this.instr))
+				return false;
+			if (this.operands.size() != inst.operands.size())
+				return false;
+
+			int s = inst.operands.size();
+
+			for (int i = 0; i < s; i++) {
+				if (!operands.get(i).match(inst.operands.get(i), dependencyMap))
+					return false;
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	public ArrayList<RewriterStatement> getOperands() {
+		return operands;
 	}
 
 	public RewriterInstruction withInstruction(String instr) {
@@ -159,6 +202,22 @@ public class RewriterInstruction implements RewriterStatement {
 		for (int i = 1; i < operands.size(); i++) {
 			builder.append(",");
 			builder.append(operands.get(i).getResultingDataType());
+		}
+		builder.append(")");
+		return builder.toString();
+	}
+
+	public String toString() {
+		if (operands.size() == 2) {
+			return "(" + operands.get(0) + " " + instr + " " + operands.get(1) + ")";
+		}
+		StringBuilder builder = new StringBuilder();
+		builder.append(instr);
+		builder.append("(");
+		for (int i = 0; i < operands.size(); i++) {
+			if (i > 0)
+				builder.append(", ");
+			builder.append(operands.get(i));
 		}
 		builder.append(")");
 		return builder.toString();
