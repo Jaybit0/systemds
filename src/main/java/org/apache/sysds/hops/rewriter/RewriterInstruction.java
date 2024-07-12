@@ -1,29 +1,13 @@
 package org.apache.sysds.hops.rewriter;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
 public class RewriterInstruction implements RewriterStatement {
-
-	public static final Iterable<RewriterStatement> emptyIterable = () -> new Iterator<>() {
-		@Override
-		public boolean hasNext() {
-			return false;
-		}
-
-		@Override
-		public RewriterStatement next() {
-			throw new IllegalStateException("No more elements");
-		}
-	};
 	private static final HashMap<String, Function<List<RewriterStatement>, Long>> instrCosts = new HashMap<>()
 	{
 		{
@@ -45,6 +29,7 @@ public class RewriterInstruction implements RewriterStatement {
 	private ArrayList<RewriterStatement> operands = new ArrayList<>();
 	private Function<List<RewriterStatement>, Long> costFunction = null;
 	private boolean consolidated = false;
+	private HashMap<RewriterStatement, RewriterStatement> links = null;
 
 	@Override
 	public String getId() {
@@ -86,7 +71,7 @@ public class RewriterInstruction implements RewriterStatement {
 	}
 
 	@Override
-	public boolean match(RewriterStatement stmt, HashMap<RewriterDataType, RewriterStatement> dependencyMap) {
+	public boolean match(RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, HashMap<RewriterStatement, RewriterStatement> links) {
 		if (stmt instanceof RewriterInstruction
 				&& getResultingDataType().equals(stmt.getResultingDataType())) {
 			RewriterInstruction inst = (RewriterInstruction)stmt;
@@ -98,7 +83,7 @@ public class RewriterInstruction implements RewriterStatement {
 			int s = inst.operands.size();
 
 			for (int i = 0; i < s; i++) {
-				if (!operands.get(i).match(inst.operands.get(i), dependencyMap))
+				if (!links.getOrDefault(operands.get(i), operands.get(i)).match(inst.operands.get(i), dependencyMap, links))
 					return false;
 			}
 
@@ -106,6 +91,31 @@ public class RewriterInstruction implements RewriterStatement {
 		}
 
 		return false;
+	}
+
+	@Override
+	public RewriterStatement clone() {
+		RewriterInstruction mClone = new RewriterInstruction();
+		mClone.instr = instr;
+		mClone.result = (RewriterDataType)result.clone();
+		ArrayList<RewriterStatement> clonedOperands = new ArrayList<>(operands.size());
+
+		for (RewriterStatement stmt : operands)
+			clonedOperands.add(stmt.clone());
+
+		mClone.operands = clonedOperands;
+		mClone.costFunction = costFunction;
+		mClone.consolidated = consolidated;
+		return mClone;
+	}
+
+	public RewriterInstruction withLinks(HashMap<RewriterStatement, RewriterStatement> links) {
+		this.links = links;
+		return this;
+	}
+
+	public HashMap<RewriterStatement, RewriterStatement> getLinks() {
+		return links;
 	}
 
 	public ArrayList<RewriterStatement> getOperands() {
@@ -207,10 +217,38 @@ public class RewriterInstruction implements RewriterStatement {
 		return builder.toString();
 	}
 
-	public String toString() {
+	@Override
+	public String toStringWithLinking(HashMap<RewriterStatement, RewriterStatement> links) {
+		StringBuilder builder = new StringBuilder();
 		if (operands.size() == 2) {
-			return "(" + operands.get(0) + " " + instr + " " + operands.get(1) + ")";
+			builder.append("(");
+			builder.append(links.getOrDefault(operands.get(0), operands.get(0)).toStringWithLinking(links));
+			builder.append(" ");
+			builder.append(instr);
+			builder.append(" ");
+			builder.append(links.getOrDefault(operands.get(1), operands.get(1)).toStringWithLinking(links));
+			builder.append(")");
+			return builder.toString();
 		}
+
+		builder.append(instr);
+		builder.append("(");
+		for (int i = 0; i < operands.size(); i++) {
+			if (i > 0)
+				builder.append(", ");
+			builder.append(links.getOrDefault(operands.get(i), operands.get(i)).toStringWithLinking(links));
+		}
+		builder.append(")");
+		return builder.toString();
+	}
+
+	public String toString() {
+		if (links != null)
+			return toStringWithLinking(links);
+
+		if (operands.size() == 2)
+			return "(" + operands.get(0) + " " + instr + " " + operands.get(1) + ")";
+
 		StringBuilder builder = new StringBuilder();
 		builder.append(instr);
 		builder.append("(");

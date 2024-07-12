@@ -24,7 +24,8 @@ public class RewriterMain {
 
 		System.out.println(rule1);
 
-		RewriterRule ruleMatch = new RewriterRuleBuilder()
+		RewriterInstruction instr = new RewriterRuleBuilder()
+				.asDAGBuilder()
 				.withInstruction("+")
 					.addOp("c")
 						.ofType("float")
@@ -36,29 +37,35 @@ public class RewriterMain {
 						.ofType("float")
 					.addExistingOp("c+d")
 					.asRootInstruction()
-				.toInstruction("+")
-					.addExistingOp("d")
-					.addExistingOp("c")
-					.as("d+c")
-					.asRootInstruction()
-				.build();
+				.buildDAG();
 
 		ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
-		if (rule1.getStmt1().matchSubexpr(ruleMatch.getStmt1(), matches, new HashMap<>())) {
+		if (rule1.getStmt1().matchSubexpr(instr, null, matches, new HashMap<>(), instr.getLinks())) {
 			System.out.println("Matches detected!");
 			int ctr = 1;
 			for (RewriterStatement.MatchingSubexpression match : matches) {
 				System.out.println("Match " + ctr++ + ": ");
 				System.out.println(" " + match.getMatchRoot() + " = " + rule1.getStmt1());
 				System.out.println();
-				for (Map.Entry<RewriterDataType, RewriterStatement> entry : match.getAssocs().entrySet()) {
-					System.out.println(" - " + entry.getValue() + "::" + entry.getValue().getResultingDataType() + " -> " + entry.getKey().getId() + "::" + entry.getKey().getResultingDataType());
+				for (Map.Entry<RewriterStatement, RewriterStatement> entry : match.getAssocs().entrySet()) {
+					System.out.println(" - " + entry.getKey() + "::" + entry.getKey().getResultingDataType() + " -> " + entry.getValue().getId() + "::" + entry.getValue().getResultingDataType());
 				}
 				System.out.println();
 			}
+
+			System.out.println("Applying the first transformation rule: ");
+			System.out.print(instr + " => ");
+			rule1.applyForward(matches.get(0), instr);
+			System.out.println(instr);
+
+			rule1.getStmt1().matchSubexpr(instr, null, matches, new HashMap<>(), instr.getLinks());
+			System.out.println("Applying the second transformation rule: ");
+			System.out.print(instr + " => ");
+			rule1.applyForward(matches.get(1), instr);
+			System.out.println(instr);
 		}
 
-		RewriterRule rule2 = new RewriterRuleBuilder()
+		/*RewriterRule rule2 = new RewriterRuleBuilder()
 				.withInstruction("+")
 					.addOp("a")
 						.ofType("float")
@@ -84,6 +91,6 @@ public class RewriterMain {
 					.asRootInstruction()
 				.build();
 
-		System.out.println(rule2);
+		System.out.println(rule2);*/
 	}
 }

@@ -1,22 +1,8 @@
 package org.apache.sysds.hops.rewriter;
 
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 
 public class RewriterDataType implements RewriterStatement {
-
-	public static final Iterable<RewriterStatement> emptyIterable = () -> new Iterator<>() {
-		@Override
-		public boolean hasNext() {
-			return false;
-		}
-
-		@Override
-		public RewriterStatement next() {
-			throw new IllegalStateException("No more elements");
-		}
-	};
 	private String id;
 	private String type;
 	private boolean consolidated = false;
@@ -53,7 +39,7 @@ public class RewriterDataType implements RewriterStatement {
 	}
 
 	@Override
-	public boolean match(RewriterStatement stmt, HashMap<RewriterDataType, RewriterStatement> dependencyMap) {
+	public boolean match(RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, HashMap<RewriterStatement, RewriterStatement> links) {
 		if (stmt.getResultingDataType().equals(type)) {
 			RewriterStatement assoc = dependencyMap.get(this);
 			if (assoc == null) {
@@ -64,6 +50,16 @@ public class RewriterDataType implements RewriterStatement {
 			}
 		}
 		return false;
+	}
+
+	@Override
+	public String toStringWithLinking(HashMap<RewriterStatement, RewriterStatement> links) {
+		return toString();
+	}
+
+	@Override
+	public RewriterStatement clone() {
+		return new RewriterDataType().withId(id).ofType(type);
 	}
 
 	public String getType() {

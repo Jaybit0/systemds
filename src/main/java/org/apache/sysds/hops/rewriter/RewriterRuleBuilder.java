@@ -11,13 +11,16 @@ public class RewriterRuleBuilder {
 	private HashMap<String, RewriterStatement> globalIds = new HashMap<>();
 	private HashMap<String, RewriterStatement> instrSeqIds = new HashMap<>();
 	private HashMap<String, RewriterStatement> mappingSeqIds = new HashMap<>();
-	private RewriterStatement fromRoot = null;
-	private RewriterStatement toRoot = null;
+	private RewriterInstruction fromRoot = null;
+	private RewriterInstruction toRoot = null;
+	private boolean buildSingleDAG = false;
 
 	private RewriterStatement currentStatement = null;
 	private boolean mappingState = false;
 
 	public RewriterRule build() {
+		if (buildSingleDAG)
+			throw new IllegalArgumentException("Cannot build a rule if DAG was specified");
 		if (!mappingState)
 			throw new IllegalArgumentException("No mapping expression");
 		if (fromRoot == null)
@@ -25,6 +28,18 @@ public class RewriterRuleBuilder {
 		if (toRoot == null)
 			throw new IllegalArgumentException("To-root statement cannot be null");
 		return new RewriterRule(fromRoot, toRoot);
+	}
+
+	public RewriterInstruction buildDAG() {
+		if (!buildSingleDAG)
+			throw new IllegalArgumentException("Cannot build a DAG if rule was specified");
+		currentStatement.consolidate();
+		return fromRoot;
+	}
+
+	public RewriterRuleBuilder asDAGBuilder() {
+		buildSingleDAG = true;
+		return this;
 	}
 
 	public RewriterInstruction getCurrentInstruction() {
@@ -93,6 +108,8 @@ public class RewriterRuleBuilder {
 			if (fromRoot != null)
 				throw new IllegalArgumentException("Cannot have more than one root instruction");
 			fromRoot = getCurrentInstruction().as("result");
+			if (buildSingleDAG)
+				fromRoot.withLinks(new HashMap<>());
 		}
 		return this;
 	}
@@ -118,6 +135,8 @@ public class RewriterRuleBuilder {
 	}
 
 	public RewriterRuleBuilder toInstruction(String instr) {
+		if (buildSingleDAG)
+			throw new IllegalArgumentException("Cannot create a mapping instruction when building a single DAG");
 		getCurrentInstruction().consolidate();
 		mappingSeq.add(new RewriterInstruction().withInstruction(instr));
 		mappingState = true;
