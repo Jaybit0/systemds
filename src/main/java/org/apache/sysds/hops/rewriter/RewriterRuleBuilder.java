@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.function.Function;
 
 public class RewriterRuleBuilder {
+	private String ruleName = "?";
 	private ArrayList<RewriterInstruction> instrSeq = new ArrayList<>();
 	private ArrayList<RewriterInstruction> mappingSeq = new ArrayList<>();
 	private HashMap<String, RewriterStatement> globalIds = new HashMap<>();
@@ -15,10 +16,19 @@ public class RewriterRuleBuilder {
 	private HashMap<String, RewriterStatement> mappingSeqIds = new HashMap<>();
 	private RewriterInstruction fromRoot = null;
 	private RewriterInstruction toRoot = null;
+	private boolean isUnidirectional = false;
 	private boolean buildSingleDAG = false;
 
 	private RewriterStatement currentStatement = null;
 	private boolean mappingState = false;
+
+	public RewriterRuleBuilder() {
+
+	}
+
+	public RewriterRuleBuilder(String ruleName) {
+		this.ruleName = ruleName;
+	}
 
 	public RewriterRule build() {
 		if (buildSingleDAG)
@@ -30,7 +40,7 @@ public class RewriterRuleBuilder {
 		if (toRoot == null)
 			throw new IllegalArgumentException("To-root statement cannot be null");
 		getCurrentInstruction().consolidate();
-		return new RewriterRule(fromRoot, toRoot);
+		return new RewriterRule(ruleName, fromRoot, toRoot, isUnidirectional);
 	}
 
 	public RewriterInstruction buildDAG() {
@@ -42,6 +52,11 @@ public class RewriterRuleBuilder {
 
 	public RewriterRuleBuilder asDAGBuilder() {
 		buildSingleDAG = true;
+		return this;
+	}
+
+	public RewriterRuleBuilder setUnidirectional(boolean unidirectional) {
+		this.isUnidirectional = unidirectional;
 		return this;
 	}
 

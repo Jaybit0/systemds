@@ -2,17 +2,25 @@ package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 public class RewriterRule {
+
+	private final String name;
 	private final RewriterInstruction fromRoot;
 	private final RewriterInstruction toRoot;
+	private final boolean unidirectional;
 
-	public RewriterRule(RewriterInstruction fromRoot, RewriterInstruction toRoot) {
+	public RewriterRule(String name, RewriterInstruction fromRoot, RewriterInstruction toRoot, boolean unidirectional) {
+		this.name = name;
 		this.fromRoot = fromRoot;
 		this.toRoot = toRoot;
+		this.unidirectional = unidirectional;
+	}
+
+	public String getName() {
+		return name;
 	}
 
 	public RewriterInstruction getStmt1() {
@@ -21,6 +29,10 @@ public class RewriterRule {
 
 	public RewriterInstruction getStmt2() {
 		return toRoot;
+	}
+
+	public boolean isUnidirectional() {
+		return unidirectional;
 	}
 
 	public RewriterInstruction applyForward(RewriterStatement.MatchingSubexpression match, RewriterInstruction rootNode, boolean inplace) {

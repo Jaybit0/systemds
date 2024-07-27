@@ -7,8 +7,11 @@ import java.util.Map;
 
 public class RewriterMain {
 
-	public static void main(String[] args) {
-		RewriterRule rule1 = new RewriterRuleBuilder()
+	private static RewriterRuleSet ruleSet;
+
+	static {
+		RewriterRule ruleAddCommut = new RewriterRuleBuilder()
+				.setUnidirectional(true)
 				.withInstruction("+")
 					.addOp("a")
 						.ofType("float")
@@ -22,8 +25,39 @@ public class RewriterMain {
 					.as("b+a")
 					.asRootInstruction()
 				.build();
+		RewriterRule ruleAddAssoc = new RewriterRuleBuilder()
+				.setUnidirectional(false)
+				.withInstruction("+")
+					.addOp("a")
+						.ofType("float")
+					.addOp("b")
+						.ofType("float")
+					.as("a+b")
+				.withInstruction("+")
+					.addExistingOp("a+b")
+					.addOp("c")
+						.ofType("float")
+					.asRootInstruction()
+				.toInstruction("+")
+					.addExistingOp("b")
+					.addExistingOp("c")
+					.as("b+c")
+				.toInstruction("+")
+					.addExistingOp("a")
+					.addExistingOp("b+c")
+					.asRootInstruction()
+				.build();
 
-		System.out.println(rule1);
+		ArrayList<RewriterRule> rules = new ArrayList<>();
+		rules.add(ruleAddCommut);
+		rules.add(ruleAddAssoc);
+
+		ruleSet = new RewriterRuleSet(rules);
+	}
+
+	public static void main(String[] args) {
+
+		System.out.println("Rules: ");
 
 		RewriterInstruction instr = new RewriterRuleBuilder()
 				.asDAGBuilder()
@@ -40,7 +74,10 @@ public class RewriterMain {
 					.asRootInstruction()
 				.buildDAG();
 
-		ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
+		ArrayList<RewriterRuleSet.ApplicableRule> applicableRules = ruleSet.findApplicableRules(instr);
+		applicableRules.forEach(System.out::println);
+
+		/*ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
 		if (rule1.getStmt1().matchSubexpr(instr, null, -1, matches, new DualHashBidiMap<>())) {
 			System.out.println("Matches detected!");
 			int ctr = 1;
@@ -79,13 +116,9 @@ public class RewriterMain {
 			//System.out.println(instr.linksToString());
 			instr = rule1.applyForward(matches.get(0), instr, false);
 			System.out.println(instr);
-			/*System.out.println("Links:");
-			for (Map.Entry<RewriterStatement, RewriterStatement> entry : instr.getLinks().entrySet()) {
-				System.out.println(entry.getKey() + " -> " + entry.getValue());
-			}*/
 			//System.out.println(instr.linksToString());
 			//System.out.println(instr);
-		}
+		}*/
 
 		/*RewriterRule rule2 = new RewriterRuleBuilder()
 				.withInstruction("+")
