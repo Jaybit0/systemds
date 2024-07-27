@@ -1,9 +1,12 @@
 package org.apache.sysds.hops.rewriter;
 
+import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -29,7 +32,7 @@ public class RewriterInstruction implements RewriterStatement {
 	private ArrayList<RewriterStatement> operands = new ArrayList<>();
 	private Function<List<RewriterStatement>, Long> costFunction = null;
 	private boolean consolidated = false;
-	private HashMap<RewriterStatement, RewriterStatement> links = null;
+	//private DualHashBidiMap<RewriterStatement, RewriterStatement> links = null;
 
 	@Override
 	public String getId() {
@@ -38,7 +41,7 @@ public class RewriterInstruction implements RewriterStatement {
 
 	@Override
 	public String getResultingDataType() {
-		return result.getResultingDataType();
+		return getResult().getResultingDataType();
 	}
 
 	@Override
@@ -71,26 +74,68 @@ public class RewriterInstruction implements RewriterStatement {
 	}
 
 	@Override
-	public boolean match(RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, HashMap<RewriterStatement, RewriterStatement> links) {
+	public boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap) {
+		//System.out.println(stmt.toStringWithLinking(links) + "::" + link.stmt.getResultingDataType());
 		if (stmt instanceof RewriterInstruction
 				&& getResultingDataType().equals(stmt.getResultingDataType())) {
+			System.out.println("Checking...");
 			RewriterInstruction inst = (RewriterInstruction)stmt;
 			if(!inst.instr.equals(this.instr))
 				return false;
 			if (this.operands.size() != inst.operands.size())
 				return false;
 
+			System.out.println("Potential match!");
+
 			int s = inst.operands.size();
 
 			for (int i = 0; i < s; i++) {
-				if (!links.getOrDefault(operands.get(i), operands.get(i)).match(inst.operands.get(i), dependencyMap, links))
+				if (!operands.get(i).match(inst.operands.get(i), dependencyMap)) {
+					System.out.println("Not matching: " + inst.operands.get(i));
 					return false;
+				}
 			}
 
 			return true;
 		}
 
 		return false;
+	}
+
+	@Override
+	public RewriterStatement copyNode() {
+		RewriterInstruction mCopy = new RewriterInstruction();
+		mCopy.instr = instr;
+		mCopy.result = (RewriterDataType)result.copyNode();
+		mCopy.operands = new ArrayList<>(operands);
+		mCopy.costFunction = costFunction;
+		mCopy.consolidated = consolidated;
+		return mCopy;
+	}
+
+	@Override
+	public RewriterStatement nestedCopyOrInject(Map<RewriterStatement, RewriterStatement> copiedObjects, Function<RewriterStatement, RewriterStatement> injector) {
+		RewriterStatement mCpy = copiedObjects.get(this);
+		if (mCpy != null)
+			return mCpy;
+		mCpy = injector.apply(this);
+		if (mCpy != null) {
+			// Then change the reference to the injected object
+			copiedObjects.put(this, mCpy);
+			return mCpy;
+		}
+
+
+		RewriterInstruction mCopy = new RewriterInstruction();
+		mCopy.instr = instr;
+		mCopy.result = (RewriterDataType)result.copyNode();
+		mCopy.costFunction = costFunction;
+		mCopy.consolidated = consolidated;
+		mCopy.operands = new ArrayList<>(operands.size());
+		copiedObjects.put(this, mCopy);
+		operands.forEach(op -> mCopy.operands.add(op.nestedCopyOrInject(copiedObjects, injector)));
+
+		return mCopy;
 	}
 
 	@Override
@@ -109,14 +154,21 @@ public class RewriterInstruction implements RewriterStatement {
 		return mClone;
 	}
 
-	public RewriterInstruction withLinks(HashMap<RewriterStatement, RewriterStatement> links) {
+	public void injectData(RewriterInstruction origData) {
+		instr = origData.instr;
+		result = (RewriterDataType)origData.getResult().copyNode();
+		operands = new ArrayList<>(origData.operands);
+		costFunction = origData.costFunction;
+	}
+
+	/*public RewriterInstruction withLinks(DualHashBidiMap<RewriterStatement, RewriterStatement> links) {
 		this.links = links;
 		return this;
 	}
 
-	public HashMap<RewriterStatement, RewriterStatement> getLinks() {
+	public DualHashBidiMap<RewriterStatement, RewriterStatement> getLinks() {
 		return links;
-	}
+	}*/
 
 	public ArrayList<RewriterStatement> getOperands() {
 		return operands;
@@ -217,16 +269,33 @@ public class RewriterInstruction implements RewriterStatement {
 		return builder.toString();
 	}
 
-	@Override
-	public String toStringWithLinking(HashMap<RewriterStatement, RewriterStatement> links) {
+	/*public String linksToString() {
+		if (links == null)
+			return "Links: []";
+
+		StringBuilder sb = new StringBuilder();
+		sb.append("Links: \n");
+		for (Map.Entry<RewriterStatement, RewriterStatement> link : links.entrySet()) {
+			sb.append(" - " + link.getKey().toString() + " -> " + link.getValue().toStringWithLinking(links) + "\n");
+		}
+
+		sb.append("\n");
+
+		return sb.toString();
+	}*/
+
+	/*@Override
+	public String toStringWithLinking(int dagId, DualHashBidiMap<RewriterStatementLink, RewriterStatementLink> links) {
 		StringBuilder builder = new StringBuilder();
 		if (operands.size() == 2) {
 			builder.append("(");
-			builder.append(links.getOrDefault(operands.get(0), operands.get(0)).toStringWithLinking(links));
+			RewriterStatementLink link = RewriterStatement.resolveNode(new RewriterStatementLink(operands.get(0), dagId), links);
+			builder.append(link.stmt.toStringWithLinking(link.dagID, links));
 			builder.append(" ");
 			builder.append(instr);
 			builder.append(" ");
-			builder.append(links.getOrDefault(operands.get(1), operands.get(1)).toStringWithLinking(links));
+			link = RewriterStatement.resolveNode(new RewriterStatementLink(operands.get(1), dagId), links);
+			builder.append(link.stmt.toStringWithLinking(link.dagID, links));
 			builder.append(")");
 			return builder.toString();
 		}
@@ -236,15 +305,15 @@ public class RewriterInstruction implements RewriterStatement {
 		for (int i = 0; i < operands.size(); i++) {
 			if (i > 0)
 				builder.append(", ");
-			builder.append(links.getOrDefault(operands.get(i), operands.get(i)).toStringWithLinking(links));
+			builder.append(RewriterStatement.resolveNode(operands.get(i), links).toStringWithLinking(links));
 		}
 		builder.append(")");
 		return builder.toString();
-	}
+	}*/
 
 	public String toString() {
-		if (links != null)
-			return toStringWithLinking(links);
+		/*if (links != null)
+			return toStringWithLinking(links);*/
 
 		if (operands.size() == 2)
 			return "(" + operands.get(0) + " " + instr + " " + operands.get(1) + ")";

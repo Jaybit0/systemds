@@ -1,6 +1,9 @@
 package org.apache.sysds.hops.rewriter;
 
-import java.util.HashMap;
+import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+
+import java.util.Map;
+import java.util.function.Function;
 
 public class RewriterDataType implements RewriterStatement {
 	private String id;
@@ -39,7 +42,7 @@ public class RewriterDataType implements RewriterStatement {
 	}
 
 	@Override
-	public boolean match(RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, HashMap<RewriterStatement, RewriterStatement> links) {
+	public boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap) {
 		if (stmt.getResultingDataType().equals(type)) {
 			RewriterStatement assoc = dependencyMap.get(this);
 			if (assoc == null) {
@@ -53,13 +56,33 @@ public class RewriterDataType implements RewriterStatement {
 	}
 
 	@Override
-	public String toStringWithLinking(HashMap<RewriterStatement, RewriterStatement> links) {
-		return toString();
+	public RewriterStatement clone() {
+		return new RewriterDataType().withId(id).ofType(type);
 	}
 
 	@Override
-	public RewriterStatement clone() {
+	public RewriterStatement copyNode() {
 		return new RewriterDataType().withId(id).ofType(type);
+	}
+
+	@Override
+	public RewriterStatement nestedCopyOrInject(Map<RewriterStatement, RewriterStatement> copiedObjects, Function<RewriterStatement, RewriterStatement> injector) {
+		RewriterStatement mCpy = copiedObjects.get(this);
+		if (mCpy != null)
+			return mCpy;
+		mCpy = injector.apply(this);
+		if (mCpy != null) {
+			// Then change the reference to the injected object
+			copiedObjects.put(this, mCpy);
+			return mCpy;
+		}
+
+		RewriterDataType mCopy = new RewriterDataType();
+		mCopy.id = id;
+		mCopy.type = type;
+		mCopy.consolidated = consolidated;
+		copiedObjects.put(this, mCopy);
+		return mCopy;
 	}
 
 	public String getType() {

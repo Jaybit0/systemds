@@ -1,7 +1,8 @@
 package org.apache.sysds.hops.rewriter;
 
+import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 
 public class RewriterMain {
@@ -40,7 +41,7 @@ public class RewriterMain {
 				.buildDAG();
 
 		ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
-		if (rule1.getStmt1().matchSubexpr(instr, null, matches, new HashMap<>(), instr.getLinks())) {
+		if (rule1.getStmt1().matchSubexpr(instr, null, -1, matches, new DualHashBidiMap<>())) {
 			System.out.println("Matches detected!");
 			int ctr = 1;
 			for (RewriterStatement.MatchingSubexpression match : matches) {
@@ -55,14 +56,35 @@ public class RewriterMain {
 
 			System.out.println("Applying the first transformation rule: ");
 			System.out.print(instr + " => ");
-			rule1.applyForward(matches.get(0), instr);
+			instr = rule1.applyForward(matches.get(1), instr, false);
 			System.out.println(instr);
+			//System.out.println(instr.linksToString());
 
-			rule1.getStmt1().matchSubexpr(instr, null, matches, new HashMap<>(), instr.getLinks());
+			matches.clear();
+			ctr = 1;
+
+			rule1.getStmt1().matchSubexpr(instr, null, -1, matches, new DualHashBidiMap<>());
+			System.out.println("Number of matches: " + matches.size());
+			for (RewriterStatement.MatchingSubexpression match : matches) {
+				System.out.println("Match " + ctr++ + ": ");
+				//System.out.println(" " + match.getMatchRoot().toStringWithLinking(instr.getLinks()) + " = " + rule1.getStmt1());
+				System.out.println();
+				for (Map.Entry<RewriterStatement, RewriterStatement> entry : match.getAssocs().entrySet()) {
+					System.out.println(" - " + entry.getKey() + "::" + entry.getKey().getResultingDataType() + " -> " + entry.getValue().getId() + "::" + entry.getValue().getResultingDataType());
+				}
+				System.out.println();
+			}
 			System.out.println("Applying the second transformation rule: ");
 			System.out.print(instr + " => ");
-			rule1.applyForward(matches.get(1), instr);
+			//System.out.println(instr.linksToString());
+			instr = rule1.applyForward(matches.get(0), instr, false);
 			System.out.println(instr);
+			/*System.out.println("Links:");
+			for (Map.Entry<RewriterStatement, RewriterStatement> entry : instr.getLinks().entrySet()) {
+				System.out.println(entry.getKey() + " -> " + entry.getValue());
+			}*/
+			//System.out.println(instr.linksToString());
+			//System.out.println(instr);
 		}
 
 		/*RewriterRule rule2 = new RewriterRuleBuilder()

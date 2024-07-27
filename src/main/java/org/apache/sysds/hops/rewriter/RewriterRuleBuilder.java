@@ -1,5 +1,7 @@
 package org.apache.sysds.hops.rewriter;
 
+import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,13 +29,14 @@ public class RewriterRuleBuilder {
 			throw new IllegalArgumentException("From-root statement cannot be null");
 		if (toRoot == null)
 			throw new IllegalArgumentException("To-root statement cannot be null");
+		getCurrentInstruction().consolidate();
 		return new RewriterRule(fromRoot, toRoot);
 	}
 
 	public RewriterInstruction buildDAG() {
 		if (!buildSingleDAG)
 			throw new IllegalArgumentException("Cannot build a DAG if rule was specified");
-		currentStatement.consolidate();
+		getCurrentInstruction().consolidate();
 		return fromRoot;
 	}
 
@@ -108,8 +111,8 @@ public class RewriterRuleBuilder {
 			if (fromRoot != null)
 				throw new IllegalArgumentException("Cannot have more than one root instruction");
 			fromRoot = getCurrentInstruction().as("result");
-			if (buildSingleDAG)
-				fromRoot.withLinks(new HashMap<>());
+			/*if (buildSingleDAG)
+				fromRoot.withLinks(new DualHashBidiMap<>());*/
 		}
 		return this;
 	}
