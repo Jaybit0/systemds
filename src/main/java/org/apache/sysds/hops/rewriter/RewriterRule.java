@@ -54,7 +54,7 @@ public class RewriterRule {
 	private RewriterInstruction apply(RewriterStatement.MatchingSubexpression match, RewriterInstruction rootInstruction, RewriterInstruction dest) {
 		if (match.getMatchParent() == null || match.getMatchParent() == match.getMatchRoot()) {
 			final Map<RewriterStatement, RewriterStatement> createdObjects = new HashMap<>();
-			return (RewriterInstruction)dest.nestedCopyOrInject(createdObjects, obj -> {
+			RewriterInstruction cpy = (RewriterInstruction)dest.nestedCopyOrInject(createdObjects, obj -> {
 				RewriterStatement assoc = match.getAssocs().get(obj);
 				if (assoc != null) {
 					RewriterStatement assocCpy = createdObjects.get(assoc);
@@ -66,10 +66,12 @@ public class RewriterRule {
 				}
 				return null;
 			});
+			cpy.recomputeHashCodes();
+			return cpy;
 		}
 
 		final Map<RewriterStatement, RewriterStatement> createdObjects = new HashMap<>();
-		return (RewriterInstruction)rootInstruction.nestedCopyOrInject(createdObjects, obj2 -> {
+		RewriterInstruction cpy2 = (RewriterInstruction)rootInstruction.nestedCopyOrInject(createdObjects, obj2 -> {
 			if (obj2 == match.getMatchRoot()) {
 				RewriterStatement cpy = dest.nestedCopyOrInject(createdObjects, obj -> {
 					RewriterStatement assoc = match.getAssocs().get(obj);
@@ -88,11 +90,15 @@ public class RewriterRule {
 			}
 			return null;
 		});
+		cpy2.recomputeHashCodes();
+		return cpy2;
 	}
 
 	private RewriterInstruction applyInplace(RewriterStatement.MatchingSubexpression match, RewriterInstruction rootInstruction, RewriterInstruction dest) {
 		if (match.getMatchParent() == null || match.getMatchParent() == match.getMatchRoot()) {
-			return (RewriterInstruction)dest.nestedCopyOrInject(new HashMap<>(), obj -> match.getAssocs().get(obj));
+			RewriterInstruction cpy = (RewriterInstruction)dest.nestedCopyOrInject(new HashMap<>(), obj -> match.getAssocs().get(obj));
+			cpy.recomputeHashCodes();
+			return cpy;
 		}
 
 		/*int parentSize = match.getMatchParent().getOperands().size();
@@ -102,6 +108,7 @@ public class RewriterRule {
 			if (operands.get(i) == )
 		}*/
 		match.getMatchParent().getOperands().set(match.getRootIndex(), dest.nestedCopyOrInject(new HashMap<>(), obj -> match.getAssocs().get(obj)));
+		rootInstruction.recomputeHashCodes();
 		return rootInstruction;
 		/*if (rootNode != null && mRoot != rootNode) {
 			if (rootNode.getLinks() == null)

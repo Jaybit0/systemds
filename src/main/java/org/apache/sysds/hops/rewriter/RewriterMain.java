@@ -1,9 +1,10 @@
 package org.apache.sysds.hops.rewriter;
 
-import org.apache.commons.collections4.bidimap.DualHashBidiMap;
-
 import java.util.ArrayList;
-import java.util.Map;
+import java.util.LinkedList;
+import java.util.PriorityQueue;
+import java.util.Queue;
+import java.util.stream.Collectors;
 
 public class RewriterMain {
 
@@ -47,10 +48,76 @@ public class RewriterMain {
 					.addExistingOp("b+c")
 					.asRootInstruction()
 				.build();
+		RewriterRule ruleMulCommut = new RewriterRuleBuilder()
+				.setUnidirectional(true)
+				.withInstruction("*")
+					.addOp("a")
+						.ofType("float")
+					.addOp("b")
+						.ofType("float")
+					.as("a*b")
+					.asRootInstruction()
+				.toInstruction("*")
+					.addExistingOp("b")
+					.addExistingOp("a")
+					.as("b*a")
+					.asRootInstruction()
+				.build();
+		RewriterRule ruleMulAssoc = new RewriterRuleBuilder()
+				.setUnidirectional(false)
+				.withInstruction("*")
+					.addOp("a")
+						.ofType("float")
+					.addOp("b")
+						.ofType("float")
+					.as("a*b")
+				.withInstruction("*")
+					.addExistingOp("a*b")
+					.addOp("c")
+						.ofType("float")
+					.asRootInstruction()
+				.toInstruction("*")
+					.addExistingOp("b")
+					.addExistingOp("c")
+					.as("b*c")
+				.toInstruction("*")
+					.addExistingOp("a")
+					.addExistingOp("b*c")
+					.asRootInstruction()
+				.build();
+		RewriterRule ruleDistrib = new RewriterRuleBuilder()
+				.setUnidirectional(false)
+				.withInstruction("*")
+					.addOp("a")
+						.ofType("float")
+					.addOp("c")
+						.ofType("float")
+					.as("a*c")
+				.withInstruction("*")
+					.addOp("b")
+						.ofType("float")
+					.addExistingOp("c")
+					.as("b*c")
+				.withInstruction("+")
+					.addExistingOp("a*c")
+					.addExistingOp("b*c")
+					.asRootInstruction()
+				.toInstruction("+")
+					.addExistingOp("a")
+					.addExistingOp("b")
+					.as("a+b")
+				.toInstruction("*")
+					.addExistingOp("a+b")
+					.addExistingOp("c")
+					.asRootInstruction()
+				.build();
 
 		ArrayList<RewriterRule> rules = new ArrayList<>();
 		rules.add(ruleAddCommut);
 		rules.add(ruleAddAssoc);
+		rules.add(ruleMulCommut);
+		rules.add(ruleMulAssoc);
+		rules.add(ruleDistrib);
 
 		ruleSet = new RewriterRuleSet(rules);
 	}
@@ -59,7 +126,7 @@ public class RewriterMain {
 
 		System.out.println("Rules: ");
 
-		RewriterInstruction instr = new RewriterRuleBuilder()
+		/*RewriterInstruction instr = new RewriterRuleBuilder()
 				.asDAGBuilder()
 				.withInstruction("+")
 					.addOp("c")
@@ -72,10 +139,57 @@ public class RewriterMain {
 						.ofType("float")
 					.addExistingOp("c+d")
 					.asRootInstruction()
+				.buildDAG();*/
+
+		RewriterInstruction instr = new RewriterRuleBuilder()
+				.asDAGBuilder()
+				.withInstruction("*")
+					.addOp("c")
+						.ofType("float")
+					.addOp("a")
+						.ofType("float")
+					.as("c*a")
+				.withInstruction("*")
+					.addOp("b")
+						.ofType("float")
+					.addExistingOp("a")
+					.as("b*a")
+				.withInstruction("+")
+					.addExistingOp("c*a")
+					.addExistingOp("b*a")
+					.asRootInstruction()
 				.buildDAG();
 
+		RewriterDatabase db = new RewriterDatabase();
+		db.insertEntry(instr);
+
 		ArrayList<RewriterRuleSet.ApplicableRule> applicableRules = ruleSet.findApplicableRules(instr);
-		applicableRules.forEach(System.out::println);
+		PriorityQueue<RewriterQueuedTransformation> queue = applicableRules.stream().map(r -> new RewriterQueuedTransformation(instr, r)).sorted().collect(Collectors.toCollection(PriorityQueue::new));
+
+		RewriterQueuedTransformation current = queue.poll();
+
+		while (current != null) {
+			System.out.println("Applying: " + current.rule.rule + " (" + current.rule.matches.size() + ")");
+			for (RewriterStatement.MatchingSubexpression match : current.rule.matches) {
+				// TODO: Or here is something wrong
+				RewriterInstruction transformed = current.rule.forward ? current.rule.rule.applyForward(match, current.root, false) : current.rule.rule.applyBackward(match, current.root, false);
+
+				if (!db.insertEntry(transformed)) // TODO: I think (a*c)+(b*c) equals (c*a)+(b*c) which disregards valid transformations
+				{
+					System.out.println("Skip: " + transformed);
+					break; // Then this DAG has already been visited
+				}
+
+				System.out.println("Transformation: " + transformed);
+				System.out.println("Cost: " + transformed.getCost());
+
+				queue.addAll(ruleSet.findApplicableRules(instr).stream().map(r -> new RewriterQueuedTransformation(instr, r)).collect(Collectors.toList()));
+			}
+
+			current = queue.poll();
+		}
+
+		//applicableRules.forEach(System.out::println);
 
 		/*ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
 		if (rule1.getStmt1().matchSubexpr(instr, null, -1, matches, new DualHashBidiMap<>())) {

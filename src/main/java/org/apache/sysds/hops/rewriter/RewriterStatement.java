@@ -85,6 +85,8 @@ public interface RewriterStatement {
 
 	// Returns the root of the matching sub-statement, null if there is no match
 	boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap);
+	int recomputeHashCodes();
+	long getCost();
 	default boolean matchSubexpr(RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap) {
 		if (dependencyMap == null)
 			dependencyMap = new DualHashBidiMap<>();

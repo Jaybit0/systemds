@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -15,7 +16,7 @@ public class RewriterInstruction implements RewriterStatement {
 	{
 		{
 			put("+(float,float)", d -> 1l);
-			put("*(float,float)", d -> 1l);
+			put("*(float,float)", d ->  1l);
 		}
 	};
 
@@ -32,6 +33,7 @@ public class RewriterInstruction implements RewriterStatement {
 	private ArrayList<RewriterStatement> operands = new ArrayList<>();
 	private Function<List<RewriterStatement>, Long> costFunction = null;
 	private boolean consolidated = false;
+	private int hashCode;
 	//private DualHashBidiMap<RewriterStatement, RewriterStatement> links = null;
 
 	@Override
@@ -65,7 +67,15 @@ public class RewriterInstruction implements RewriterStatement {
 
 		getResult().consolidate();
 
+		hashCode = Objects.hash(instr, result, operands);
 		consolidated = true;
+	}
+	@Override
+	public int recomputeHashCodes() {
+		result.recomputeHashCodes();
+		operands.forEach(RewriterStatement::recomputeHashCodes);
+		hashCode = Objects.hash(instr, result, operands);
+		return hashCode;
 	}
 
 	@Override
@@ -78,20 +88,17 @@ public class RewriterInstruction implements RewriterStatement {
 		//System.out.println(stmt.toStringWithLinking(links) + "::" + link.stmt.getResultingDataType());
 		if (stmt instanceof RewriterInstruction
 				&& getResultingDataType().equals(stmt.getResultingDataType())) {
-			System.out.println("Checking...");
 			RewriterInstruction inst = (RewriterInstruction)stmt;
+
 			if(!inst.instr.equals(this.instr))
 				return false;
 			if (this.operands.size() != inst.operands.size())
 				return false;
 
-			System.out.println("Potential match!");
-
 			int s = inst.operands.size();
 
 			for (int i = 0; i < s; i++) {
 				if (!operands.get(i).match(inst.operands.get(i), dependencyMap)) {
-					System.out.println("Not matching: " + inst.operands.get(i));
 					return false;
 				}
 			}
@@ -328,6 +335,21 @@ public class RewriterInstruction implements RewriterStatement {
 		}
 		builder.append(")");
 		return builder.toString();
+	}
+
+	@Override
+	public int hashCode() {
+		return hashCode;
+	}
+
+	@Override
+	public long getCost() {
+		if (costFunction == null)
+			throw new NullPointerException("No cost function has been defined for the instruction: '" + instr + "'");
+		long cost = costFunction.apply(operands);
+		for (RewriterStatement stmt : operands)
+			cost += stmt.getCost();
+		return cost;
 	}
 
 }

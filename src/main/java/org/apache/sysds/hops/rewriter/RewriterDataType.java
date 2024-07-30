@@ -3,12 +3,14 @@ package org.apache.sysds.hops.rewriter;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 public class RewriterDataType implements RewriterStatement {
 	private String id;
 	private String type;
 	private boolean consolidated = false;
+	private int hashCode;
 
 	@Override
 	public String getId() {
@@ -34,6 +36,19 @@ public class RewriterDataType implements RewriterStatement {
 			throw new IllegalArgumentException("The id of a data type cannot be empty");
 		if (type == null ||type.isEmpty())
 			throw new IllegalArgumentException("The type of a data type cannot be empty");
+
+		hashCode = Objects.hash(type);
+	}
+
+	@Override
+	public int recomputeHashCodes() {
+		hashCode = Objects.hash(type);
+		return hashCode;
+	}
+
+	@Override
+	public int hashCode() {
+		return hashCode;
 	}
 
 	@Override
@@ -63,6 +78,11 @@ public class RewriterDataType implements RewriterStatement {
 	@Override
 	public RewriterStatement copyNode() {
 		return new RewriterDataType().withId(id).ofType(type);
+	}
+
+	@Override
+	public long getCost() {
+		return 0;
 	}
 
 	@Override
