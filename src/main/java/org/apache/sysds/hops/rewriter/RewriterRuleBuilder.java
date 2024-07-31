@@ -40,10 +40,8 @@ public class RewriterRuleBuilder {
 		if (toRoot == null)
 			throw new IllegalArgumentException("To-root statement cannot be null");
 		getCurrentInstruction().consolidate();
-		fromRoot.resetRefCtrs();
-		fromRoot.computeRefCtrs();
-		toRoot.resetRefCtrs();
-		toRoot.computeRefCtrs();
+		fromRoot.prepareForHashing();
+		toRoot.prepareForHashing();
 		fromRoot.recomputeHashCodes();
 		toRoot.recomputeHashCodes();
 		return new RewriterRule(ruleName, fromRoot, toRoot, isUnidirectional);
@@ -53,8 +51,7 @@ public class RewriterRuleBuilder {
 		if (!buildSingleDAG)
 			throw new IllegalArgumentException("Cannot build a DAG if rule was specified");
 		getCurrentInstruction().consolidate();
-		fromRoot.resetRefCtrs();
-		fromRoot.computeRefCtrs();
+		fromRoot.prepareForHashing();
 		fromRoot.recomputeHashCodes();
 		return fromRoot;
 	}

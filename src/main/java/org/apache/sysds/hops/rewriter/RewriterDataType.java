@@ -37,12 +37,12 @@ public class RewriterDataType extends RewriterStatement {
 		if (type == null ||type.isEmpty())
 			throw new IllegalArgumentException("The type of a data type cannot be empty");
 
-		hashCode = Objects.hash(refCtr, type);
+		hashCode = Objects.hash(rid, refCtr, type);
 	}
 
 	@Override
 	public int recomputeHashCodes() {
-		hashCode = Objects.hash(refCtr, type);
+		hashCode = Objects.hash(rid, refCtr, type);
 		return hashCode;
 	}
 

@@ -9,6 +9,7 @@ import java.util.function.Function;
 
 public abstract class RewriterStatement {
 
+	protected int rid = 0;
 	protected int refCtr = 0;
 
 	static RewriterStatementLink resolveNode(RewriterStatementLink link, DualHashBidiMap<RewriterStatementLink, RewriterStatementLink> links) {
@@ -123,15 +124,42 @@ public abstract class RewriterStatement {
 		return foundMatch;
 	}
 
-	public void resetRefCtrs() {
+	public void prepareForHashing() {
+		resetRefCtrs();
+		computeRefCtrs();
+		resetIds();
+		computeIds(1);
+	}
+
+	protected void resetRefCtrs() {
 		refCtr = 0;
 		if (getOperands() != null)
 			getOperands().forEach(RewriterStatement::resetRefCtrs);
 	}
 
-	public void computeRefCtrs() {
+	protected void computeRefCtrs() {
 		refCtr++;
 		if (getOperands() != null)
 			getOperands().forEach(RewriterStatement::computeRefCtrs);
+	}
+
+	protected void resetIds() {
+		rid = 0;
+		if (getOperands() != null)
+			getOperands().forEach(RewriterStatement::resetIds);
+	}
+
+	protected int computeIds(int id) {
+		if (rid != 0)
+			return id;
+
+		rid = id++;
+
+		if (getOperands() != null) {
+			for (RewriterStatement stmt : getOperands())
+				id = stmt.computeIds(id);
+		}
+
+		return id;
 	}
 }

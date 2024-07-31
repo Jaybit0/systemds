@@ -198,7 +198,7 @@ public class RewriterMain {
 		long findApplicableRulesTime = 0;
 		HashSet<Integer> hashes = new HashSet<>();
 
-		for (int i = 0; i < 1000000 && current != null; i++) {
+		for (int i = 0; i < 10000000 && current != null; i++) {
 			insertTime = 0;
 			findApplicableRulesTime = 0;
 			long total = System.nanoTime();
@@ -249,7 +249,7 @@ public class RewriterMain {
 			total = System.nanoTime() - total;
 
 			if (i % 100 == 0)
-				System.out.print("\r" + db.size() + " unique graphs (Opt: " + optimum + ", Cost: " + optimalCost + ", queueSize: " + queue.size() + ", insertTime: " + (insertTime / current.rule.matches.size()) + ", ruleFindTime: " + (findApplicableRulesTime / current.rule.matches.size()) + ", totalPerIt: " + (total / current.rule.matches.size()) + ", ratio: " + ((double)(insertTime) / total) + ") -> " + hashes.size());
+				System.out.print("\r" + db.size() + " unique graphs (Opt: " + optimum + ", Cost: " + optimalCost + ", queueSize: " + queue.size() + ", insertTime: " + (insertTime / current.rule.matches.size()) + ", ruleFindTime: " + (findApplicableRulesTime / current.rule.matches.size()) + ", totalPerIt: " + (total / current.rule.matches.size()) + ")");
 
 			current = queue.poll();
 		}
@@ -260,5 +260,6 @@ public class RewriterMain {
 		System.out.println("Original cost: " + instr.getCost());
 		System.out.println("Optimum: " + optimum);
 		System.out.println("Cost: " + optimalCost);
+		System.out.println("Unique hashes: " + hashes.size());
 	}
 }

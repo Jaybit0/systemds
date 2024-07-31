@@ -67,14 +67,14 @@ public class RewriterInstruction extends RewriterStatement {
 
 		getResult().consolidate();
 
-		hashCode = Objects.hash(refCtr, instr, result, operands);
+		hashCode = Objects.hash(rid, refCtr, instr, result, operands);
 		consolidated = true;
 	}
 	@Override
 	public int recomputeHashCodes() {
 		result.recomputeHashCodes();
 		operands.forEach(RewriterStatement::recomputeHashCodes);
-		hashCode = Objects.hash(refCtr, instr, result, operands);
+		hashCode = Objects.hash(rid, refCtr, instr, result, operands);
 		return hashCode;
 	}
 
