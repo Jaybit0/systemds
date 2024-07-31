@@ -66,6 +66,8 @@ public class RewriterRule {
 				}
 				return null;
 			});
+			cpy.resetRefCtrs();
+			cpy.computeRefCtrs();
 			cpy.recomputeHashCodes();
 			return cpy;
 		}
@@ -90,6 +92,8 @@ public class RewriterRule {
 			}
 			return null;
 		});
+		cpy2.resetRefCtrs();
+		cpy2.computeRefCtrs();
 		cpy2.recomputeHashCodes();
 		return cpy2;
 	}
@@ -97,6 +101,8 @@ public class RewriterRule {
 	private RewriterInstruction applyInplace(RewriterStatement.MatchingSubexpression match, RewriterInstruction rootInstruction, RewriterInstruction dest) {
 		if (match.getMatchParent() == null || match.getMatchParent() == match.getMatchRoot()) {
 			RewriterInstruction cpy = (RewriterInstruction)dest.nestedCopyOrInject(new HashMap<>(), obj -> match.getAssocs().get(obj));
+			cpy.resetRefCtrs();
+			cpy.computeRefCtrs();
 			cpy.recomputeHashCodes();
 			return cpy;
 		}
@@ -108,6 +114,8 @@ public class RewriterRule {
 			if (operands.get(i) == )
 		}*/
 		match.getMatchParent().getOperands().set(match.getRootIndex(), dest.nestedCopyOrInject(new HashMap<>(), obj -> match.getAssocs().get(obj)));
+		rootInstruction.resetRefCtrs();
+		rootInstruction.computeRefCtrs();
 		rootInstruction.recomputeHashCodes();
 		return rootInstruction;
 		/*if (rootNode != null && mRoot != rootNode) {

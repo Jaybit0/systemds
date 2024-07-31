@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
-public class RewriterDataType implements RewriterStatement {
+public class RewriterDataType extends RewriterStatement {
 	private String id;
 	private String type;
 	private boolean consolidated = false;
@@ -37,12 +37,12 @@ public class RewriterDataType implements RewriterStatement {
 		if (type == null ||type.isEmpty())
 			throw new IllegalArgumentException("The type of a data type cannot be empty");
 
-		hashCode = Objects.hash(type);
+		hashCode = Objects.hash(refCtr, type);
 	}
 
 	@Override
 	public int recomputeHashCodes() {
-		hashCode = Objects.hash(type);
+		hashCode = Objects.hash(refCtr, type);
 		return hashCode;
 	}
 

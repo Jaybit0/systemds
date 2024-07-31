@@ -2,11 +2,14 @@ package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public interface RewriterStatement {
+public abstract class RewriterStatement {
+
+	protected int refCtr = 0;
 
 	static RewriterStatementLink resolveNode(RewriterStatementLink link, DualHashBidiMap<RewriterStatementLink, RewriterStatementLink> links) {
 		if (links == null)
@@ -37,7 +40,7 @@ public interface RewriterStatement {
 	}
 
 
-	class MatchingSubexpression {
+	static class MatchingSubexpression {
 		private final RewriterInstruction matchRoot;
 		private final RewriterInstruction matchParent;
 		private final int rootIndex;
@@ -71,23 +74,28 @@ public interface RewriterStatement {
 		}
 	}
 
-	String getId();
-	String getResultingDataType();
-	boolean isLiteral();
-	void consolidate();
-	boolean isConsolidated();
+	public abstract String getId();
+	public abstract String getResultingDataType();
+	public abstract boolean isLiteral();
+	public abstract void consolidate();
+	public abstract boolean isConsolidated();
 	@Deprecated
-	RewriterStatement clone();
-	RewriterStatement copyNode();
+	public abstract RewriterStatement clone();
+	public abstract RewriterStatement copyNode();
 	// Performs a nested copy until a condition is met
-	RewriterStatement nestedCopyOrInject(Map<RewriterStatement, RewriterStatement> copiedObjects, Function<RewriterStatement, RewriterStatement> injector);
+	public abstract RewriterStatement nestedCopyOrInject(Map<RewriterStatement, RewriterStatement> copiedObjects, Function<RewriterStatement, RewriterStatement> injector);
 	//String toStringWithLinking(int dagId, DualHashBidiMap<RewriterStatementLink, RewriterStatementLink> links);
 
 	// Returns the root of the matching sub-statement, null if there is no match
-	boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap);
-	int recomputeHashCodes();
-	long getCost();
-	default boolean matchSubexpr(RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap) {
+	public abstract boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap);
+	public abstract int recomputeHashCodes();
+	public abstract long getCost();
+
+	@Nullable
+	public List<RewriterStatement> getOperands() {
+		return null;
+	}
+	public boolean matchSubexpr(RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap) {
 		if (dependencyMap == null)
 			dependencyMap = new DualHashBidiMap<>();
 		else
@@ -113,5 +121,17 @@ public interface RewriterStatement {
 		}
 
 		return foundMatch;
+	}
+
+	public void resetRefCtrs() {
+		refCtr = 0;
+		if (getOperands() != null)
+			getOperands().forEach(RewriterStatement::resetRefCtrs);
+	}
+
+	public void computeRefCtrs() {
+		refCtr++;
+		if (getOperands() != null)
+			getOperands().forEach(RewriterStatement::computeRefCtrs);
 	}
 }

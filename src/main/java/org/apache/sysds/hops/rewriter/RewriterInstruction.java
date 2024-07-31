@@ -11,7 +11,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class RewriterInstruction implements RewriterStatement {
+public class RewriterInstruction extends RewriterStatement {
 	private static final HashMap<String, Function<List<RewriterStatement>, Long>> instrCosts = new HashMap<>()
 	{
 		{
@@ -67,14 +67,14 @@ public class RewriterInstruction implements RewriterStatement {
 
 		getResult().consolidate();
 
-		hashCode = Objects.hash(instr, result, operands);
+		hashCode = Objects.hash(refCtr, instr, result, operands);
 		consolidated = true;
 	}
 	@Override
 	public int recomputeHashCodes() {
 		result.recomputeHashCodes();
 		operands.forEach(RewriterStatement::recomputeHashCodes);
-		hashCode = Objects.hash(instr, result, operands);
+		hashCode = Objects.hash(refCtr, instr, result, operands);
 		return hashCode;
 	}
 
@@ -177,6 +177,7 @@ public class RewriterInstruction implements RewriterStatement {
 		return links;
 	}*/
 
+	@Override
 	public ArrayList<RewriterStatement> getOperands() {
 		return operands;
 	}

@@ -1,6 +1,7 @@
 package org.apache.sysds.hops.rewriter;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.PriorityQueue;
 import java.util.stream.Collectors;
 
@@ -193,17 +194,30 @@ public class RewriterMain {
 		PriorityQueue<RewriterQueuedTransformation> queue = applicableRules.stream().map(r -> new RewriterQueuedTransformation(instr, r)).sorted().collect(Collectors.toCollection(PriorityQueue::new));
 
 		RewriterQueuedTransformation current = queue.poll();
+		long insertTime = 0;
+		long findApplicableRulesTime = 0;
+		HashSet<Integer> hashes = new HashSet<>();
 
-		for (int i = 0; i < 10000 && current != null; i++) {
+		for (int i = 0; i < 1000000 && current != null; i++) {
+			insertTime = 0;
+			findApplicableRulesTime = 0;
+			long total = System.nanoTime();
+			long trans = 0;
 			for (RewriterStatement.MatchingSubexpression match : current.rule.matches) {
+				long delta = System.nanoTime();
 				RewriterInstruction transformed = current.rule.forward ? current.rule.rule.applyForward(match, current.root, false) : current.rule.rule.applyBackward(match, current.root, false);
+				hashes.add(transformed.hashCode());
+				trans += System.nanoTime() - delta;
 
+				delta = System.nanoTime();
 				if (!db.insertEntry(transformed))
 				{
 					//System.out.println("Skip: " + transformed);
 					//System.out.println("======");
+					insertTime += System.nanoTime() - delta;
 					break; // Then this DAG has already been visited
 				}
+				insertTime += System.nanoTime() - delta;
 
 				/*System.out.println("Source: " + current.root);
 				//System.out.println(current.rule);
@@ -224,12 +238,20 @@ public class RewriterMain {
 					optimum = transformed;
 				}
 
-				queue.addAll(ruleSet.findApplicableRules(transformed).stream().map(r -> new RewriterQueuedTransformation(transformed, r)).collect(Collectors.toList()));
+				delta = System.nanoTime();
+				applicableRules = ruleSet.findApplicableRules(transformed);
+				findApplicableRulesTime += System.nanoTime() - delta;
+
+				if (applicableRules.size() > 0)
+					queue.addAll(applicableRules.stream().map(r -> new RewriterQueuedTransformation(transformed, r)).collect(Collectors.toList()));
 			}
 
-			current = queue.poll();
+			total = System.nanoTime() - total;
 
-			System.out.print("\r" + db.size() + " unique graphs (Opt: " + optimum + ", Cost: " + optimalCost + ", queueSize: " + queue.size() + ")");
+			if (i % 100 == 0)
+				System.out.print("\r" + db.size() + " unique graphs (Opt: " + optimum + ", Cost: " + optimalCost + ", queueSize: " + queue.size() + ", insertTime: " + (insertTime / current.rule.matches.size()) + ", ruleFindTime: " + (findApplicableRulesTime / current.rule.matches.size()) + ", totalPerIt: " + (total / current.rule.matches.size()) + ", ratio: " + ((double)(insertTime) / total) + ") -> " + hashes.size());
+
+			current = queue.poll();
 		}
 
 		System.out.println();
