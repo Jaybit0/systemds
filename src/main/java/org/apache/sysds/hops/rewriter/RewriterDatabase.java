@@ -13,4 +13,6 @@ public class RewriterDatabase {
 	public boolean insertEntry(RewriterInstruction instr) {
 		return db.add(new RewriterInstructionEntry(instr));
 	}
+
+	public int size() {return db.size(); }
 }

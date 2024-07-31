@@ -1,14 +1,14 @@
 package org.apache.sysds.hops.rewriter;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.PriorityQueue;
-import java.util.Queue;
 import java.util.stream.Collectors;
 
 public class RewriterMain {
 
 	private static RewriterRuleSet ruleSet;
+	private static RewriterRule distrib;
+	private static RewriterRule commutMul;
 
 	static {
 		RewriterRule ruleAddCommut = new RewriterRuleBuilder()
@@ -112,6 +112,9 @@ public class RewriterMain {
 					.asRootInstruction()
 				.build();
 
+		distrib = ruleDistrib;
+		commutMul = ruleMulCommut;
+
 		ArrayList<RewriterRule> rules = new ArrayList<>();
 		rules.add(ruleAddCommut);
 		rules.add(ruleAddAssoc);
@@ -123,9 +126,6 @@ public class RewriterMain {
 	}
 
 	public static void main(String[] args) {
-
-		System.out.println("Rules: ");
-
 		/*RewriterInstruction instr = new RewriterRuleBuilder()
 				.asDAGBuilder()
 				.withInstruction("+")
@@ -152,114 +152,91 @@ public class RewriterMain {
 				.withInstruction("*")
 					.addOp("b")
 						.ofType("float")
+					.addExistingOp("c")
+					.as("b*c")
+				.withInstruction("*")
 					.addExistingOp("a")
-					.as("b*a")
+					.addExistingOp("c")
+					.as("a*c")
+				.withInstruction("*")
+					.addOp("d")
+						.ofType("float")
+					.addExistingOp("a")
+					.as("d*a")
 				.withInstruction("+")
 					.addExistingOp("c*a")
-					.addExistingOp("b*a")
+					.addExistingOp("b*c")
+					.as("par1")
+				.withInstruction("+")
+					.addExistingOp("par1")
+					.addExistingOp("a*c")
+					.as("par2")
+				.withInstruction("+")
+					.addExistingOp("par1")
+					.addExistingOp("par2")
+					.as("par3")
+				.withInstruction("+")
+					.addExistingOp("par3")
+					.addExistingOp("d*a")
 					.asRootInstruction()
 				.buildDAG();
 
+		RewriterInstruction optimum = instr;
+		long optimalCost = instr.getCost();
+
 		RewriterDatabase db = new RewriterDatabase();
 		db.insertEntry(instr);
+
+		long time = System.currentTimeMillis();
 
 		ArrayList<RewriterRuleSet.ApplicableRule> applicableRules = ruleSet.findApplicableRules(instr);
 		PriorityQueue<RewriterQueuedTransformation> queue = applicableRules.stream().map(r -> new RewriterQueuedTransformation(instr, r)).sorted().collect(Collectors.toCollection(PriorityQueue::new));
 
 		RewriterQueuedTransformation current = queue.poll();
 
-		while (current != null) {
-			System.out.println("Applying: " + current.rule.rule + " (" + current.rule.matches.size() + ")");
+		for (int i = 0; i < 10000 && current != null; i++) {
 			for (RewriterStatement.MatchingSubexpression match : current.rule.matches) {
-				// TODO: Or here is something wrong
 				RewriterInstruction transformed = current.rule.forward ? current.rule.rule.applyForward(match, current.root, false) : current.rule.rule.applyBackward(match, current.root, false);
 
-				if (!db.insertEntry(transformed)) // TODO: I think (a*c)+(b*c) equals (c*a)+(b*c) which disregards valid transformations
+				if (!db.insertEntry(transformed))
 				{
-					System.out.println("Skip: " + transformed);
+					//System.out.println("Skip: " + transformed);
+					//System.out.println("======");
 					break; // Then this DAG has already been visited
 				}
 
-				System.out.println("Transformation: " + transformed);
+				/*System.out.println("Source: " + current.root);
+				//System.out.println(current.rule);
+				System.out.println("Transformed: " + transformed);
 				System.out.println("Cost: " + transformed.getCost());
+				System.out.println();
+				System.out.println("=====");
+				System.out.println();*/
+				//System.out.println(transformed);
 
-				queue.addAll(ruleSet.findApplicableRules(instr).stream().map(r -> new RewriterQueuedTransformation(instr, r)).collect(Collectors.toList()));
+				/*System.out.println("Available transformations:");
+				ruleSet.findApplicableRules(transformed).forEach(System.out::println);
+				System.out.println("======");*/
+
+				long newCost = transformed.getCost();
+				if (newCost < optimalCost) {
+					optimalCost = newCost;
+					optimum = transformed;
+				}
+
+				queue.addAll(ruleSet.findApplicableRules(transformed).stream().map(r -> new RewriterQueuedTransformation(transformed, r)).collect(Collectors.toList()));
 			}
 
 			current = queue.poll();
+
+			System.out.print("\r" + db.size() + " unique graphs (Opt: " + optimum + ", Cost: " + optimalCost + ", queueSize: " + queue.size() + ")");
 		}
 
-		//applicableRules.forEach(System.out::println);
-
-		/*ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
-		if (rule1.getStmt1().matchSubexpr(instr, null, -1, matches, new DualHashBidiMap<>())) {
-			System.out.println("Matches detected!");
-			int ctr = 1;
-			for (RewriterStatement.MatchingSubexpression match : matches) {
-				System.out.println("Match " + ctr++ + ": ");
-				System.out.println(" " + match.getMatchRoot() + " = " + rule1.getStmt1());
-				System.out.println();
-				for (Map.Entry<RewriterStatement, RewriterStatement> entry : match.getAssocs().entrySet()) {
-					System.out.println(" - " + entry.getKey() + "::" + entry.getKey().getResultingDataType() + " -> " + entry.getValue().getId() + "::" + entry.getValue().getResultingDataType());
-				}
-				System.out.println();
-			}
-
-			System.out.println("Applying the first transformation rule: ");
-			System.out.print(instr + " => ");
-			instr = rule1.applyForward(matches.get(1), instr, false);
-			System.out.println(instr);
-			//System.out.println(instr.linksToString());
-
-			matches.clear();
-			ctr = 1;
-
-			rule1.getStmt1().matchSubexpr(instr, null, -1, matches, new DualHashBidiMap<>());
-			System.out.println("Number of matches: " + matches.size());
-			for (RewriterStatement.MatchingSubexpression match : matches) {
-				System.out.println("Match " + ctr++ + ": ");
-				//System.out.println(" " + match.getMatchRoot().toStringWithLinking(instr.getLinks()) + " = " + rule1.getStmt1());
-				System.out.println();
-				for (Map.Entry<RewriterStatement, RewriterStatement> entry : match.getAssocs().entrySet()) {
-					System.out.println(" - " + entry.getKey() + "::" + entry.getKey().getResultingDataType() + " -> " + entry.getValue().getId() + "::" + entry.getValue().getResultingDataType());
-				}
-				System.out.println();
-			}
-			System.out.println("Applying the second transformation rule: ");
-			System.out.print(instr + " => ");
-			//System.out.println(instr.linksToString());
-			instr = rule1.applyForward(matches.get(0), instr, false);
-			System.out.println(instr);
-			//System.out.println(instr.linksToString());
-			//System.out.println(instr);
-		}*/
-
-		/*RewriterRule rule2 = new RewriterRuleBuilder()
-				.withInstruction("+")
-					.addOp("a")
-						.ofType("float")
-					.addOp("b")
-						.ofType("float")
-					.as("a+b")
-				.withInstruction("*")
-					.addExistingOp("a+b")
-					.addOp("c")
-						.ofType("float")
-					.asRootInstruction()
-				.toInstruction("*")
-					.addExistingOp("a")
-					.addExistingOp("c")
-					.as("a*c")
-				.toInstruction("*")
-					.addExistingOp("b")
-					.addExistingOp("c")
-					.as("b*c")
-				.toInstruction("+")
-					.addExistingOp("a*c")
-					.addExistingOp("b*c")
-					.asRootInstruction()
-				.build();
-
-		System.out.println(rule2);*/
+		System.out.println();
+		System.out.println("All possible transformations found in " + (System.currentTimeMillis() - time) + "ms");
+		System.out.println("Original graph: " + instr);
+		System.out.println("Original cost: " + instr.getCost());
+		System.out.println("Optimum: " + optimum);
+		System.out.println("Cost: " + optimalCost);
 	}
 }

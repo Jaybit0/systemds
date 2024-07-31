@@ -61,6 +61,8 @@ public class RewriterDataType implements RewriterStatement {
 		if (stmt.getResultingDataType().equals(type)) {
 			RewriterStatement assoc = dependencyMap.get(this);
 			if (assoc == null) {
+				if (dependencyMap.containsValue(stmt))
+					return false; // Then the statement variable is already associated with another variable
 				dependencyMap.put(this, stmt);
 				return true;
 			} else if (assoc == stmt) {

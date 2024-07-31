@@ -90,24 +90,28 @@ public interface RewriterStatement {
 	default boolean matchSubexpr(RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap) {
 		if (dependencyMap == null)
 			dependencyMap = new DualHashBidiMap<>();
-
-		if (match(root, dependencyMap)) {
-			matches.add(new MatchingSubexpression(root, parent, rootIndex, dependencyMap));
-			dependencyMap = null;
-		}
-
-		if (dependencyMap == null)
-			dependencyMap = new DualHashBidiMap<>();
 		else
 			dependencyMap.clear();
 
+		boolean foundMatch = match(root, dependencyMap);
+
+		if (foundMatch) {
+			matches.add(new MatchingSubexpression(root, parent, rootIndex, dependencyMap));
+			dependencyMap = null;
+
+		}
+
 		int idx = 0;
+
 		for (RewriterStatement stmt : root.getOperands()) {
 			if (stmt instanceof RewriterInstruction)
-				matchSubexpr((RewriterInstruction)stmt, root, idx, matches, dependencyMap);
+				if (matchSubexpr((RewriterInstruction) stmt, root, idx, matches, dependencyMap)) {
+					dependencyMap = new DualHashBidiMap<>();
+					foundMatch = true;
+				}
 			idx++;
 		}
 
-		return !matches.isEmpty();
+		return foundMatch;
 	}
 }
