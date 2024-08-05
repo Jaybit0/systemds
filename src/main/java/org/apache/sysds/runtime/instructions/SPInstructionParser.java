@@ -19,7 +19,10 @@
 
 package org.apache.sysds.runtime.instructions;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.sysds.common.Types;
 import org.apache.sysds.lops.Checkpoint;
@@ -352,6 +355,18 @@ public class SPInstructionParser extends InstructionParser
 		String2SPInstructionType.put( "castdtf"	, SPType.Cast);
 
 		String2SPInstructionType.put( "spoof"	, SPType.SpoofFused);
+
+		/*try (FileWriter writer = new FileWriter("/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/instructions.csv")) {
+			writer.append("Key,Value\n"); // Header
+			for (Map.Entry<String, SPType> entry : String2SPInstructionType.entrySet()) {
+				writer.append(entry.getKey())
+						.append(',')
+						.append(entry.getValue().name())
+						.append('\n');
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}*/
 	}
 
 	public static SPInstruction parseSingleInstruction (String str ) {
