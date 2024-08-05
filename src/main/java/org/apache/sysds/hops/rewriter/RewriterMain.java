@@ -127,6 +127,7 @@ public class RewriterMain {
 	}
 
 	public static void main(String[] args) {
+		System.out.println(ruleSet);
 		/*RewriterInstruction instr = new RewriterRuleBuilder()
 				.asDAGBuilder()
 				.withInstruction("+")

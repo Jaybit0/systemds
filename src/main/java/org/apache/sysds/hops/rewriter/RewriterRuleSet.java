@@ -62,4 +62,12 @@ public class RewriterRuleSet {
 
 		return applicableRules;
 	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder("RuleSet:\n");
+		for (RewriterRule rule : rules)
+			builder.append(rule.toString() + "\n");
+		return builder.toString();
+	}
 }
