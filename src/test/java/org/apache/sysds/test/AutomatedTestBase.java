@@ -26,6 +26,7 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.InetSocketAddress;
@@ -87,6 +88,7 @@ import org.apache.sysds.runtime.util.DataConverter;
 import org.apache.sysds.runtime.util.HDFSTool;
 import org.apache.sysds.utils.ParameterBuilder;
 import org.apache.sysds.utils.Statistics;
+import org.apache.sysds.utils.stats.NGramBuilder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -1380,6 +1382,15 @@ public abstract class AutomatedTestBase {
 		String errMessage, int maxSparkInst) {
 		try{
 			final List<ByteArrayOutputStream> out = new ArrayList<>();
+			ArrayList<String> pArgs = new ArrayList<>(Arrays.asList(programArgs));
+			if (!pArgs.contains("-ngrams")) {
+				pArgs.add(0, "-ngrams");
+				pArgs.add(1, "1,2,3,4,5,6,7,8,9,10");
+				pArgs.add(2, "1");
+			}
+
+			programArgs = pArgs.toArray(new String[0]);
+
 			Thread t = new Thread(
 				() -> out.add(runTestWithTimeout(newWay, exceptionExpected, expectedException, errMessage, maxSparkInst)),
 				"TestRunner_main");
@@ -1398,6 +1409,18 @@ public abstract class AutomatedTestBase {
 			if(out.size() <= 0) // hack in case the test failed return empty string.
 				fail("test failed");
 
+			NGramBuilder<String, Statistics.NGramStats>[] builders = Statistics.mergeNGrams();
+			for (int i = 0; i < builders.length; i++) {
+				try (FileWriter writer = new FileWriter("/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/norewrites/" + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv")) {
+					writer.write(Statistics.nGramToCSV(builders[i]));
+				} catch (IOException e) {
+					System.out.println("An error occurred.");
+					e.printStackTrace();
+				}
+			}
+
+			testCtr++;
+
 			return out.get(0);
 		}
 		catch(TimeoutException e){
@@ -1407,6 +1430,8 @@ public abstract class AutomatedTestBase {
 			throw new RuntimeException(e);
 		}
 	}
+
+	private static int testCtr = 1;
 	
 	private ByteArrayOutputStream runTestWithTimeout(boolean newWay, boolean exceptionExpected, Class<?> expectedException,
 		String errMessage, int maxSparkInst){

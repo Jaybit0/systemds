@@ -627,7 +627,7 @@ public class Statistics
 
 		return NGramBuilder.toCSV(colList.toArray(new String[colList.size()]), mbuilder.getTopK(100000, Statistics.NGramStats.getComparator(), true), e -> {
 			StringBuilder builder = new StringBuilder();
-			builder.append(e.getIdentifier().replace("(", "").replace(")", "").replace(", ", ","));
+			builder.append(e.getIdentifier().substring(1, e.getIdentifier().length()-1).replace(", ", ","));
 			builder.append(",");
 			builder.append(Statistics.getNGramAvgTimes(e.getStats(), e.getOffset(), 9).replace("-", "").replace("(", "").replace(")", ""));
 			builder.append(",");
