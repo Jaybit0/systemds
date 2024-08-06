@@ -1409,8 +1409,14 @@ public abstract class AutomatedTestBase {
 			if(out.size() <= 0) // hack in case the test failed return empty string.
 				fail("test failed");
 
+			if (!lastTestName.equals(this.getClass().getSimpleName())) {
+				testCtr = 1;
+				lastTestName = this.getClass().getSimpleName();
+			}
+
 			NGramBuilder<String, Statistics.NGramStats>[] builders = Statistics.mergeNGrams();
 			for (int i = 0; i < builders.length; i++) {
+				System.out.println("Writing to: " + "/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/norewrites/" + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv");
 				try (FileWriter writer = new FileWriter("/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/norewrites/" + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv")) {
 					writer.write(Statistics.nGramToCSV(builders[i]));
 				} catch (IOException e) {
@@ -1418,6 +1424,8 @@ public abstract class AutomatedTestBase {
 					e.printStackTrace();
 				}
 			}
+
+			Statistics.reset();
 
 			testCtr++;
 
@@ -1432,6 +1440,7 @@ public abstract class AutomatedTestBase {
 	}
 
 	private static int testCtr = 1;
+	private static String lastTestName = "";
 	
 	private ByteArrayOutputStream runTestWithTimeout(boolean newWay, boolean exceptionExpected, Class<?> expectedException,
 		String errMessage, int maxSparkInst){

@@ -189,6 +189,9 @@ public class NGramBuilder<T, U> {
 
 			builder.append(")");
 
+			if (builder.toString().endsWith("])"))
+				throw new IllegalArgumentException();
+
 			registerElement(builder.toString(), stat);
 		}
 	}

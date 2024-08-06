@@ -335,6 +335,8 @@ public class Statistics
 		FederatedStatistics.reset();
 
 		_instStatsNGram.clear();
+		_instStatsLineageTracker.clear();
+		_instStats.clear();
 	}
 
 	public static void resetJITCompileTime(){
@@ -449,21 +451,21 @@ public class Statistics
 		return item == null ? Optional.empty() : Optional.of(item);
 	}
 
-	public static void clearNGramRecording() {
+	public static synchronized void clearNGramRecording() {
 		NGramBuilder<String, NGramStats>[] bl = _instStatsNGram.get(Thread.currentThread().getName());
 		for (NGramBuilder<String, NGramStats> b : bl)
 			b.clearCurrentRecording();
 	}
 
-	public static void extendLineageItem(LineageItem li, LineageNGramExtension ext) {
+	public static synchronized void extendLineageItem(LineageItem li, LineageNGramExtension ext) {
 		_lineageExtensions.put(li, ext);
 	}
 
-	public static LineageNGramExtension getExtendedLineage(LineageItem li) {
+	public static synchronized LineageNGramExtension getExtendedLineage(LineageItem li) {
 		return _lineageExtensions.get(li);
 	}
 
-	public static void maintainNGramsFromLineage(LineageItem li) {
+	public static synchronized void maintainNGramsFromLineage(LineageItem li) {
 		NGramBuilder<String, NGramStats>[] tmp = _instStatsNGram.computeIfAbsent(Thread.currentThread().getName(), k -> {
 			NGramBuilder<String, NGramStats>[] threadEntry = new NGramBuilder[DMLScript.STATISTICS_NGRAM_SIZES.length];
 			for (int i = 0; i < threadEntry.length; i++) {
