@@ -2,10 +2,10 @@ package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 
-public class RewriterInstructionEntry {
-	final RewriterInstruction instr;
+public class RewriterStatementEntry {
+	final RewriterStatement instr;
 
-	public RewriterInstructionEntry(RewriterInstruction instr) {
+	public RewriterStatementEntry(RewriterStatement instr) {
 		this.instr = instr;
 	}
 
@@ -21,8 +21,8 @@ public class RewriterInstructionEntry {
 
 		if (o instanceof RewriterStatement)
 			return instr.match((RewriterStatement)o, new DualHashBidiMap<>());
-		if (o instanceof RewriterInstructionEntry)
-			return instr.match(((RewriterInstructionEntry)o).instr, new DualHashBidiMap<>());
+		if (o instanceof RewriterStatementEntry)
+			return instr.match(((RewriterStatementEntry)o).instr, new DualHashBidiMap<>());
 		return false;
 	}
 }

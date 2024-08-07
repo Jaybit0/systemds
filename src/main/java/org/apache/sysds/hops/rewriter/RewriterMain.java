@@ -113,6 +113,18 @@ public class RewriterMain {
 					.asRootInstruction()
 				.build();
 
+		RewriterRule ruleOneElement = new RewriterRuleBuilder()
+				.setUnidirectional(false)
+					.withDataType("a", "float")
+				.toInstruction("*")
+					.addOp("1")
+						.ofType("float")
+						.asLiteral(1.0f)
+					.addExistingOp("a")
+					.as("1*a")
+					.asRootInstruction()
+				.build();
+
 		distrib = ruleDistrib;
 		commutMul = ruleMulCommut;
 
@@ -122,13 +134,14 @@ public class RewriterMain {
 		rules.add(ruleMulCommut);
 		rules.add(ruleMulAssoc);
 		rules.add(ruleDistrib);
+		rules.add(ruleOneElement);
 
 		ruleSet = new RewriterRuleSet(rules);
 	}
 
 	public static void main(String[] args) {
 		System.out.println(ruleSet);
-		/*RewriterInstruction instr = new RewriterRuleBuilder()
+		/*RewriterInstruction instr = (RewriterInstruction)new RewriterRuleBuilder()
 				.asDAGBuilder()
 				.withInstruction("+")
 					.addOp("c")
@@ -136,14 +149,26 @@ public class RewriterMain {
 					.addOp("d")
 						.ofType("float")
 					.as("c+d")
+				.withInstruction("*")
+					.addExistingOp("c+d")
+					.addOp("1")
+						.ofType("float")
+						.asLiteral(1.0f)
+					.as("(c+d)*1")
 				.withInstruction("+")
 					.addOp("e")
 						.ofType("float")
-					.addExistingOp("c+d")
+					.addExistingOp("(c+d)*1")
 					.asRootInstruction()
-				.buildDAG();*/
+				.buildDAG();
 
-		RewriterInstruction instr = new RewriterRuleBuilder()
+		System.out.println("Origin: " + instr);
+		System.out.println("Simplified: " + instr.simplify());*/
+
+		/*if (true)
+			return;*/
+
+		RewriterInstruction instr = (RewriterInstruction)new RewriterRuleBuilder()
 				.asDAGBuilder()
 				.withInstruction("*")
 					.addOp("c")
@@ -183,7 +208,7 @@ public class RewriterMain {
 					.asRootInstruction()
 				.buildDAG();
 
-		RewriterInstruction optimum = instr;
+		RewriterStatement optimum = instr;
 		long optimalCost = instr.getCost();
 
 		RewriterDatabase db = new RewriterDatabase();
@@ -192,33 +217,38 @@ public class RewriterMain {
 		long time = System.currentTimeMillis();
 
 		ArrayList<RewriterRuleSet.ApplicableRule> applicableRules = ruleSet.findApplicableRules(instr);
-		PriorityQueue<RewriterQueuedTransformation> queue = applicableRules.stream().map(r -> new RewriterQueuedTransformation(instr, r)).sorted().collect(Collectors.toCollection(PriorityQueue::new));
+		PriorityQueue<RewriterInstruction> queue = new PriorityQueue<>();//applicableRules.stream().map(r -> new RewriterQueuedTransformation(instr, r)).sorted().collect(Collectors.toCollection(PriorityQueue::new));
+		queue.add((RewriterInstruction) optimum);
 
-		RewriterQueuedTransformation current = queue.poll();
+		RewriterInstruction current = queue.poll();
 		long insertTime = 0;
 		long findApplicableRulesTime = 0;
 		HashSet<Integer> hashes = new HashSet<>();
 
-		for (int i = 0; i < 10000000 && current != null; i++) {
+		for (int i = 0; i < 1000000 && current != null && queue.size() < 1500000; i++) {
+			ArrayList<RewriterRuleSet.ApplicableRule> rules = ruleSet.findApplicableRules(current);
 			insertTime = 0;
 			findApplicableRulesTime = 0;
 			long total = System.nanoTime();
 			long trans = 0;
-			for (RewriterStatement.MatchingSubexpression match : current.rule.matches) {
-				long delta = System.nanoTime();
-				RewriterInstruction transformed = current.rule.forward ? current.rule.rule.applyForward(match, current.root, false) : current.rule.rule.applyBackward(match, current.root, false);
-				hashes.add(transformed.hashCode());
-				trans += System.nanoTime() - delta;
+			//System.out.println("Match size: " + current.rule.matches.size());
+			for (RewriterRuleSet.ApplicableRule rule : rules) {
+				for (RewriterStatement.MatchingSubexpression match : rule.matches) {
+				/*if (current.root.toString().equals("(e + (1.0 * (c + d)))"))
+					System.out.println("HERE");*/
+					long delta = System.nanoTime();
+					RewriterStatement transformed = rule.forward ? rule.rule.applyForward(match, current, false) : rule.rule.applyBackward(match, current, false);
+					hashes.add(transformed.hashCode());
+					trans += System.nanoTime() - delta;
 
-				delta = System.nanoTime();
-				if (!db.insertEntry(transformed))
-				{
-					//System.out.println("Skip: " + transformed);
-					//System.out.println("======");
+					delta = System.nanoTime();
+					if (!db.insertEntry(transformed)) {
+						//System.out.println("Skip: " + transformed);
+						//System.out.println("======");
+						insertTime += System.nanoTime() - delta;
+						break; // Then this DAG has already been visited
+					}
 					insertTime += System.nanoTime() - delta;
-					break; // Then this DAG has already been visited
-				}
-				insertTime += System.nanoTime() - delta;
 
 				/*System.out.println("Source: " + current.root);
 				//System.out.println(current.rule);
@@ -227,30 +257,44 @@ public class RewriterMain {
 				System.out.println();
 				System.out.println("=====");
 				System.out.println();*/
-				//System.out.println(transformed);
+					//System.out.println(transformed);
 
 				/*System.out.println("Available transformations:");
 				ruleSet.findApplicableRules(transformed).forEach(System.out::println);
 				System.out.println("======");*/
 
-				long newCost = transformed.getCost();
-				if (newCost < optimalCost) {
-					optimalCost = newCost;
-					optimum = transformed;
+				/*System.out.println("\rTransformed: " + current.root + " => " + transformed);
+				System.out.println("\tusing " + (current.rule.forward ? current.rule.rule.getStmt1() + " => " + current.rule.rule.getStmt2() : current.rule.rule.getStmt2() + " => " + current.rule.rule.getStmt1()));
+				System.out.println("\tCost: " + transformed.getCost());*/
+
+					long newCost = transformed.getCost();
+					if (newCost < optimalCost) {
+						System.out.println("\rFound reduction: " + current + " => " + transformed);
+						System.out.println("\tusing " + (rule.forward ? rule.rule.getStmt1() + " => " + rule.rule.getStmt2() : rule.rule.getStmt2() + " => " + rule.rule.getStmt1()));
+						optimalCost = newCost;
+						optimum = transformed;
+					}
+
+					delta = System.nanoTime();
+					if (transformed instanceof RewriterInstruction) {
+						queue.add((RewriterInstruction)transformed);
+						/*applicableRules = ruleSet.findApplicableRules((RewriterInstruction) transformed);
+						findApplicableRulesTime += System.nanoTime() - delta;
+
+						if (applicableRules != null && !applicableRules.isEmpty())
+							queue.addAll(applicableRules.stream().map(r -> new RewriterQueuedTransformation((RewriterInstruction) transformed, r)).collect(Collectors.toList()));*/
+					}
+				/*try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+				}*/
 				}
 
-				delta = System.nanoTime();
-				applicableRules = ruleSet.findApplicableRules(transformed);
-				findApplicableRulesTime += System.nanoTime() - delta;
+				total = System.nanoTime() - total;
 
-				if (applicableRules.size() > 0)
-					queue.addAll(applicableRules.stream().map(r -> new RewriterQueuedTransformation(transformed, r)).collect(Collectors.toList()));
+				if (i % 100 == 0)
+					System.out.print("\r" + db.size() + " unique graphs (Opt: " + optimum + ", Cost: " + optimalCost + ", queueSize: " + queue.size() + ")");
 			}
-
-			total = System.nanoTime() - total;
-
-			if (i % 100 == 0)
-				System.out.print("\r" + db.size() + " unique graphs (Opt: " + optimum + ", Cost: " + optimalCost + ", queueSize: " + queue.size() + ", insertTime: " + (insertTime / current.rule.matches.size()) + ", ruleFindTime: " + (findApplicableRulesTime / current.rule.matches.size()) + ", totalPerIt: " + (total / current.rule.matches.size()) + ")");
 
 			current = queue.poll();
 		}

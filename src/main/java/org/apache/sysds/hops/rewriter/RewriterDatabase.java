@@ -4,14 +4,14 @@ import java.util.HashSet;
 
 public class RewriterDatabase {
 
-	private HashSet<RewriterInstructionEntry> db = new HashSet<>();
+	private HashSet<RewriterStatementEntry> db = new HashSet<>();
 
-	public boolean containsEntry(RewriterInstruction instr) {
+	public boolean containsEntry(RewriterStatement instr) {
 		return db.contains(instr);
 	}
 
-	public boolean insertEntry(RewriterInstruction instr) {
-		return db.add(new RewriterInstructionEntry(instr));
+	public boolean insertEntry(RewriterStatement stmt) {
+		return db.add(new RewriterStatementEntry(stmt));
 	}
 
 	public int size() {return db.size(); }

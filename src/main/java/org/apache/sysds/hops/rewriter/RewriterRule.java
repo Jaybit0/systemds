@@ -8,11 +8,11 @@ import java.util.Map;
 public class RewriterRule {
 
 	private final String name;
-	private final RewriterInstruction fromRoot;
-	private final RewriterInstruction toRoot;
+	private final RewriterStatement fromRoot;
+	private final RewriterStatement toRoot;
 	private final boolean unidirectional;
 
-	public RewriterRule(String name, RewriterInstruction fromRoot, RewriterInstruction toRoot, boolean unidirectional) {
+	public RewriterRule(String name, RewriterStatement fromRoot, RewriterStatement toRoot, boolean unidirectional) {
 		this.name = name;
 		this.fromRoot = fromRoot;
 		this.toRoot = toRoot;
@@ -23,11 +23,11 @@ public class RewriterRule {
 		return name;
 	}
 
-	public RewriterInstruction getStmt1() {
+	public RewriterStatement getStmt1() {
 		return fromRoot;
 	}
 
-	public RewriterInstruction getStmt2() {
+	public RewriterStatement getStmt2() {
 		return toRoot;
 	}
 
@@ -35,7 +35,7 @@ public class RewriterRule {
 		return unidirectional;
 	}
 
-	public RewriterInstruction applyForward(RewriterStatement.MatchingSubexpression match, RewriterInstruction rootNode, boolean inplace) {
+	public RewriterStatement applyForward(RewriterStatement.MatchingSubexpression match, RewriterInstruction rootNode, boolean inplace) {
 		return inplace ? applyInplace(match, rootNode, toRoot) : apply(match, rootNode, toRoot);
 	}
 
@@ -43,7 +43,7 @@ public class RewriterRule {
 		return apply(mRoot, mRootParent, assoc, toRoot);
 	}*/
 
-	public RewriterInstruction applyBackward(RewriterStatement.MatchingSubexpression match, RewriterInstruction rootNode, boolean inplace) {
+	public RewriterStatement applyBackward(RewriterStatement.MatchingSubexpression match, RewriterInstruction rootNode, boolean inplace) {
 		return inplace ? applyInplace(match, rootNode, fromRoot) : apply(match, rootNode, fromRoot);
 	}
 
@@ -51,10 +51,10 @@ public class RewriterRule {
 		return applyInplace(mRoot, mRootParent, assoc, fromRoot);
 	}*/
 
-	private RewriterInstruction apply(RewriterStatement.MatchingSubexpression match, RewriterInstruction rootInstruction, RewriterInstruction dest) {
+	private RewriterStatement apply(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest) {
 		if (match.getMatchParent() == null || match.getMatchParent() == match.getMatchRoot()) {
 			final Map<RewriterStatement, RewriterStatement> createdObjects = new HashMap<>();
-			RewriterInstruction cpy = (RewriterInstruction)dest.nestedCopyOrInject(createdObjects, obj -> {
+			RewriterStatement cpy = dest.nestedCopyOrInject(createdObjects, obj -> {
 				RewriterStatement assoc = match.getAssocs().get(obj);
 				if (assoc != null) {
 					RewriterStatement assocCpy = createdObjects.get(assoc);
@@ -66,13 +66,16 @@ public class RewriterRule {
 				}
 				return null;
 			});
+			RewriterStatement tmp = cpy.simplify();
+			if (tmp != null)
+				cpy = tmp;
 			cpy.prepareForHashing();
 			cpy.recomputeHashCodes();
 			return cpy;
 		}
 
 		final Map<RewriterStatement, RewriterStatement> createdObjects = new HashMap<>();
-		RewriterInstruction cpy2 = (RewriterInstruction)rootInstruction.nestedCopyOrInject(createdObjects, obj2 -> {
+		RewriterStatement cpy2 = rootInstruction.nestedCopyOrInject(createdObjects, obj2 -> {
 			if (obj2 == match.getMatchRoot()) {
 				RewriterStatement cpy = dest.nestedCopyOrInject(createdObjects, obj -> {
 					RewriterStatement assoc = match.getAssocs().get(obj);
@@ -91,14 +94,20 @@ public class RewriterRule {
 			}
 			return null;
 		});
+		RewriterStatement tmp = cpy2.simplify();
+		if (tmp != null)
+			cpy2 = tmp;
 		cpy2.prepareForHashing();
 		cpy2.recomputeHashCodes();
 		return cpy2;
 	}
 
-	private RewriterInstruction applyInplace(RewriterStatement.MatchingSubexpression match, RewriterInstruction rootInstruction, RewriterInstruction dest) {
+	private RewriterStatement applyInplace(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest) {
 		if (match.getMatchParent() == null || match.getMatchParent() == match.getMatchRoot()) {
-			RewriterInstruction cpy = (RewriterInstruction)dest.nestedCopyOrInject(new HashMap<>(), obj -> match.getAssocs().get(obj));
+			RewriterStatement cpy = dest.nestedCopyOrInject(new HashMap<>(), obj -> match.getAssocs().get(obj));
+			RewriterStatement cpy2 = cpy.simplify();
+			if (cpy2 != null)
+				cpy = cpy2;
 			cpy.prepareForHashing();
 			cpy.recomputeHashCodes();
 			return cpy;
@@ -111,6 +120,9 @@ public class RewriterRule {
 			if (operands.get(i) == )
 		}*/
 		match.getMatchParent().getOperands().set(match.getRootIndex(), dest.nestedCopyOrInject(new HashMap<>(), obj -> match.getAssocs().get(obj)));
+		RewriterStatement out = rootInstruction.simplify();
+		if (out != null)
+			out = rootInstruction;
 		rootInstruction.prepareForHashing();
 		rootInstruction.recomputeHashCodes();
 		return rootInstruction;

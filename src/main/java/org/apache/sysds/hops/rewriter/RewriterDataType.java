@@ -9,6 +9,7 @@ import java.util.function.Function;
 public class RewriterDataType extends RewriterStatement {
 	private String id;
 	private String type;
+	private Object literal = null;
 	private boolean consolidated = false;
 	private int hashCode;
 
@@ -24,7 +25,17 @@ public class RewriterDataType extends RewriterStatement {
 
 	@Override
 	public boolean isLiteral() {
-		return true;
+		return literal != null;
+	}
+
+	@Override
+	public Object getLiteral() {
+		return literal;
+	}
+
+	@Override
+	public void setLiteral(Object literal) {
+		this.literal = literal;
 	}
 
 	@Override
@@ -59,6 +70,11 @@ public class RewriterDataType extends RewriterStatement {
 	@Override
 	public boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap) {
 		if (stmt.getResultingDataType().equals(type)) {
+			// TODO: This way of literal matching might cause confusion later on
+			if (isLiteral())
+				if (!stmt.isLiteral() || !getLiteral().equals(stmt.getLiteral()))
+					return false;
+
 			RewriterStatement assoc = dependencyMap.get(this);
 			if (assoc == null) {
 				if (dependencyMap.containsValue(stmt))
@@ -74,12 +90,12 @@ public class RewriterDataType extends RewriterStatement {
 
 	@Override
 	public RewriterStatement clone() {
-		return new RewriterDataType().withId(id).ofType(type);
+		return new RewriterDataType().as(id).ofType(type);
 	}
 
 	@Override
 	public RewriterStatement copyNode() {
-		return new RewriterDataType().withId(id).ofType(type);
+		return new RewriterDataType().as(id).ofType(type).asLiteral(literal);
 	}
 
 	@Override
@@ -102,16 +118,23 @@ public class RewriterDataType extends RewriterStatement {
 		RewriterDataType mCopy = new RewriterDataType();
 		mCopy.id = id;
 		mCopy.type = type;
+		mCopy.literal = literal;
 		mCopy.consolidated = consolidated;
 		copiedObjects.put(this, mCopy);
 		return mCopy;
+	}
+
+	@Override
+	public RewriterStatement simplify() {
+		return this;
 	}
 
 	public String getType() {
 		return type;
 	}
 
-	public RewriterDataType withId(String id) {
+	@Override
+	public RewriterDataType as(String id) {
 		if (consolidated)
 			throw new IllegalArgumentException("A data type cannot be modified after consolidation");
 		this.id = id;
@@ -125,7 +148,14 @@ public class RewriterDataType extends RewriterStatement {
 		return this;
 	}
 
+	public RewriterDataType asLiteral(Object literal) {
+		if (consolidated)
+			throw new IllegalArgumentException("A data type cannot be modified after consolidation");
+		this.literal = literal;
+		return this;
+	}
+
 	public String toString() {
-		return getId();
+		return isLiteral() ? getLiteral().toString() : getId();
 	}
 }

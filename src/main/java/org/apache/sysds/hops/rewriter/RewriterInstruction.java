@@ -28,6 +28,34 @@ public class RewriterInstruction extends RewriterStatement {
 		}
 	};
 
+	private static final HashMap<String, Function<RewriterInstruction, RewriterStatement>> simplificationRules = new HashMap<>()
+	{
+		{
+			put("+(float,float)", i -> {
+				RewriterStatement op1 = i.getOperands().get(0);
+				RewriterStatement op2 = i.getOperands().get(1);
+
+				if (op1.isLiteral() && op2.isLiteral()) {
+					op1.setLiteral(((Float)op1.getLiteral()) + ((Float)op2.getLiteral()));
+					return op1;
+				}
+
+				return null;
+			});
+			put("*(float, float)", i -> {
+				RewriterStatement op1 = i.getOperands().get(0);
+				RewriterStatement op2 = i.getOperands().get(1);
+
+				if (op1.isLiteral() && op2.isLiteral()) {
+					op1.setLiteral(((Float)op1.getLiteral()) * ((Float)op2.getLiteral()));
+					return op1;
+				}
+
+				return null;
+			});
+		}
+	};
+
 	private String instr;
 	private RewriterDataType result = new RewriterDataType();
 	private ArrayList<RewriterStatement> operands = new ArrayList<>();
@@ -49,6 +77,11 @@ public class RewriterInstruction extends RewriterStatement {
 	@Override
 	public boolean isLiteral() {
 		return false;
+	}
+
+	@Override
+	public Object getLiteral() {
+		return null;
 	}
 
 	@Override
@@ -182,6 +215,25 @@ public class RewriterInstruction extends RewriterStatement {
 		return operands;
 	}
 
+
+	@Override
+	public RewriterStatement simplify() {
+		for (int i = 0; i < operands.size(); i++) {
+			RewriterStatement stmt = operands.get(i).simplify();
+			if (stmt != null)
+				operands.set(i, stmt);
+		}
+
+		Function<RewriterInstruction, RewriterStatement> rule = simplificationRules.get(typedInstruction());
+		if (rule != null) {
+			RewriterStatement stmt = rule.apply(this);
+
+			if (stmt != null)
+				return stmt;
+		}
+		return this;
+	}
+
 	public RewriterInstruction withInstruction(String instr) {
 		if (consolidated)
 			throw new IllegalArgumentException("An instruction cannot be modified after consolidation");
@@ -199,7 +251,7 @@ public class RewriterInstruction extends RewriterStatement {
 	public RewriterInstruction addOp(String id) {
 		if (consolidated)
 			throw new IllegalArgumentException("An instruction cannot be modified after consolidation");
-		this.operands.add(new RewriterDataType().withId(id));
+		this.operands.add(new RewriterDataType().as(id));
 		return this;
 	}
 
@@ -241,10 +293,11 @@ public class RewriterInstruction extends RewriterStatement {
 		return this.operands.stream().filter(op -> op.getId().equals(id)).findFirst();
 	}
 
+	@Override
 	public RewriterInstruction as(String id) {
 		if (consolidated)
 			throw new IllegalArgumentException("An instruction cannot be modified after consolidation");
-		this.result.withId(id);
+		this.result.as(id);
 		return this;
 	}
 

@@ -14,8 +14,8 @@ public class RewriterRuleBuilder {
 	private HashMap<String, RewriterStatement> globalIds = new HashMap<>();
 	private HashMap<String, RewriterStatement> instrSeqIds = new HashMap<>();
 	private HashMap<String, RewriterStatement> mappingSeqIds = new HashMap<>();
-	private RewriterInstruction fromRoot = null;
-	private RewriterInstruction toRoot = null;
+	private RewriterStatement fromRoot = null;
+	private RewriterStatement toRoot = null;
 	private boolean isUnidirectional = false;
 	private boolean buildSingleDAG = false;
 
@@ -39,7 +39,8 @@ public class RewriterRuleBuilder {
 			throw new IllegalArgumentException("From-root statement cannot be null");
 		if (toRoot == null)
 			throw new IllegalArgumentException("To-root statement cannot be null");
-		getCurrentInstruction().consolidate();
+		if (getCurrentInstruction() != null)
+			getCurrentInstruction().consolidate();
 		fromRoot.prepareForHashing();
 		toRoot.prepareForHashing();
 		fromRoot.recomputeHashCodes();
@@ -47,7 +48,7 @@ public class RewriterRuleBuilder {
 		return new RewriterRule(ruleName, fromRoot, toRoot, isUnidirectional);
 	}
 
-	public RewriterInstruction buildDAG() {
+	public RewriterStatement buildDAG() {
 		if (!buildSingleDAG)
 			throw new IllegalArgumentException("Cannot build a DAG if rule was specified");
 		getCurrentInstruction().consolidate();
@@ -66,15 +67,19 @@ public class RewriterRuleBuilder {
 		return this;
 	}
 
-	public RewriterInstruction getCurrentInstruction() {
+	public RewriterStatement getCurrentInstruction() {
 		if (mappingState)
 			if (mappingSeq.size() > 0)
 				return mappingSeq.get(mappingSeq.size()-1);
+			else if (toRoot != null)
+				return toRoot;
 			else
 				throw new IllegalArgumentException("There is no current instruction in the mapping sequence");
 		else
 			if (instrSeq.size() > 0)
 				return instrSeq.get(instrSeq.size()-1);
+			else if (fromRoot != null)
+				return fromRoot;
 			else
 				throw new IllegalArgumentException("There is no current instruction in the instruction sequence");
 	}
@@ -84,6 +89,19 @@ public class RewriterRuleBuilder {
 			return (RewriterDataType)currentStatement;
 		else
 			throw new IllegalArgumentException("The current operand is not a data type");
+	}
+
+	public RewriterRuleBuilder withDataType(String id, String type) {
+		withDataType(id, type, null);
+		return this;
+	}
+
+	public RewriterRuleBuilder withDataType(String id, String type, Object literal) {
+		if (!instrSeq.isEmpty())
+			throw new IllegalArgumentException("To define a single data type, the instruction sequence must be empty");
+		fromRoot = new RewriterDataType().ofType(type).asLiteral(literal).as(id);
+		storeVar(fromRoot);
+		return this;
 	}
 
 	public RewriterRuleBuilder withInstruction(String instr) {
@@ -96,15 +114,15 @@ public class RewriterRuleBuilder {
 	}
 
 	public RewriterRuleBuilder withOps(RewriterDataType... operands) {
-		getCurrentInstruction().withOps(operands);
+		((RewriterInstruction)getCurrentInstruction()).withOps(operands);
 		currentStatement = null;
 		return this;
 	}
 
 	public RewriterRuleBuilder addOp(String id) {
-		RewriterDataType dt = new RewriterDataType().withId(id);
+		RewriterDataType dt = new RewriterDataType().as(id);
 		storeVar(dt);
-		getCurrentInstruction().addOp(dt);
+		((RewriterInstruction)getCurrentInstruction()).addOp(dt);
 		if (currentStatement != null)
 			currentStatement.consolidate();
 		currentStatement = dt;
@@ -112,7 +130,12 @@ public class RewriterRuleBuilder {
 	}
 
 	public RewriterRuleBuilder withCostFunction(Function<List<RewriterStatement>, Long> costFunction) {
-		getCurrentInstruction().withCostFunction(costFunction);
+		((RewriterInstruction)getCurrentInstruction()).withCostFunction(costFunction);
+		return this;
+	}
+
+	public RewriterRuleBuilder asLiteral(Object literal) {
+		getCurrentOperand().asLiteral(literal);
 		return this;
 	}
 
@@ -148,7 +171,7 @@ public class RewriterRuleBuilder {
 			currentStatement.consolidate();
 
 		currentStatement = operand;
-		getCurrentInstruction().addOp(operand);
+		((RewriterInstruction)getCurrentInstruction()).addOp(operand);
 
 		return this;
 	}
@@ -164,6 +187,19 @@ public class RewriterRuleBuilder {
 		getCurrentInstruction().consolidate();
 		mappingSeq.add(new RewriterInstruction().withInstruction(instr));
 		mappingState = true;
+		return this;
+	}
+
+	public RewriterRuleBuilder toDataType(String id, String type) {
+		toDataType(id, type, null);
+		return this;
+	}
+
+	public RewriterRuleBuilder toDataType(String id, String type, Object literal) {
+		if (!mappingSeq.isEmpty())
+			throw new IllegalArgumentException("To define a single data type, the mapping sequence must be empty");
+		toRoot = new RewriterDataType().ofType(type).asLiteral(literal).as(id);
+		storeVar(toRoot);
 		return this;
 	}
 

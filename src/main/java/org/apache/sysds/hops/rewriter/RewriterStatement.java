@@ -1,13 +1,14 @@
 package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public abstract class RewriterStatement {
+public abstract class RewriterStatement implements Comparable<RewriterStatement> {
 
 	protected int rid = 0;
 	protected int refCtr = 0;
@@ -78,6 +79,11 @@ public abstract class RewriterStatement {
 	public abstract String getId();
 	public abstract String getResultingDataType();
 	public abstract boolean isLiteral();
+	public abstract Object getLiteral();
+
+	public void setLiteral(Object literal) {
+		throw new IllegalArgumentException("This class does not support setting literals");
+	}
 	public abstract void consolidate();
 	public abstract boolean isConsolidated();
 	@Deprecated
@@ -91,6 +97,8 @@ public abstract class RewriterStatement {
 	public abstract boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap);
 	public abstract int recomputeHashCodes();
 	public abstract long getCost();
+	public abstract RewriterStatement simplify();
+	public abstract RewriterStatement as(String id);
 
 	@Nullable
 	public List<RewriterStatement> getOperands() {
@@ -161,5 +169,10 @@ public abstract class RewriterStatement {
 		}
 
 		return id;
+	}
+
+	@Override
+	public int compareTo(@NotNull RewriterStatement o) {
+		return Long.compare(getCost(), o.getCost());
 	}
 }
