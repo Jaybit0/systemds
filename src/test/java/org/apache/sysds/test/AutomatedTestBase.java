@@ -1416,8 +1416,8 @@ public abstract class AutomatedTestBase {
 
 			NGramBuilder<String, Statistics.NGramStats>[] builders = Statistics.mergeNGrams();
 			for (int i = 0; i < builders.length; i++) {
-				System.out.println("Writing to: " + "/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/norewrites/" + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv");
-				try (FileWriter writer = new FileWriter("/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/norewrites/" + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv")) {
+				System.out.println("Writing to: " + "/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/wrewrites/" + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv");
+				try (FileWriter writer = new FileWriter("/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/wrewrites/" + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv")) {
 					writer.write(Statistics.nGramToCSV(builders[i]));
 				} catch (IOException e) {
 					System.out.println("An error occurred.");

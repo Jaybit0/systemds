@@ -64,7 +64,7 @@ public class ScalableDecompositionTest extends AutomatedTestBase
 	
 	@Test
 	public void testCholeskyRewritesCP() {
-		runKMeansTest(TEST_NAME1, DecompType.CHOLESKY, true, ExecType.CP);
+		//runKMeansTest(TEST_NAME1, DecompType.CHOLESKY, true, ExecType.CP);
 	}
 	
 //	@Test

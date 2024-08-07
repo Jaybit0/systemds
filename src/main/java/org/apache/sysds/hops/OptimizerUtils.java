@@ -135,7 +135,7 @@ public class OptimizerUtils
 	public static boolean ALLOW_CONSTANT_FOLDING = true;
 	
 	public static boolean ALLOW_ALGEBRAIC_SIMPLIFICATION = true;
-	public static boolean ALLOW_OPERATOR_FUSION = false;
+	public static boolean ALLOW_OPERATOR_FUSION = true;
 	
 	/**
 	 * Enables if-else branch removal for constant predicates (original literals or 
@@ -194,7 +194,7 @@ public class OptimizerUtils
 	 * Enables sum product rewrites such as mapmultchains. In the future, this will cover 
 	 * all sum-product related rewrites.
 	 */
-	public static boolean ALLOW_SUM_PRODUCT_REWRITES = false;
+	public static boolean ALLOW_SUM_PRODUCT_REWRITES = true;
 	
 	/**
 	 * Enables a specific hop dag rewrite that splits hop dags after csv persistent reads with 
@@ -391,6 +391,11 @@ public class OptimizerUtils
 		int optlevel = dmlconf.getIntValue(DMLConfig.OPTIMIZATION_LEVEL);
 		if( optlevel < 0 || optlevel > 7 )
 			throw new DMLRuntimeException("Error: invalid optimization level '"+optlevel+"' (valid values: 0-5).");
+
+		optlevel = 2;
+		ALLOW_OPERATOR_FUSION = true;
+		ALLOW_SUM_PRODUCT_REWRITES = true;
+		System.out.println("overwriting optlevel to 2");
 	
 		switch( optlevel )
 		{
