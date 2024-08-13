@@ -125,6 +125,7 @@ public class RewriterMain {
 					.asRootInstruction()
 				.build();
 
+
 		distrib = ruleDistrib;
 		commutMul = ruleMulCommut;
 
@@ -134,7 +135,7 @@ public class RewriterMain {
 		rules.add(ruleMulCommut);
 		rules.add(ruleMulAssoc);
 		rules.add(ruleDistrib);
-		rules.add(ruleOneElement);
+		//rules.add(ruleOneElement);
 
 		ruleSet = new RewriterRuleSet(rules);
 	}

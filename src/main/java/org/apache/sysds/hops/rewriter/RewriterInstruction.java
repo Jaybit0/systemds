@@ -117,7 +117,7 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	@Override
-	public boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap) {
+	public boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues) {
 		//System.out.println(stmt.toStringWithLinking(links) + "::" + link.stmt.getResultingDataType());
 		if (stmt instanceof RewriterInstruction
 				&& getResultingDataType().equals(stmt.getResultingDataType())) {
@@ -131,7 +131,7 @@ public class RewriterInstruction extends RewriterStatement {
 			int s = inst.operands.size();
 
 			for (int i = 0; i < s; i++) {
-				if (!operands.get(i).match(inst.operands.get(i), dependencyMap)) {
+				if (!operands.get(i).match(inst.operands.get(i), dependencyMap, literalsCanBeVariables, ignoreLiteralValues)) {
 					return false;
 				}
 			}

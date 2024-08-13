@@ -94,7 +94,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	//String toStringWithLinking(int dagId, DualHashBidiMap<RewriterStatementLink, RewriterStatementLink> links);
 
 	// Returns the root of the matching sub-statement, null if there is no match
-	public abstract boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap);
+	public abstract boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues);
 	public abstract int recomputeHashCodes();
 	public abstract long getCost();
 	public abstract RewriterStatement simplify();
@@ -104,13 +104,13 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public List<RewriterStatement> getOperands() {
 		return null;
 	}
-	public boolean matchSubexpr(RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap) {
+	public boolean matchSubexpr(RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues) {
 		if (dependencyMap == null)
 			dependencyMap = new DualHashBidiMap<>();
 		else
 			dependencyMap.clear();
 
-		boolean foundMatch = match(root, dependencyMap);
+		boolean foundMatch = match(root, dependencyMap, literalsCanBeVariables, ignoreLiteralValues);
 
 		if (foundMatch) {
 			matches.add(new MatchingSubexpression(root, parent, rootIndex, dependencyMap));
@@ -122,7 +122,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 
 		for (RewriterStatement stmt : root.getOperands()) {
 			if (stmt instanceof RewriterInstruction)
-				if (matchSubexpr((RewriterInstruction) stmt, root, idx, matches, dependencyMap)) {
+				if (matchSubexpr((RewriterInstruction) stmt, root, idx, matches, dependencyMap, literalsCanBeVariables, ignoreLiteralValues)) {
 					dependencyMap = new DualHashBidiMap<>();
 					foundMatch = true;
 				}

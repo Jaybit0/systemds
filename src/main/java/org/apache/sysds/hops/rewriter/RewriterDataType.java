@@ -68,12 +68,20 @@ public class RewriterDataType extends RewriterStatement {
 	}
 
 	@Override
-	public boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap) {
+	public boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValue) {
 		if (stmt.getResultingDataType().equals(type)) {
 			// TODO: This way of literal matching might cause confusion later on
-			if (isLiteral())
-				if (!stmt.isLiteral() || !getLiteral().equals(stmt.getLiteral()))
+			if (literalsCanBeVariables) {
+				if (isLiteral())
+					if (!ignoreLiteralValue && (!stmt.isLiteral() || !getLiteral().equals(stmt.getLiteral())))
+						return false;
+			} else {
+				if (isLiteral() != stmt.isLiteral())
 					return false;
+				if (!ignoreLiteralValue && isLiteral() && !getLiteral().equals(stmt.getLiteral()))
+					return false;
+			}
+
 
 			RewriterStatement assoc = dependencyMap.get(this);
 			if (assoc == null) {
