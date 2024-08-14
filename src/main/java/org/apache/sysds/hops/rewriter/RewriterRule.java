@@ -2,10 +2,11 @@ package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RewriterRule {
+public class RewriterRule extends AbstractRewriterRule {
 
 	private final String name;
 	private final RewriterStatement fromRoot;
@@ -39,17 +40,19 @@ public class RewriterRule {
 		return inplace ? applyInplace(match, rootNode, toRoot) : apply(match, rootNode, toRoot);
 	}
 
-	/*public RewriterInstruction applyForward(RewriterInstruction mRoot, RewriterInstruction mRootParent, DualHashBidiMap<RewriterStatement, RewriterStatement> assoc) {
-		return apply(mRoot, mRootParent, assoc, toRoot);
-	}*/
-
 	public RewriterStatement applyBackward(RewriterStatement.MatchingSubexpression match, RewriterInstruction rootNode, boolean inplace) {
 		return inplace ? applyInplace(match, rootNode, fromRoot) : apply(match, rootNode, fromRoot);
 	}
 
-	/*public RewriterInstruction applyBackward(RewriterInstruction mRoot, RewriterInstruction mRootParent, DualHashBidiMap<RewriterStatement, RewriterStatement> assoc, boolean inplace) {
-		return applyInplace(mRoot, mRootParent, assoc, fromRoot);
-	}*/
+	@Override
+	public boolean matchStmt1(RewriterInstruction stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr) {
+		return getStmt1().matchSubexpr(stmt, null, -1, arr, new DualHashBidiMap<>(), true, false);
+	}
+
+	@Override
+	public boolean matchStmt2(RewriterInstruction stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr) {
+		return getStmt2().matchSubexpr(stmt, null, -1, arr, new DualHashBidiMap<>(), true, false);
+	}
 
 	private RewriterStatement apply(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest) {
 		if (match.getMatchParent() == null || match.getMatchParent() == match.getMatchRoot()) {

@@ -42,7 +42,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	}
 
 
-	static class MatchingSubexpression {
+	public static class MatchingSubexpression {
 		private final RewriterInstruction matchRoot;
 		private final RewriterInstruction matchParent;
 		private final int rootIndex;
