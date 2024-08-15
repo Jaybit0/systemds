@@ -19,6 +19,7 @@
 package org.apache.sysds.runtime.controlprogram;
 
 import java.util.ArrayList;
+import java.util.stream.LongStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -37,6 +38,7 @@ import org.apache.sysds.runtime.DMLRuntimeException;
 import org.apache.sysds.runtime.DMLScriptException;
 import org.apache.sysds.runtime.compress.CompressedMatrixBlock;
 import org.apache.sysds.runtime.controlprogram.caching.CacheableData;
+import org.apache.sysds.runtime.controlprogram.caching.FrameObject;
 import org.apache.sysds.runtime.controlprogram.caching.MatrixObject;
 import org.apache.sysds.runtime.controlprogram.caching.MatrixObject.UpdateType;
 import org.apache.sysds.runtime.controlprogram.context.ExecutionContext;
@@ -53,6 +55,7 @@ import org.apache.sysds.runtime.lineage.LineageCacheConfig.ReuseCacheType;
 import org.apache.sysds.runtime.lineage.LineageItem;
 import org.apache.sysds.runtime.lineage.LineageItemUtils;
 import org.apache.sysds.runtime.matrix.data.MatrixBlock;
+import org.apache.sysds.runtime.meta.DataCharacteristics;
 import org.apache.sysds.runtime.meta.MetaData;
 import org.apache.sysds.runtime.meta.MetaDataFormat;
 import org.apache.sysds.utils.stats.RecompileStatistics;
@@ -275,6 +278,13 @@ public abstract class ProgramBlock implements ParseInfo {
 							if (data != null) {
 								ext.setDataType(data.getDataType().toString());
 								ext.setValueType(data.getValueType().toString());
+								if (data instanceof CacheableData) {
+									DataCharacteristics dc = ((CacheableData)data).getDataCharacteristics();
+									ext.setMeta("NDims:", (double)dc.getNumDims());
+									ext.setMeta("NumRows", (double)dc.getRows());
+									ext.setMeta("NumCols", (double)dc.getCols());
+									ext.setMeta("NonZeros", (double)dc.getNonZeros());
+								}
 							}
 							ext.setExecNanos(nanoTime);
 							Statistics.extendLineageItem(li.getValue(), ext);
