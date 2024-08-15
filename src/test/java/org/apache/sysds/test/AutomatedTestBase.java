@@ -1418,7 +1418,13 @@ public abstract class AutomatedTestBase {
 			for (int i = 0; i < builders.length; i++) {
 				System.out.println("Writing to: " + "/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/wrewrites/" + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv");
 				try (FileWriter writer = new FileWriter("/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/wrewrites/" + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv")) {
-					writer.write(Statistics.nGramToCSV(builders[i]));
+					Statistics.toCSVStream(builders[i], s -> {
+						try {
+							writer.write(s);
+						} catch (IOException e) {
+							throw new RuntimeException(e);
+						}
+					});
 				} catch (IOException e) {
 					System.out.println("An error occurred.");
 					e.printStackTrace();
