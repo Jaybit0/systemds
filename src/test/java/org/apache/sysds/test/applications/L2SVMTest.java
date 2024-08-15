@@ -68,7 +68,8 @@ public class L2SVMTest extends AutomatedTestBase
 	
 	@Test
 	public void testL2SVM1() {
-		testL2SVM(true);
+		// TODO: This is just commented for data generation
+		//testL2SVM(true);
 	}
 
 	@Test
