@@ -654,11 +654,12 @@ public class Statistics
 			} else {
 				builder.append(stdDevs);
 			}
-			//builder.append(",");
+			builder.append(",");
 			boolean first = true;
 			NGramStats[] stats = e.getStats();
 			for (int i = 0; i < stats.length; i++) {
-				builder.append(",");
+				if (i != 0)
+					builder.append(",");
 				NGramStats stat = stats[i];
 				if (stat.getMeta() != null) {
 					for (Entry<String, Double> metaData : stat.getMeta().entrySet()) {
