@@ -284,6 +284,7 @@ public abstract class ProgramBlock implements ParseInfo {
 									ext.setMeta("NumRows", (double)dc.getRows());
 									ext.setMeta("NumCols", (double)dc.getCols());
 									ext.setMeta("NonZeros", (double)dc.getNonZeros());
+									ext.setMeta("Sparsity", dc.getSparsity());
 								}
 							}
 							ext.setExecNanos(nanoTime);
