@@ -8,12 +8,14 @@ import java.util.Map;
 
 public class RewriterRule extends AbstractRewriterRule {
 
+	private final RuleContext ctx;
 	private final String name;
 	private final RewriterStatement fromRoot;
 	private final RewriterStatement toRoot;
 	private final boolean unidirectional;
 
-	public RewriterRule(String name, RewriterStatement fromRoot, RewriterStatement toRoot, boolean unidirectional) {
+	public RewriterRule(final RuleContext ctx, String name, RewriterStatement fromRoot, RewriterStatement toRoot, boolean unidirectional) {
+		this.ctx = ctx;
 		this.name = name;
 		this.fromRoot = fromRoot;
 		this.toRoot = toRoot;
@@ -45,13 +47,13 @@ public class RewriterRule extends AbstractRewriterRule {
 	}
 
 	@Override
-	public boolean matchStmt1(RewriterInstruction stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr) {
-		return getStmt1().matchSubexpr(stmt, null, -1, arr, new DualHashBidiMap<>(), true, false);
+	public boolean matchStmt1(RewriterInstruction stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr, boolean findFirst) {
+		return getStmt1().matchSubexpr(ctx, stmt, null, -1, arr, new DualHashBidiMap<>(), true, false, findFirst);
 	}
 
 	@Override
-	public boolean matchStmt2(RewriterInstruction stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr) {
-		return getStmt2().matchSubexpr(stmt, null, -1, arr, new DualHashBidiMap<>(), true, false);
+	public boolean matchStmt2(RewriterInstruction stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr, boolean findFirst) {
+		return getStmt2().matchSubexpr(ctx, stmt, null, -1, arr, new DualHashBidiMap<>(), true, false, findFirst);
 	}
 
 	private RewriterStatement apply(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest) {
@@ -69,7 +71,7 @@ public class RewriterRule extends AbstractRewriterRule {
 				}
 				return null;
 			});
-			RewriterStatement tmp = cpy.simplify();
+			RewriterStatement tmp = cpy.simplify(ctx);
 			if (tmp != null)
 				cpy = tmp;
 			cpy.prepareForHashing();
@@ -97,7 +99,7 @@ public class RewriterRule extends AbstractRewriterRule {
 			}
 			return null;
 		});
-		RewriterStatement tmp = cpy2.simplify();
+		RewriterStatement tmp = cpy2.simplify(ctx);
 		if (tmp != null)
 			cpy2 = tmp;
 		cpy2.prepareForHashing();
@@ -108,7 +110,7 @@ public class RewriterRule extends AbstractRewriterRule {
 	private RewriterStatement applyInplace(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest) {
 		if (match.getMatchParent() == null || match.getMatchParent() == match.getMatchRoot()) {
 			RewriterStatement cpy = dest.nestedCopyOrInject(new HashMap<>(), obj -> match.getAssocs().get(obj));
-			RewriterStatement cpy2 = cpy.simplify();
+			RewriterStatement cpy2 = cpy.simplify(ctx);
 			if (cpy2 != null)
 				cpy = cpy2;
 			cpy.prepareForHashing();
@@ -123,7 +125,7 @@ public class RewriterRule extends AbstractRewriterRule {
 			if (operands.get(i) == )
 		}*/
 		match.getMatchParent().getOperands().set(match.getRootIndex(), dest.nestedCopyOrInject(new HashMap<>(), obj -> match.getAssocs().get(obj)));
-		RewriterStatement out = rootInstruction.simplify();
+		RewriterStatement out = rootInstruction.simplify(ctx);
 		if (out != null)
 			out = rootInstruction;
 		rootInstruction.prepareForHashing();

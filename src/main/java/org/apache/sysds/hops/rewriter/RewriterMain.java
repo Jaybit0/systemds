@@ -1,5 +1,7 @@
 package org.apache.sysds.hops.rewriter;
 
+import org.junit.Rule;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.PriorityQueue;
@@ -12,7 +14,7 @@ public class RewriterMain {
 	private static RewriterRule commutMul;
 
 	static {
-		RewriterRule ruleAddCommut = new RewriterRuleBuilder()
+		RewriterRule ruleAddCommut = new RewriterRuleBuilder(RuleContext.floatArithmetic)
 				.setUnidirectional(true)
 				.withInstruction("+")
 					.addOp("a")
@@ -27,7 +29,7 @@ public class RewriterMain {
 					.as("b+a")
 					.asRootInstruction()
 				.build();
-		RewriterRule ruleAddAssoc = new RewriterRuleBuilder()
+		RewriterRule ruleAddAssoc = new RewriterRuleBuilder(RuleContext.floatArithmetic)
 				.setUnidirectional(false)
 				.withInstruction("+")
 					.addOp("a")
@@ -49,7 +51,7 @@ public class RewriterMain {
 					.addExistingOp("b+c")
 					.asRootInstruction()
 				.build();
-		RewriterRule ruleMulCommut = new RewriterRuleBuilder()
+		RewriterRule ruleMulCommut = new RewriterRuleBuilder(RuleContext.floatArithmetic)
 				.setUnidirectional(true)
 				.withInstruction("*")
 					.addOp("a")
@@ -64,7 +66,7 @@ public class RewriterMain {
 					.as("b*a")
 					.asRootInstruction()
 				.build();
-		RewriterRule ruleMulAssoc = new RewriterRuleBuilder()
+		RewriterRule ruleMulAssoc = new RewriterRuleBuilder(RuleContext.floatArithmetic)
 				.setUnidirectional(false)
 				.withInstruction("*")
 					.addOp("a")
@@ -86,7 +88,7 @@ public class RewriterMain {
 					.addExistingOp("b*c")
 					.asRootInstruction()
 				.build();
-		RewriterRule ruleDistrib = new RewriterRuleBuilder()
+		RewriterRule ruleDistrib = new RewriterRuleBuilder(RuleContext.floatArithmetic)
 				.setUnidirectional(false)
 				.withInstruction("*")
 					.addOp("a")
@@ -113,7 +115,7 @@ public class RewriterMain {
 					.asRootInstruction()
 				.build();
 
-		RewriterRule ruleOneElement = new RewriterRuleBuilder()
+		RewriterRule ruleOneElement = new RewriterRuleBuilder(RuleContext.floatArithmetic)
 				.setUnidirectional(false)
 					.withDataType("a", "float")
 				.toInstruction("*")
@@ -137,7 +139,7 @@ public class RewriterMain {
 		rules.add(ruleDistrib);
 		//rules.add(ruleOneElement);
 
-		ruleSet = new RewriterRuleSet(rules);
+		ruleSet = new RewriterRuleSet(RuleContext.floatArithmetic, rules);
 	}
 
 	public static void main(String[] args) {
@@ -169,7 +171,7 @@ public class RewriterMain {
 		/*if (true)
 			return;*/
 
-		RewriterInstruction instr = (RewriterInstruction)new RewriterRuleBuilder()
+		RewriterInstruction instr = (RewriterInstruction)new RewriterRuleBuilder(RuleContext.floatArithmetic)
 				.asDAGBuilder()
 				.withInstruction("*")
 					.addOp("c")
@@ -213,7 +215,7 @@ public class RewriterMain {
 		long optimalCost = instr.getCost();
 
 		RewriterDatabase db = new RewriterDatabase();
-		db.insertEntry(instr);
+		db.insertEntry(RuleContext.floatArithmetic, instr);
 
 		long time = System.currentTimeMillis();
 
@@ -243,7 +245,7 @@ public class RewriterMain {
 					trans += System.nanoTime() - delta;
 
 					delta = System.nanoTime();
-					if (!db.insertEntry(transformed)) {
+					if (!db.insertEntry(RuleContext.floatArithmetic, transformed)) {
 						//System.out.println("Skip: " + transformed);
 						//System.out.println("======");
 						insertTime += System.nanoTime() - delta;

@@ -4,6 +4,7 @@ import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -77,14 +78,14 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	}
 
 	public abstract String getId();
-	public abstract String getResultingDataType();
+	public abstract String getResultingDataType(final RuleContext ctx);
 	public abstract boolean isLiteral();
 	public abstract Object getLiteral();
 
 	public void setLiteral(Object literal) {
 		throw new IllegalArgumentException("This class does not support setting literals");
 	}
-	public abstract void consolidate();
+	public abstract void consolidate(final RuleContext ctx);
 	public abstract boolean isConsolidated();
 	@Deprecated
 	public abstract RewriterStatement clone();
@@ -94,37 +95,42 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	//String toStringWithLinking(int dagId, DualHashBidiMap<RewriterStatementLink, RewriterStatementLink> links);
 
 	// Returns the root of the matching sub-statement, null if there is no match
-	public abstract boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues);
+	public abstract boolean match(final RuleContext ctx, RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues);
 	public abstract int recomputeHashCodes();
 	public abstract long getCost();
-	public abstract RewriterStatement simplify();
+	public abstract RewriterStatement simplify(final RuleContext ctx);
 	public abstract RewriterStatement as(String id);
 
 	@Nullable
 	public List<RewriterStatement> getOperands() {
 		return null;
 	}
-	public boolean matchSubexpr(RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues) {
+	public boolean matchSubexpr(final RuleContext ctx, RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst) {
 		if (dependencyMap == null)
 			dependencyMap = new DualHashBidiMap<>();
 		else
 			dependencyMap.clear();
 
-		boolean foundMatch = match(root, dependencyMap, literalsCanBeVariables, ignoreLiteralValues);
+		boolean foundMatch = match(ctx, root, dependencyMap, literalsCanBeVariables, ignoreLiteralValues);
 
 		if (foundMatch) {
 			matches.add(new MatchingSubexpression(root, parent, rootIndex, dependencyMap));
 			dependencyMap = null;
 
+			if (findFirst)
+				return true;
 		}
 
 		int idx = 0;
 
 		for (RewriterStatement stmt : root.getOperands()) {
 			if (stmt instanceof RewriterInstruction)
-				if (matchSubexpr((RewriterInstruction) stmt, root, idx, matches, dependencyMap, literalsCanBeVariables, ignoreLiteralValues)) {
+				if (matchSubexpr(ctx, (RewriterInstruction) stmt, root, idx, matches, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, findFirst)) {
 					dependencyMap = new DualHashBidiMap<>();
 					foundMatch = true;
+
+					if (findFirst)
+						return true;
 				}
 			idx++;
 		}

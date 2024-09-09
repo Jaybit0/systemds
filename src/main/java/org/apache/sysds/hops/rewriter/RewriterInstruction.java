@@ -5,6 +5,7 @@ import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -12,47 +13,10 @@ import java.util.Optional;
 import java.util.function.Function;
 
 public class RewriterInstruction extends RewriterStatement {
-	private static final HashMap<String, Function<List<RewriterStatement>, Long>> instrCosts = new HashMap<>()
-	{
+	private static final HashSet<String> writeAsBinaryInstruction = new HashSet<>() {
 		{
-			put("+(float,float)", d -> 1l);
-			put("*(float,float)", d ->  1l);
-		}
-	};
-
-	private static final HashMap<String, String> instrTypes = new HashMap<>()
-	{
-		{
-			put("+(float,float)", "float");
-			put("*(float,float)", "float");
-		}
-	};
-
-	private static final HashMap<String, Function<RewriterInstruction, RewriterStatement>> simplificationRules = new HashMap<>()
-	{
-		{
-			put("+(float,float)", i -> {
-				RewriterStatement op1 = i.getOperands().get(0);
-				RewriterStatement op2 = i.getOperands().get(1);
-
-				if (op1.isLiteral() && op2.isLiteral()) {
-					op1.setLiteral(((Float)op1.getLiteral()) + ((Float)op2.getLiteral()));
-					return op1;
-				}
-
-				return null;
-			});
-			put("*(float, float)", i -> {
-				RewriterStatement op1 = i.getOperands().get(0);
-				RewriterStatement op2 = i.getOperands().get(1);
-
-				if (op1.isLiteral() && op2.isLiteral()) {
-					op1.setLiteral(((Float)op1.getLiteral()) * ((Float)op2.getLiteral()));
-					return op1;
-				}
-
-				return null;
-			});
+			add("+");
+			add("*");
 		}
 	};
 
@@ -70,8 +34,8 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	@Override
-	public String getResultingDataType() {
-		return getResult().getResultingDataType();
+	public String getResultingDataType(final RuleContext ctx) {
+		return getResult(ctx).getResultingDataType(ctx);
 	}
 
 	@Override
@@ -85,20 +49,20 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	@Override
-	public void consolidate() {
+	public void consolidate(final RuleContext ctx) {
 		if (consolidated)
 			return;
 
 		if (instr == null || instr.isEmpty())
 			throw new IllegalArgumentException("Instruction type cannot be empty");
 
-		if (getCostFunction() == null)
-			throw new IllegalArgumentException("Could not find a matching cost function for " + typedInstruction());
+		if (getCostFunction(ctx) == null)
+			throw new IllegalArgumentException("Could not find a matching cost function for " + typedInstruction(ctx));
 
 		for (RewriterStatement operand : operands)
-			operand.consolidate();
+			operand.consolidate(ctx);
 
-		getResult().consolidate();
+		getResult(ctx).consolidate(ctx);
 
 		hashCode = Objects.hash(rid, refCtr, instr, result, operands);
 		consolidated = true;
@@ -117,10 +81,10 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	@Override
-	public boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues) {
+	public boolean match(final RuleContext ctx, RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues) {
 		//System.out.println(stmt.toStringWithLinking(links) + "::" + link.stmt.getResultingDataType());
 		if (stmt instanceof RewriterInstruction
-				&& getResultingDataType().equals(stmt.getResultingDataType())) {
+				&& getResultingDataType(ctx).equals(stmt.getResultingDataType(ctx))) {
 			RewriterInstruction inst = (RewriterInstruction)stmt;
 
 			if(!inst.instr.equals(this.instr))
@@ -131,7 +95,7 @@ public class RewriterInstruction extends RewriterStatement {
 			int s = inst.operands.size();
 
 			for (int i = 0; i < s; i++) {
-				if (!operands.get(i).match(inst.operands.get(i), dependencyMap, literalsCanBeVariables, ignoreLiteralValues)) {
+				if (!operands.get(i).match(ctx, inst.operands.get(i), dependencyMap, literalsCanBeVariables, ignoreLiteralValues)) {
 					return false;
 				}
 			}
@@ -194,9 +158,9 @@ public class RewriterInstruction extends RewriterStatement {
 		return mClone;
 	}
 
-	public void injectData(RewriterInstruction origData) {
+	public void injectData(final RuleContext ctx, RewriterInstruction origData) {
 		instr = origData.instr;
-		result = (RewriterDataType)origData.getResult().copyNode();
+		result = (RewriterDataType)origData.getResult(ctx).copyNode();
 		operands = new ArrayList<>(origData.operands);
 		costFunction = origData.costFunction;
 	}
@@ -217,14 +181,14 @@ public class RewriterInstruction extends RewriterStatement {
 
 
 	@Override
-	public RewriterStatement simplify() {
+	public RewriterStatement simplify(final RuleContext ctx) {
 		for (int i = 0; i < operands.size(); i++) {
-			RewriterStatement stmt = operands.get(i).simplify();
+			RewriterStatement stmt = operands.get(i).simplify(ctx);
 			if (stmt != null)
 				operands.set(i, stmt);
 		}
 
-		Function<RewriterInstruction, RewriterStatement> rule = simplificationRules.get(typedInstruction());
+		Function<RewriterInstruction, RewriterStatement> rule = ctx.simplificationRules.get(typedInstruction(ctx));
 		if (rule != null) {
 			RewriterStatement stmt = rule.apply(this);
 
@@ -275,9 +239,9 @@ public class RewriterInstruction extends RewriterStatement {
 		return this;
 	}
 
-	public Function<List<RewriterStatement>, Long> getCostFunction() {
+	public Function<List<RewriterStatement>, Long> getCostFunction(final RuleContext ctx) {
 		if (this.costFunction == null)
-			this.costFunction = instrCosts.get(typedInstruction());
+			this.costFunction = ctx.instrCosts.get(typedInstruction(ctx));
 
 		return this.costFunction;
 	}
@@ -301,9 +265,9 @@ public class RewriterInstruction extends RewriterStatement {
 		return this;
 	}
 
-	public RewriterDataType getResult() {
+	public RewriterDataType getResult(final RuleContext ctx) {
 		if (this.result.getType() == null) {
-			String type = instrTypes.get(typedInstruction());
+			String type = ctx.instrTypes.get(typedInstruction(ctx));
 
 			if (type == null)
 				throw new IllegalArgumentException("Type mapping cannot be found for instruction: " + type);
@@ -314,17 +278,17 @@ public class RewriterInstruction extends RewriterStatement {
 		return this.result;
 	}
 
-	public String typedInstruction() {
+	public String typedInstruction(final RuleContext ctx) {
 		StringBuilder builder = new StringBuilder();
 		builder.append(this.instr);
 		builder.append("(");
 
 		if (!operands.isEmpty())
-			builder.append(operands.get(0).getResultingDataType());
+			builder.append(operands.get(0).getResultingDataType(ctx));
 
 		for (int i = 1; i < operands.size(); i++) {
 			builder.append(",");
-			builder.append(operands.get(i).getResultingDataType());
+			builder.append(operands.get(i).getResultingDataType(ctx));
 		}
 		builder.append(")");
 		return builder.toString();
@@ -376,7 +340,7 @@ public class RewriterInstruction extends RewriterStatement {
 		/*if (links != null)
 			return toStringWithLinking(links);*/
 
-		if (operands.size() == 2)
+		if (operands.size() == 2 && writeAsBinaryInstruction.contains(instr))
 			return "(" + operands.get(0) + " " + instr + " " + operands.get(1) + ")";
 
 		StringBuilder builder = new StringBuilder();

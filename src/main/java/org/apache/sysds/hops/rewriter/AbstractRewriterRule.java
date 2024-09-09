@@ -9,6 +9,6 @@ public abstract class AbstractRewriterRule {
 	public abstract boolean isUnidirectional();
 	public abstract RewriterStatement applyForward(RewriterStatement.MatchingSubexpression match, RewriterInstruction rootNode, boolean inplace);
 	public abstract RewriterStatement applyBackward(RewriterStatement.MatchingSubexpression match, RewriterInstruction rootNode, boolean inplace);
-	public abstract boolean matchStmt1(RewriterInstruction stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr);
-	public abstract boolean matchStmt2(RewriterInstruction stmt2, ArrayList<RewriterStatement.MatchingSubexpression> arr);
+	public abstract boolean matchStmt1(RewriterInstruction stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr, boolean findFirst);
+	public abstract boolean matchStmt2(RewriterInstruction stmt2, ArrayList<RewriterStatement.MatchingSubexpression> arr, boolean findFirst);
 }

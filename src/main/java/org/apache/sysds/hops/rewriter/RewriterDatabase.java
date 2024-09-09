@@ -10,8 +10,8 @@ public class RewriterDatabase {
 		return db.contains(instr);
 	}
 
-	public boolean insertEntry(RewriterStatement stmt) {
-		return db.add(new RewriterStatementEntry(stmt));
+	public boolean insertEntry(final RuleContext ctx, RewriterStatement stmt) {
+		return db.add(new RewriterStatementEntry(ctx, stmt));
 	}
 
 	public int size() {return db.size(); }

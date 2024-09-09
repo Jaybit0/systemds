@@ -19,7 +19,7 @@ public class RewriterDataType extends RewriterStatement {
 	}
 
 	@Override
-	public String getResultingDataType() {
+	public String getResultingDataType(final RuleContext ctx) {
 		return type;
 	}
 
@@ -39,7 +39,7 @@ public class RewriterDataType extends RewriterStatement {
 	}
 
 	@Override
-	public void consolidate() {
+	public void consolidate(final RuleContext ctx) {
 		if (consolidated)
 			return;
 
@@ -68,8 +68,8 @@ public class RewriterDataType extends RewriterStatement {
 	}
 
 	@Override
-	public boolean match(RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValue) {
-		if (stmt.getResultingDataType().equals(type)) {
+	public boolean match(final RuleContext ctx, RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValue) {
+		if (stmt.getResultingDataType(ctx).equals(type)) {
 			// TODO: This way of literal matching might cause confusion later on
 			if (literalsCanBeVariables) {
 				if (isLiteral())
@@ -133,7 +133,7 @@ public class RewriterDataType extends RewriterStatement {
 	}
 
 	@Override
-	public RewriterStatement simplify() {
+	public RewriterStatement simplify(final RuleContext ctx) {
 		return this;
 	}
 

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.function.Function;
 
 public class RewriterRuleBuilder {
+	private final RuleContext ctx;
 	private String ruleName = "?";
 	private ArrayList<RewriterInstruction> instrSeq = new ArrayList<>();
 	private ArrayList<RewriterInstruction> mappingSeq = new ArrayList<>();
@@ -22,11 +23,12 @@ public class RewriterRuleBuilder {
 	private RewriterStatement currentStatement = null;
 	private boolean mappingState = false;
 
-	public RewriterRuleBuilder() {
-
+	public RewriterRuleBuilder(final RuleContext ctx) {
+		this.ctx = ctx;
 	}
 
-	public RewriterRuleBuilder(String ruleName) {
+	public RewriterRuleBuilder(final RuleContext ctx, String ruleName) {
+		this.ctx = ctx;
 		this.ruleName = ruleName;
 	}
 
@@ -40,18 +42,18 @@ public class RewriterRuleBuilder {
 		if (toRoot == null)
 			throw new IllegalArgumentException("To-root statement cannot be null");
 		if (getCurrentInstruction() != null)
-			getCurrentInstruction().consolidate();
+			getCurrentInstruction().consolidate(ctx);
 		fromRoot.prepareForHashing();
 		toRoot.prepareForHashing();
 		fromRoot.recomputeHashCodes();
 		toRoot.recomputeHashCodes();
-		return new RewriterRule(ruleName, fromRoot, toRoot, isUnidirectional);
+		return new RewriterRule(ctx, ruleName, fromRoot, toRoot, isUnidirectional);
 	}
 
 	public RewriterStatement buildDAG() {
 		if (!buildSingleDAG)
 			throw new IllegalArgumentException("Cannot build a DAG if rule was specified");
-		getCurrentInstruction().consolidate();
+		getCurrentInstruction().consolidate(ctx);
 		fromRoot.prepareForHashing();
 		fromRoot.recomputeHashCodes();
 		return fromRoot;
@@ -108,7 +110,7 @@ public class RewriterRuleBuilder {
 		if (mappingState)
 			throw new IllegalArgumentException("Cannot add an instruction when a mapping instruction was already defined");
 		if (instrSeq.size() > 0)
-			getCurrentInstruction().consolidate();
+			getCurrentInstruction().consolidate(ctx);
 		instrSeq.add(new RewriterInstruction().withInstruction(instr));
 		return this;
 	}
@@ -124,7 +126,7 @@ public class RewriterRuleBuilder {
 		storeVar(dt);
 		((RewriterInstruction)getCurrentInstruction()).addOp(dt);
 		if (currentStatement != null)
-			currentStatement.consolidate();
+			currentStatement.consolidate(ctx);
 		currentStatement = dt;
 		return this;
 	}
@@ -168,7 +170,7 @@ public class RewriterRuleBuilder {
 			throw new IllegalArgumentException("Operand with id '" + id + "' does not exist");
 
 		if (currentStatement != null)
-			currentStatement.consolidate();
+			currentStatement.consolidate(ctx);
 
 		currentStatement = operand;
 		((RewriterInstruction)getCurrentInstruction()).addOp(operand);
@@ -184,7 +186,7 @@ public class RewriterRuleBuilder {
 	public RewriterRuleBuilder toInstruction(String instr) {
 		if (buildSingleDAG)
 			throw new IllegalArgumentException("Cannot create a mapping instruction when building a single DAG");
-		getCurrentInstruction().consolidate();
+		getCurrentInstruction().consolidate(ctx);
 		mappingSeq.add(new RewriterInstruction().withInstruction(instr));
 		mappingState = true;
 		return this;
