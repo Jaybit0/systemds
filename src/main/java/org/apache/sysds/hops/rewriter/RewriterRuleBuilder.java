@@ -2,9 +2,11 @@ package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 
+import javax.ws.rs.core.Link;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class RewriterRuleBuilder {
@@ -15,6 +17,8 @@ public class RewriterRuleBuilder {
 	private HashMap<String, RewriterStatement> globalIds = new HashMap<>();
 	private HashMap<String, RewriterStatement> instrSeqIds = new HashMap<>();
 	private HashMap<String, RewriterStatement> mappingSeqIds = new HashMap<>();
+	private HashMap<RewriterStatement, RewriterRule.LinkObject> linksStmt1ToStmt2 = new HashMap<>();
+	private HashMap<RewriterStatement, RewriterRule.LinkObject> linksStmt2ToStmt1 = new HashMap<>();
 	private RewriterStatement fromRoot = null;
 	private RewriterStatement toRoot = null;
 	private boolean isUnidirectional = false;
@@ -23,6 +27,8 @@ public class RewriterRuleBuilder {
 	private RewriterStatement currentStatement = null;
 	private boolean mappingState = false;
 
+	private boolean canBeModified = true;
+
 	public RewriterRuleBuilder(final RuleContext ctx) {
 		this.ctx = ctx;
 	}
@@ -30,6 +36,27 @@ public class RewriterRuleBuilder {
 	public RewriterRuleBuilder(final RuleContext ctx, String ruleName) {
 		this.ctx = ctx;
 		this.ruleName = ruleName;
+	}
+
+	public RewriterRuleBuilder prepare() {
+		if (!canBeModified)
+			return this;
+		if (buildSingleDAG) {
+			getCurrentInstruction().consolidate(ctx);
+			fromRoot.prepareForHashing();
+			fromRoot.recomputeHashCodes();
+			canBeModified = false;
+		} else {
+			if (getCurrentInstruction() != null)
+				getCurrentInstruction().consolidate(ctx);
+			fromRoot.prepareForHashing();
+			toRoot.prepareForHashing();
+			fromRoot.recomputeHashCodes();
+			toRoot.recomputeHashCodes();
+			canBeModified = false;
+		}
+
+		return this;
 	}
 
 	public RewriterRule build() {
@@ -43,19 +70,14 @@ public class RewriterRuleBuilder {
 			throw new IllegalArgumentException("To-root statement cannot be null");
 		if (getCurrentInstruction() != null)
 			getCurrentInstruction().consolidate(ctx);
-		fromRoot.prepareForHashing();
-		toRoot.prepareForHashing();
-		fromRoot.recomputeHashCodes();
-		toRoot.recomputeHashCodes();
-		return new RewriterRule(ctx, ruleName, fromRoot, toRoot, isUnidirectional);
+		prepare();
+		return new RewriterRule(ctx, ruleName, fromRoot, toRoot, isUnidirectional, linksStmt1ToStmt2, linksStmt2ToStmt1);
 	}
 
 	public RewriterStatement buildDAG() {
 		if (!buildSingleDAG)
 			throw new IllegalArgumentException("Cannot build a DAG if rule was specified");
-		getCurrentInstruction().consolidate(ctx);
-		fromRoot.prepareForHashing();
-		fromRoot.recomputeHashCodes();
+		prepare();
 		return fromRoot;
 	}
 
@@ -99,6 +121,8 @@ public class RewriterRuleBuilder {
 	}
 
 	public RewriterRuleBuilder withDataType(String id, String type, Object literal) {
+		if (!canBeModified)
+			throw new IllegalArgumentException("The DAG is final and cannot be modified");
 		if (!instrSeq.isEmpty())
 			throw new IllegalArgumentException("To define a single data type, the instruction sequence must be empty");
 		fromRoot = new RewriterDataType().ofType(type).asLiteral(literal).as(id);
@@ -107,6 +131,8 @@ public class RewriterRuleBuilder {
 	}
 
 	public RewriterRuleBuilder withInstruction(String instr) {
+		if (!canBeModified)
+			throw new IllegalArgumentException("The DAG is final and cannot be modified");
 		if (mappingState)
 			throw new IllegalArgumentException("Cannot add an instruction when a mapping instruction was already defined");
 		if (instrSeq.size() > 0)
@@ -116,12 +142,16 @@ public class RewriterRuleBuilder {
 	}
 
 	public RewriterRuleBuilder withOps(RewriterDataType... operands) {
+		if (!canBeModified)
+			throw new IllegalArgumentException("The DAG is final and cannot be modified");
 		((RewriterInstruction)getCurrentInstruction()).withOps(operands);
 		currentStatement = null;
 		return this;
 	}
 
 	public RewriterRuleBuilder addOp(String id) {
+		if (!canBeModified)
+			throw new IllegalArgumentException("The DAG is final and cannot be modified");
 		RewriterDataType dt = new RewriterDataType().as(id);
 		storeVar(dt);
 		((RewriterInstruction)getCurrentInstruction()).addOp(dt);
@@ -132,16 +162,22 @@ public class RewriterRuleBuilder {
 	}
 
 	public RewriterRuleBuilder withCostFunction(Function<List<RewriterStatement>, Long> costFunction) {
+		if (!canBeModified)
+			throw new IllegalArgumentException("The DAG is final and cannot be modified");
 		((RewriterInstruction)getCurrentInstruction()).withCostFunction(costFunction);
 		return this;
 	}
 
 	public RewriterRuleBuilder asLiteral(Object literal) {
+		if (!canBeModified)
+			throw new IllegalArgumentException("The DAG is final and cannot be modified");
 		getCurrentOperand().asLiteral(literal);
 		return this;
 	}
 
 	public RewriterRuleBuilder as(String id) {
+		if (!canBeModified)
+			throw new IllegalArgumentException("The DAG is final and cannot be modified");
 		getCurrentInstruction().as(id);
 		currentVars().put(id, getCurrentInstruction());
 		storeVar(getCurrentInstruction());
@@ -149,6 +185,8 @@ public class RewriterRuleBuilder {
 	}
 
 	public RewriterRuleBuilder asRootInstruction() {
+		if (!canBeModified)
+			throw new IllegalArgumentException("The DAG is final and cannot be modified");
 		if (mappingState) {
 			if (toRoot != null)
 				throw new IllegalArgumentException("Cannot have more than one root instruction");
@@ -164,6 +202,8 @@ public class RewriterRuleBuilder {
 	}
 
 	public RewriterRuleBuilder addExistingOp(String id) {
+		if (!canBeModified)
+			throw new IllegalArgumentException("The DAG is final and cannot be modified");
 		RewriterStatement operand = findVar(id);
 
 		if (operand == null)
@@ -179,16 +219,69 @@ public class RewriterRuleBuilder {
 	}
 
 	public RewriterRuleBuilder ofType(String type) {
+		if (!canBeModified)
+			throw new IllegalArgumentException("The DAG is final and cannot be modified");
 		getCurrentOperand().ofType(type);
 		return this;
 	}
 
+	public RewriterRuleBuilder instrMeta(String key, Object value) {
+		if (!canBeModified)
+			throw new IllegalArgumentException("The DAG is final and cannot be modified");
+		getCurrentInstruction().putMeta(key, value);
+		return this;
+	}
+
+	public RewriterRuleBuilder operandMeta(String key, Object value) {
+		if (!canBeModified)
+			throw new IllegalArgumentException("The DAG is final and cannot be modified");
+		getCurrentOperand().putMeta(key, value);
+		return this;
+	}
+
 	public RewriterRuleBuilder toInstruction(String instr) {
+		if (!canBeModified)
+			throw new IllegalArgumentException("The DAG is final and cannot be modified");
 		if (buildSingleDAG)
 			throw new IllegalArgumentException("Cannot create a mapping instruction when building a single DAG");
 		getCurrentInstruction().consolidate(ctx);
 		mappingSeq.add(new RewriterInstruction().withInstruction(instr));
 		mappingState = true;
+		return this;
+	}
+
+	public RewriterRuleBuilder linkUnidirectional(String idFrom, String idTo, Consumer<RewriterRule.ExplicitLink> transferFunction, boolean forward) {
+		prepare();
+		RewriterStatement stmt1 = forward ? instrSeqIds.get(idFrom) : mappingSeqIds.get(idFrom);
+		if (stmt1 == null)
+			stmt1 = globalIds.get(idFrom);
+		if (stmt1 == null)
+			throw new IllegalArgumentException("Could not find instruction id: " + idFrom);
+		if (!stmt1.isConsolidated())
+			stmt1.consolidate(ctx);
+
+		RewriterStatement stmt2 = forward ? mappingSeqIds.get(idTo) : instrSeqIds.get(idTo);
+		if (stmt2 == null)
+			stmt2 = globalIds.get(idTo);
+		if (stmt2 == null)
+			throw new IllegalArgumentException("Could not find instruction id: " + idTo);
+		if (!stmt2.isConsolidated())
+			stmt2.consolidate(ctx);
+
+		HashMap<RewriterStatement, RewriterRule.LinkObject> links = forward ? linksStmt1ToStmt2 : linksStmt2ToStmt1;
+
+		RewriterRule.LinkObject lnk = new RewriterRule.LinkObject(stmt2, transferFunction);
+
+		if (links.containsKey(stmt1) || links.containsValue(lnk))
+			throw new IllegalArgumentException("Key or value already exists in explicit link map.");
+
+		links.put(stmt1, lnk);
+		return this;
+	}
+
+	public RewriterRuleBuilder link(String id, String id2, Consumer<RewriterRule.ExplicitLink> transferFunction) {
+		linkUnidirectional(id, id2, transferFunction, true);
+		linkUnidirectional(id2, id, transferFunction, false);
 		return this;
 	}
 

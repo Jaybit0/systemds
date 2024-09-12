@@ -26,6 +26,7 @@ public class RewriterInstruction extends RewriterStatement {
 	private Function<List<RewriterStatement>, Long> costFunction = null;
 	private boolean consolidated = false;
 	private int hashCode;
+
 	//private DualHashBidiMap<RewriterStatement, RewriterStatement> links = null;
 
 	@Override
@@ -81,8 +82,7 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	@Override
-	public boolean match(final RuleContext ctx, RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues) {
-		//System.out.println(stmt.toStringWithLinking(links) + "::" + link.stmt.getResultingDataType());
+	public boolean match(final RuleContext ctx, RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks) {
 		if (stmt instanceof RewriterInstruction
 				&& getResultingDataType(ctx).equals(stmt.getResultingDataType(ctx))) {
 			RewriterInstruction inst = (RewriterInstruction)stmt;
@@ -92,10 +92,29 @@ public class RewriterInstruction extends RewriterStatement {
 			if (this.operands.size() != inst.operands.size())
 				return false;
 
+			RewriterRule.LinkObject ruleLink = ruleLinks.get(this);
+			/*if (!ruleLinks.isEmpty()) {
+				System.out.println("::" + this);
+				System.out.println("::-> " + inst);
+				for (Map.Entry<RewriterStatement, RewriterRule.LinkObject> obj : ruleLinks.entrySet()) {
+					System.out.println(obj.getKey() + " -> " + obj.getValue().stmt);
+					System.out.println(obj.getKey().equals(this));
+					System.out.println(obj.getKey() == this);
+					System.out.println("hashcode: " + this.hashCode());
+					System.out.println("hashcode2: " + inst.hashCode());
+					//System.out.println(obj.getValue().equals(t));
+				}
+			}*/
+			if (ruleLink != null) {
+				//System.out.println("HERE: " + ruleLink.stmt);
+				//System.out.println("HERE");
+				links.add(new RewriterRule.ExplicitLink(inst, ruleLink.stmt, ruleLink.transferFunction));
+			}
+
 			int s = inst.operands.size();
 
 			for (int i = 0; i < s; i++) {
-				if (!operands.get(i).match(ctx, inst.operands.get(i), dependencyMap, literalsCanBeVariables, ignoreLiteralValues)) {
+				if (!operands.get(i).match(ctx, inst.operands.get(i), dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks)) {
 					return false;
 				}
 			}
@@ -114,6 +133,7 @@ public class RewriterInstruction extends RewriterStatement {
 		mCopy.operands = new ArrayList<>(operands);
 		mCopy.costFunction = costFunction;
 		mCopy.consolidated = consolidated;
+		mCopy.meta = meta;
 		return mCopy;
 	}
 
@@ -136,6 +156,7 @@ public class RewriterInstruction extends RewriterStatement {
 		mCopy.costFunction = costFunction;
 		mCopy.consolidated = consolidated;
 		mCopy.operands = new ArrayList<>(operands.size());
+		mCopy.meta = meta;
 		copiedObjects.put(this, mCopy);
 		operands.forEach(op -> mCopy.operands.add(op.nestedCopyOrInject(copiedObjects, injector)));
 
@@ -155,6 +176,7 @@ public class RewriterInstruction extends RewriterStatement {
 		mClone.operands = clonedOperands;
 		mClone.costFunction = costFunction;
 		mClone.consolidated = consolidated;
+		mClone.meta = meta;
 		return mClone;
 	}
 
@@ -163,6 +185,7 @@ public class RewriterInstruction extends RewriterStatement {
 		result = (RewriterDataType)origData.getResult(ctx).copyNode();
 		operands = new ArrayList<>(origData.operands);
 		costFunction = origData.costFunction;
+		meta = origData.meta;
 	}
 
 	/*public RewriterInstruction withLinks(DualHashBidiMap<RewriterStatement, RewriterStatement> links) {
@@ -339,12 +362,14 @@ public class RewriterInstruction extends RewriterStatement {
 	public String toString() {
 		/*if (links != null)
 			return toStringWithLinking(links);*/
+		String instrName = meta == null ? instr : meta.getOrDefault("trueName", instr).toString();
 
-		if (operands.size() == 2 && writeAsBinaryInstruction.contains(instr))
-			return "(" + operands.get(0) + " " + instr + " " + operands.get(1) + ")";
+
+		if (operands.size() == 2 && writeAsBinaryInstruction.contains(instrName))
+			return "(" + operands.get(0) + " " + instrName + " " + operands.get(1) + ")";
 
 		StringBuilder builder = new StringBuilder();
-		builder.append(instr);
+		builder.append(instrName);
 		builder.append("(");
 		for (int i = 0; i < operands.size(); i++) {
 			if (i > 0)

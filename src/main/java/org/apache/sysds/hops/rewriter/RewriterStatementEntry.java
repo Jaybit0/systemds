@@ -22,9 +22,9 @@ public class RewriterStatementEntry {
 			return false;
 
 		if (o instanceof RewriterStatement)
-			return instr.match(ctx, (RewriterStatement)o, new DualHashBidiMap<>(), false, false);
+			return instr.match(ctx, (RewriterStatement)o, new DualHashBidiMap<>(), false, false, null, new DualHashBidiMap<>());
 		if (o instanceof RewriterStatementEntry)
-			return instr.match(ctx, ((RewriterStatementEntry)o).instr, new DualHashBidiMap<>(), false, false);
+			return instr.match(ctx, ((RewriterStatementEntry)o).instr, new DualHashBidiMap<>(), false, false, null, new DualHashBidiMap<>());
 		return false;
 	}
 }

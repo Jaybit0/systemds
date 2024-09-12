@@ -29,6 +29,7 @@ public class RewriterRuleSet {
 						.ofType("INT")
 					.addOp("j")
 						.ofType("INT")
+					.as("res")
 					.asRootInstruction()
 				.toInstruction("rowSelect")
 					.addExistingOp("A")
@@ -43,7 +44,9 @@ public class RewriterRuleSet {
 				.toInstruction("RowSelectPushableBinaryInstruction")
 					.addExistingOp("rowSelect(A,i,j)")
 					.addExistingOp("rowSelect(B,i,j)")
+					.as("res")
 					.asRootInstruction()
+				.link("A + B", "res", RewriterStatement::transferMeta)
 				.build();
 
 		RewriterRule ruleEliminateMultipleSelects = new RewriterRuleBuilder(ctx)
@@ -134,12 +137,12 @@ public class RewriterRuleSet {
 		ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
 
 		for (RewriterRule rule : rules) {
-			if (rule.getStmt1().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, true)) {
+			if (rule.getStmt1().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, true, null, rule.getForwardLinks())) {
 				return new ApplicableRule(matches, rule, true);
 			}
 
 			if (!rule.isUnidirectional()) {
-				if (rule.getStmt2().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, true)) {
+				if (rule.getStmt2().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, true, null, rule.getBackwardLinks())) {
 					return new ApplicableRule(matches, rule, false);
 				}
 			}
@@ -153,13 +156,13 @@ public class RewriterRuleSet {
 		ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
 
 		for (RewriterRule rule : rules) {
-			if (rule.getStmt1().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, false)) {
+			if (rule.getStmt1().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, false, null, rule.getForwardLinks())) {
 				applicableRules.add(new ApplicableRule(matches, rule, true));
 				matches = new ArrayList<>();
 			}
 
 			if (!rule.isUnidirectional()) {
-				if (rule.getStmt2().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, false)) {
+				if (rule.getStmt2().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, false, null, rule.getBackwardLinks())) {
 					applicableRules.add(new ApplicableRule(matches, rule, false));
 					matches = new ArrayList<>();
 				}

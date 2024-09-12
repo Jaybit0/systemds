@@ -4,6 +4,7 @@ import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,8 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 
 	protected int rid = 0;
 	protected int refCtr = 0;
+
+	protected HashMap<String, Object> meta = null;
 
 	static RewriterStatementLink resolveNode(RewriterStatementLink link, DualHashBidiMap<RewriterStatementLink, RewriterStatementLink> links) {
 		if (links == null)
@@ -48,12 +51,14 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		private final RewriterInstruction matchParent;
 		private final int rootIndex;
 		private final DualHashBidiMap<RewriterStatement, RewriterStatement> assocs;
+		private final List<RewriterRule.ExplicitLink> links;
 
-		public MatchingSubexpression(RewriterInstruction matchRoot, RewriterInstruction matchParent, int rootIndex, DualHashBidiMap<RewriterStatement, RewriterStatement> assocs) {
+		public MatchingSubexpression(RewriterInstruction matchRoot, RewriterInstruction matchParent, int rootIndex, DualHashBidiMap<RewriterStatement, RewriterStatement> assocs, List<RewriterRule.ExplicitLink> links) {
 			this.matchRoot = matchRoot;
 			this.matchParent = matchParent;
 			this.assocs = assocs;
 			this.rootIndex = rootIndex;
+			this.links = links;
 		}
 
 		public boolean isRootInstruction() {
@@ -75,6 +80,10 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		public DualHashBidiMap<RewriterStatement, RewriterStatement> getAssocs() {
 			return assocs;
 		}
+
+		public List<RewriterRule.ExplicitLink> getLinks() {
+			return links;
+		}
 	}
 
 	public abstract String getId();
@@ -95,7 +104,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	//String toStringWithLinking(int dagId, DualHashBidiMap<RewriterStatementLink, RewriterStatementLink> links);
 
 	// Returns the root of the matching sub-statement, null if there is no match
-	public abstract boolean match(final RuleContext ctx, RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues);
+	public abstract boolean match(final RuleContext ctx, RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks);
 	public abstract int recomputeHashCodes();
 	public abstract long getCost();
 	public abstract RewriterStatement simplify(final RuleContext ctx);
@@ -105,17 +114,23 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public List<RewriterStatement> getOperands() {
 		return null;
 	}
-	public boolean matchSubexpr(final RuleContext ctx, RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst) {
+	public boolean matchSubexpr(final RuleContext ctx, RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks) {
 		if (dependencyMap == null)
 			dependencyMap = new DualHashBidiMap<>();
 		else
 			dependencyMap.clear();
 
-		boolean foundMatch = match(ctx, root, dependencyMap, literalsCanBeVariables, ignoreLiteralValues);
+		if (links == null)
+			links = new ArrayList<>();
+		else
+			links.clear();
+
+		boolean foundMatch = match(ctx, root, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks);
 
 		if (foundMatch) {
-			matches.add(new MatchingSubexpression(root, parent, rootIndex, dependencyMap));
+			matches.add(new MatchingSubexpression(root, parent, rootIndex, dependencyMap, links));
 			dependencyMap = null;
+			links = null;
 
 			if (findFirst)
 				return true;
@@ -125,8 +140,9 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 
 		for (RewriterStatement stmt : root.getOperands()) {
 			if (stmt instanceof RewriterInstruction)
-				if (matchSubexpr(ctx, (RewriterInstruction) stmt, root, idx, matches, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, findFirst)) {
+				if (matchSubexpr(ctx, (RewriterInstruction) stmt, root, idx, matches, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, findFirst, links, ruleLinks)) {
 					dependencyMap = new DualHashBidiMap<>();
+					links = new ArrayList<>();
 					foundMatch = true;
 
 					if (findFirst)
@@ -180,5 +196,29 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	@Override
 	public int compareTo(@NotNull RewriterStatement o) {
 		return Long.compare(getCost(), o.getCost());
+	}
+
+	public void putMeta(String key, Object value) {
+		if (isConsolidated())
+			throw new IllegalArgumentException("An instruction cannot be modified after consolidation");
+
+		if (meta == null)
+			meta = new HashMap<>();
+
+		meta.put(key, value);
+	}
+
+	public Object getMeta(String key) {
+		if (meta == null)
+			return null;
+
+		return meta.get(key);
+	}
+
+	public static void transferMeta(RewriterRule.ExplicitLink link) {
+		if (link.oldStmt.meta != null)
+			link.newStmt.meta = new HashMap<>(link.oldStmt.meta);
+		else
+			link.newStmt.meta = null;
 	}
 }

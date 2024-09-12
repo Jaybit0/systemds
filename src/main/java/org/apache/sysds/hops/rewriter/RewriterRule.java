@@ -1,10 +1,15 @@
 package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+import org.apache.spark.sql.catalyst.expressions.Exp;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class RewriterRule extends AbstractRewriterRule {
 
@@ -12,14 +17,18 @@ public class RewriterRule extends AbstractRewriterRule {
 	private final String name;
 	private final RewriterStatement fromRoot;
 	private final RewriterStatement toRoot;
+	private final HashMap<RewriterStatement, LinkObject> linksStmt1ToStmt2; // Contains the explicit links a transformation has (like instructions, (a+b)-c = a+(b-c), but '+' and '-' are the same instruction still [important if instructions have metadata])
+	private final HashMap<RewriterStatement, LinkObject> linksStmt2ToStmt1;
 	private final boolean unidirectional;
 
-	public RewriterRule(final RuleContext ctx, String name, RewriterStatement fromRoot, RewriterStatement toRoot, boolean unidirectional) {
+	public RewriterRule(final RuleContext ctx, String name, RewriterStatement fromRoot, RewriterStatement toRoot, boolean unidirectional, HashMap<RewriterStatement, LinkObject> linksStmt1ToStmt2, HashMap<RewriterStatement, LinkObject> linksStmt2ToStmt1) {
 		this.ctx = ctx;
 		this.name = name;
 		this.fromRoot = fromRoot;
 		this.toRoot = toRoot;
 		this.unidirectional = unidirectional;
+		this.linksStmt1ToStmt2 = linksStmt1ToStmt2;
+		this.linksStmt2ToStmt1 = linksStmt2ToStmt1;
 	}
 
 	public String getName() {
@@ -38,6 +47,14 @@ public class RewriterRule extends AbstractRewriterRule {
 		return unidirectional;
 	}
 
+	public HashMap<RewriterStatement, LinkObject> getForwardLinks() {
+		return linksStmt1ToStmt2;
+	}
+
+	public HashMap<RewriterStatement, LinkObject> getBackwardLinks() {
+		return linksStmt2ToStmt1;
+	}
+
 	public RewriterStatement applyForward(RewriterStatement.MatchingSubexpression match, RewriterInstruction rootNode, boolean inplace) {
 		return inplace ? applyInplace(match, rootNode, toRoot) : apply(match, rootNode, toRoot);
 	}
@@ -48,12 +65,12 @@ public class RewriterRule extends AbstractRewriterRule {
 
 	@Override
 	public boolean matchStmt1(RewriterInstruction stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr, boolean findFirst) {
-		return getStmt1().matchSubexpr(ctx, stmt, null, -1, arr, new DualHashBidiMap<>(), true, false, findFirst);
+		return getStmt1().matchSubexpr(ctx, stmt, null, -1, arr, new DualHashBidiMap<>(), true, false, findFirst, null, linksStmt1ToStmt2);
 	}
 
 	@Override
 	public boolean matchStmt2(RewriterInstruction stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr, boolean findFirst) {
-		return getStmt2().matchSubexpr(ctx, stmt, null, -1, arr, new DualHashBidiMap<>(), true, false, findFirst);
+		return getStmt2().matchSubexpr(ctx, stmt, null, -1, arr, new DualHashBidiMap<>(), true, false, findFirst, null, linksStmt2ToStmt1);
 	}
 
 	private RewriterStatement apply(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest) {
@@ -74,8 +91,13 @@ public class RewriterRule extends AbstractRewriterRule {
 			RewriterStatement tmp = cpy.simplify(ctx);
 			if (tmp != null)
 				cpy = tmp;
+
+			match.getLinks().forEach(lnk -> lnk.newStmt = createdObjects.get(lnk.newStmt));
+			match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
+
 			cpy.prepareForHashing();
 			cpy.recomputeHashCodes();
+
 			return cpy;
 		}
 
@@ -84,6 +106,8 @@ public class RewriterRule extends AbstractRewriterRule {
 			if (obj2 == match.getMatchRoot()) {
 				RewriterStatement cpy = dest.nestedCopyOrInject(createdObjects, obj -> {
 					RewriterStatement assoc = match.getAssocs().get(obj);
+					/*for (Map.Entry<RewriterStatement, RewriterStatement> mAssoc : match.getAssocs().entrySet())
+						System.out.println(mAssoc.getKey() + " -> " + mAssoc.getValue());*/
 					if (assoc != null) {
 						RewriterStatement assocCpy = createdObjects.get(assoc);
 						if (assocCpy == null) {
@@ -92,27 +116,39 @@ public class RewriterRule extends AbstractRewriterRule {
 						}
 						return assocCpy;
 					}
+					//System.out.println("ObjInner: " + obj);
 					return null;
 				});
 				createdObjects.put(obj2, cpy);
 				return cpy;
 			}
+			//System.out.println("Obj: " + obj2);
 			return null;
 		});
 		RewriterStatement tmp = cpy2.simplify(ctx);
 		if (tmp != null)
 			cpy2 = tmp;
+
+		match.getLinks().forEach(lnk -> lnk.newStmt = createdObjects.get(lnk.newStmt));
+		match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
+
 		cpy2.prepareForHashing();
 		cpy2.recomputeHashCodes();
 		return cpy2;
 	}
 
+	// TODO: Not working right now
 	private RewriterStatement applyInplace(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest) {
 		if (match.getMatchParent() == null || match.getMatchParent() == match.getMatchRoot()) {
-			RewriterStatement cpy = dest.nestedCopyOrInject(new HashMap<>(), obj -> match.getAssocs().get(obj));
+			final Map<RewriterStatement, RewriterStatement> createdObjects = new HashMap<>();
+			RewriterStatement cpy = dest.nestedCopyOrInject(createdObjects, obj -> match.getAssocs().get(obj));
 			RewriterStatement cpy2 = cpy.simplify(ctx);
 			if (cpy2 != null)
 				cpy = cpy2;
+
+			match.getLinks().forEach(lnk -> lnk.newStmt = createdObjects.get(lnk.newStmt));
+			match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
+
 			cpy.prepareForHashing();
 			cpy.recomputeHashCodes();
 			return cpy;
@@ -124,10 +160,15 @@ public class RewriterRule extends AbstractRewriterRule {
 		for (int i = 0; i < operands.size(); i++) {
 			if (operands.get(i) == )
 		}*/
-		match.getMatchParent().getOperands().set(match.getRootIndex(), dest.nestedCopyOrInject(new HashMap<>(), obj -> match.getAssocs().get(obj)));
+		final Map<RewriterStatement, RewriterStatement> createdObjects = new HashMap<>();
+		match.getMatchParent().getOperands().set(match.getRootIndex(), dest.nestedCopyOrInject(createdObjects, obj -> match.getAssocs().get(obj)));
 		RewriterStatement out = rootInstruction.simplify(ctx);
 		if (out != null)
 			out = rootInstruction;
+
+		match.getLinks().forEach(lnk -> lnk.newStmt = createdObjects.get(lnk.newStmt));
+		match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
+
 		rootInstruction.prepareForHashing();
 		rootInstruction.recomputeHashCodes();
 		return rootInstruction;
@@ -152,5 +193,40 @@ public class RewriterRule extends AbstractRewriterRule {
 
 	public String toString() {
 		return fromRoot.toString() + " <=> " + toRoot.toString();
+	}
+
+	static class LinkObject {
+		RewriterStatement stmt;
+		Consumer<ExplicitLink> transferFunction;
+
+		public LinkObject() {
+		}
+
+		public LinkObject(RewriterStatement stmt, Consumer<ExplicitLink> transferFunction) {
+			this.stmt = stmt;
+			this.transferFunction = transferFunction;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			return o instanceof LinkObject && ((LinkObject)o).stmt == stmt;
+		}
+
+		@Override
+		public int hashCode() {
+			return stmt.hashCode();
+		}
+	}
+
+	static class ExplicitLink {
+		final RewriterStatement oldStmt;
+		RewriterStatement newStmt;
+		final Consumer<ExplicitLink> transferFunction;
+
+		public ExplicitLink(RewriterStatement oldStmt, RewriterStatement newStmt, Consumer<ExplicitLink> transferFunction) {
+			this.oldStmt = oldStmt;
+			this.newStmt = newStmt;
+			this.transferFunction = transferFunction;
+		}
 	}
 }
