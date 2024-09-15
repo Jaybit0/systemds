@@ -52,5 +52,8 @@ public class RuleContext {
 		selectionPushdownContext.instrTypes.put("min(INT,INT)", "INT");
 		selectionPushdownContext.instrCosts.put("max(INT,INT)", d -> 1l);
 		selectionPushdownContext.instrTypes.put("max(INT,INT)", "INT");
+
+		selectionPushdownContext.instrCosts.put("+(MATRIX,MATRIX)", d -> 1l);
+		selectionPushdownContext.instrTypes.put("+(MATRIX,MATRIX)", "MATRIX");
 	}
 }

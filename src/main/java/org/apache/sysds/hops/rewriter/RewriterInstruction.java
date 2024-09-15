@@ -69,9 +69,12 @@ public class RewriterInstruction extends RewriterStatement {
 		consolidated = true;
 	}
 	@Override
-	public int recomputeHashCodes() {
-		result.recomputeHashCodes();
-		operands.forEach(RewriterStatement::recomputeHashCodes);
+	public int recomputeHashCodes(boolean recursively) {
+		if (recursively) {
+			result.recomputeHashCodes(true);
+			operands.forEach(op -> op.recomputeHashCodes(true));
+		}
+
 		hashCode = Objects.hash(rid, refCtr, instr, result, operands);
 		return hashCode;
 	}
@@ -302,8 +305,12 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	public String typedInstruction(final RuleContext ctx) {
+		return typedInstruction(this.instr, ctx);
+	}
+
+	private String typedInstruction(String instrName, final RuleContext ctx) {
 		StringBuilder builder = new StringBuilder();
-		builder.append(this.instr);
+		builder.append(instrName);
 		builder.append("(");
 
 		if (!operands.isEmpty())
@@ -393,6 +400,17 @@ public class RewriterInstruction extends RewriterStatement {
 		for (RewriterStatement stmt : operands)
 			cost += stmt.getCost();
 		return cost;
+	}
+
+	public String changeConsolidatedInstruction(String newName, final RuleContext ctx) {
+		String typedInstruction = typedInstruction(newName, ctx);
+		String newInstrReturnType = ctx.instrTypes.get(typedInstruction);
+		if (newInstrReturnType == null || !newInstrReturnType.equals(getResultingDataType(ctx)))
+			throw new IllegalArgumentException("An instruction name can only be changed if it has the same signature (return type) [" + typedInstruction + "::" + newInstrReturnType + " <-> " + typedInstruction(ctx) + "::" + getResultingDataType(ctx) + "]");
+		String oldName = instr;
+		instr = newName;
+		recomputeHashCodes(false);
+		return oldName;
 	}
 
 }

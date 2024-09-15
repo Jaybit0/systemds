@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public abstract class RewriterStatement implements Comparable<RewriterStatement> {
@@ -105,7 +106,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 
 	// Returns the root of the matching sub-statement, null if there is no match
 	public abstract boolean match(final RuleContext ctx, RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks);
-	public abstract int recomputeHashCodes();
+	public abstract int recomputeHashCodes(boolean recursively);
 	public abstract long getCost();
 	public abstract RewriterStatement simplify(final RuleContext ctx);
 	public abstract RewriterStatement as(String id);
@@ -113,6 +114,10 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	@Nullable
 	public List<RewriterStatement> getOperands() {
 		return null;
+	}
+
+	public int recomputeHashCodes() {
+		return recomputeHashCodes(true);
 	}
 	public boolean matchSubexpr(final RuleContext ctx, RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks) {
 		if (dependencyMap == null)
@@ -193,6 +198,17 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		return id;
 	}
 
+	/**
+	 * Traverses the DAG in post-order. If nodes with multiple parents exist, those are visited multiple times.
+	 * If the function returns false, the sub-DAG of the current node will not be traversed.
+	 * @param function
+	 */
+	public void forEachPostOrderWithDuplicates(Function<RewriterStatement, Boolean> function) {
+		if (function.apply(this) && getOperands() != null)
+			for (RewriterStatement stmt : getOperands())
+				stmt.forEachPostOrderWithDuplicates(function);
+	}
+
 	@Override
 	public int compareTo(@NotNull RewriterStatement o) {
 		return Long.compare(getCost(), o.getCost());
@@ -202,6 +218,13 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		if (isConsolidated())
 			throw new IllegalArgumentException("An instruction cannot be modified after consolidation");
 
+		if (meta == null)
+			meta = new HashMap<>();
+
+		meta.put(key, value);
+	}
+
+	public void unsafePutMeta(String key, Object value) {
 		if (meta == null)
 			meta = new HashMap<>();
 
