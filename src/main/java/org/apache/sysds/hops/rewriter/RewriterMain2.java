@@ -21,17 +21,7 @@ public class RewriterMain2 {
 		RewriterRuleSet ruleSet = RewriterRuleSet.selectionPushdown;
 
 		RewriterInstruction instr = RewriterExamples.getSelectionPushdownExample3();
-		instr.forEachPostOrderWithDuplicates(el -> {
-			if (el instanceof RewriterInstruction) {
-				Object mProperties = el.getMeta("properties");
-				if (mProperties != null && ((HashSet<String>)mProperties).contains("RowSelectPushableBinaryInstruction")) {
-					String oldInstr = ((RewriterInstruction) el).changeConsolidatedInstruction("RowSelectPushableBinaryInstruction", ruleSet.getContext());
-					if (el.getMeta("trueInstr") == null)
-						el.unsafePutMeta("trueInstr", oldInstr);
-				}
-			}
-			return true;
-		});
+		instr.forEachPostOrderWithDuplicates(RewriterUtils.propertyExtractor(List.of("RowSelectPushableBinaryInstruction"), ruleSet.getContext()));
 
 		RewriterInstruction current = instr;
 

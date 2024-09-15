@@ -251,6 +251,10 @@ public class RewriterRuleBuilder {
 	}
 
 	public RewriterRuleBuilder linkUnidirectional(String idFrom, String idTo, Consumer<RewriterRule.ExplicitLink> transferFunction, boolean forward) {
+		return linkManyUnidirectional(idFrom, List.of(idTo), transferFunction, forward);
+	}
+
+	public RewriterRuleBuilder linkManyUnidirectional(String idFrom, List<String> idsTo, Consumer<RewriterRule.ExplicitLink> transferFunction, boolean forward) {
 		prepare();
 		RewriterStatement stmt1 = forward ? instrSeqIds.get(idFrom) : mappingSeqIds.get(idFrom);
 		if (stmt1 == null)
@@ -260,17 +264,23 @@ public class RewriterRuleBuilder {
 		if (!stmt1.isConsolidated())
 			stmt1.consolidate(ctx);
 
-		RewriterStatement stmt2 = forward ? mappingSeqIds.get(idTo) : instrSeqIds.get(idTo);
-		if (stmt2 == null)
-			stmt2 = globalIds.get(idTo);
-		if (stmt2 == null)
-			throw new IllegalArgumentException("Could not find instruction id: " + idTo);
-		if (!stmt2.isConsolidated())
-			stmt2.consolidate(ctx);
+		List<RewriterStatement> stmts2 = new ArrayList<>();
+
+		for (String idTo : idsTo) {
+			RewriterStatement stmt2 = forward ? mappingSeqIds.get(idTo) : instrSeqIds.get(idTo);
+			if (stmt2 == null)
+				stmt2 = globalIds.get(idTo);
+			if (stmt2 == null)
+				throw new IllegalArgumentException("Could not find instruction id: " + idTo);
+			if (!stmt2.isConsolidated())
+				stmt2.consolidate(ctx);
+
+			stmts2.add(stmt2);
+		}
 
 		HashMap<RewriterStatement, RewriterRule.LinkObject> links = forward ? linksStmt1ToStmt2 : linksStmt2ToStmt1;
 
-		RewriterRule.LinkObject lnk = new RewriterRule.LinkObject(stmt2, transferFunction);
+		RewriterRule.LinkObject lnk = new RewriterRule.LinkObject(stmts2, transferFunction);
 
 		if (links.containsKey(stmt1) || links.containsValue(lnk))
 			throw new IllegalArgumentException("Key or value already exists in explicit link map.");

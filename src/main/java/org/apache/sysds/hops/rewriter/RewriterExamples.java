@@ -63,6 +63,7 @@ public class RewriterExamples {
 				.ofType("MATRIX")
 				.as("H + K")
 				.withInstruction("rowSelect")
+				.instrMeta("trueName", "[,?]")
 				.addExistingOp("H + K")
 				.addOp("n")
 				.ofType("INT")

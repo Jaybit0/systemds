@@ -240,8 +240,8 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 
 	public static void transferMeta(RewriterRule.ExplicitLink link) {
 		if (link.oldStmt.meta != null)
-			link.newStmt.meta = new HashMap<>(link.oldStmt.meta);
+			link.newStmt.forEach(stmt -> stmt.meta = new HashMap<>(link.oldStmt.meta));
 		else
-			link.newStmt.meta = null;
+			link.newStmt.forEach(stmt -> stmt.meta = null);
 	}
 }

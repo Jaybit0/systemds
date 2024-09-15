@@ -6,6 +6,7 @@ import org.apache.spark.sql.catalyst.expressions.Exp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -96,7 +97,7 @@ public class RewriterRule extends AbstractRewriterRule {
 			if (tmp != null)
 				cpy = tmp;
 
-			match.getLinks().forEach(lnk -> lnk.newStmt = createdObjects.get(lnk.newStmt));
+			match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 			match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
 
 			cpy.prepareForHashing();
@@ -133,7 +134,7 @@ public class RewriterRule extends AbstractRewriterRule {
 		if (tmp != null)
 			cpy2 = tmp;
 
-		match.getLinks().forEach(lnk -> lnk.newStmt = createdObjects.get(lnk.newStmt));
+		match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 		match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
 
 		cpy2.prepareForHashing();
@@ -150,7 +151,7 @@ public class RewriterRule extends AbstractRewriterRule {
 			if (cpy2 != null)
 				cpy = cpy2;
 
-			match.getLinks().forEach(lnk -> lnk.newStmt = createdObjects.get(lnk.newStmt));
+			match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 			match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
 
 			cpy.prepareForHashing();
@@ -170,7 +171,7 @@ public class RewriterRule extends AbstractRewriterRule {
 		if (out != null)
 			out = rootInstruction;
 
-		match.getLinks().forEach(lnk -> lnk.newStmt = createdObjects.get(lnk.newStmt));
+		match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 		match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
 
 		rootInstruction.prepareForHashing();
@@ -200,17 +201,30 @@ public class RewriterRule extends AbstractRewriterRule {
 	}
 
 	static class LinkObject {
-		RewriterStatement stmt;
+		List<RewriterStatement> stmt;
 		Consumer<ExplicitLink> transferFunction;
 
 		public LinkObject() {
+			stmt = new ArrayList<>(2);
 		}
 
-		public LinkObject(RewriterStatement stmt, Consumer<ExplicitLink> transferFunction) {
+		public LinkObject(List<RewriterStatement> stmt, Consumer<ExplicitLink> transferFunction) {
 			this.stmt = stmt;
 			this.transferFunction = transferFunction;
 		}
 
+		@Override
+		public String toString() {
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < stmt.size(); i++) {
+				if (i != 0)
+					sb.append(", ");
+				sb.append(stmt.get(i));
+			}
+			return sb.toString();
+		}
+
+		// TODO: Change
 		@Override
 		public boolean equals(Object o) {
 			return o instanceof LinkObject && ((LinkObject)o).stmt == stmt;
@@ -224,12 +238,12 @@ public class RewriterRule extends AbstractRewriterRule {
 
 	static class ExplicitLink {
 		final RewriterStatement oldStmt;
-		RewriterStatement newStmt;
+		List<RewriterStatement> newStmt;
 		final Consumer<ExplicitLink> transferFunction;
 
-		public ExplicitLink(RewriterStatement oldStmt, RewriterStatement newStmt, Consumer<ExplicitLink> transferFunction) {
+		public ExplicitLink(RewriterStatement oldStmt, List<RewriterStatement> newStmt, Consumer<ExplicitLink> transferFunction) {
 			this.oldStmt = oldStmt;
-			this.newStmt = newStmt;
+			this.newStmt = new ArrayList<>(newStmt);
 			this.transferFunction = transferFunction;
 		}
 	}

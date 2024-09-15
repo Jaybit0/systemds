@@ -47,6 +47,7 @@ public class RewriterRuleSet {
 					.as("res")
 					.asRootInstruction()
 				.link("A + B", "res", RewriterStatement::transferMeta)
+				.linkManyUnidirectional("res", List.of("rowSelect(A,i,j)", "rowSelect(B,i,j)"), RewriterStatement::transferMeta, true)
 				.build();
 
 		RewriterRule ruleEliminateMultipleSelects = new RewriterRuleBuilder(ctx)
