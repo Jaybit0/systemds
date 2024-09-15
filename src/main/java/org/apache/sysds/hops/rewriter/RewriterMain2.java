@@ -10,17 +10,25 @@ import java.util.PriorityQueue;
 public class RewriterMain2 {
 
 	public static void main(String[] args) {
-		HashMap<String, List<String>> propertyList = new HashMap<>() {
-			{
-				put("+", Arrays.asList("RowSelectPushableBinaryInstruction"));
-				put("-", Arrays.asList("RowSelectPushableBinaryInstruction"));
-				//put("index", Arrays.asList());
-			}
-		};
+		StringBuilder builder = new StringBuilder();
 
-		RewriterRuleSet ruleSet = RewriterRuleSet.selectionPushdown;
+		builder.append("RowSelectPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("impl +\n");
+		builder.append("impl -\n");
+		builder.append("impl min\n");
+		builder.append("impl max\n");
+		builder.append("rowSelect(MATRIX,INT,INT)::MATRIX\n");
+		builder.append("min(INT,INT)::INT\n");
+		builder.append("max(INT,INT)::INT");
 
-		RewriterInstruction instr = RewriterExamples.getSelectionPushdownExample3();
+		RuleContext ctx = RuleContext.createContext(builder.toString());
+		System.out.println(ctx.instrTypes);
+		System.out.println(ctx.instrProperties);
+
+		//RewriterRuleSet ruleSet = RewriterRuleSet.selectionPushdown;
+		RewriterRuleSet ruleSet = RewriterRuleSet.buildSelectionPushdownRuleSet(ctx);
+
+		RewriterInstruction instr = RewriterExamples.selectionPushdownExample2();
 		instr.forEachPostOrderWithDuplicates(RewriterUtils.propertyExtractor(List.of("RowSelectPushableBinaryInstruction"), ruleSet.getContext()));
 
 		RewriterInstruction current = instr;

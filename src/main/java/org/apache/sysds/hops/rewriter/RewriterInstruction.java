@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 public class RewriterInstruction extends RewriterStatement {
@@ -413,6 +414,19 @@ public class RewriterInstruction extends RewriterStatement {
 		instr = newName;
 		recomputeHashCodes(false);
 		return oldName;
+	}
+
+	public boolean hasProperty(String property, final RuleContext ctx) {
+		Set<String> properties = getProperties(ctx);
+
+		if (properties == null)
+			return false;
+
+		return properties.contains(property);
+	}
+
+	public Set<String> getProperties(final RuleContext ctx) {
+		return ctx.instrProperties.get(typedInstruction(ctx));
 	}
 
 }

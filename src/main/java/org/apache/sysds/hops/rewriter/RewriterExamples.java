@@ -49,14 +49,13 @@ public class RewriterExamples {
 				.buildDAG();
 	}
 
-	public static RewriterInstruction getSelectionPushdownExample3() {
+	public static RewriterInstruction selectionPushdownExample3() {
 		HashSet<String> mProperties = new HashSet<>();
 		mProperties.add("RowSelectPushableBinaryInstruction");
 		return (RewriterInstruction)new RewriterRuleBuilder(RuleContext.selectionPushdownContext)
 				.asDAGBuilder()
 				.withInstruction("+") // This is more a class of instructions
 				.instrMeta("trueName", "+")
-				.instrMeta("properties", mProperties)
 				.addOp("H")
 				.ofType("MATRIX")
 				.addOp("K")
