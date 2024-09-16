@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -162,29 +163,22 @@ public class RewriterRuleBuilder {
 		return this;
 	}
 
-	public RewriterRuleBuilder addDynamicOpList(String id, String type, String... ops) {
+	public RewriterRuleBuilder addDynamicOpListInstr(String id, String type, boolean fromInstr, String... ops) {
 		if (!canBeModified)
 			throw new IllegalArgumentException("The DAG is final and cannot be modified");
-		RewriterDataType dt = new RewriterDataType().as(id).ofType(type);
-		List<Object> opList = new ArrayList<>(ops.length);
 
-		for (String op : ops) {
-			RewriterStatement opObj = findVar(op);
-			if (opObj == null)
-				throw new IllegalArgumentException("The variable " + op + " does not exist!");
+		if (fromInstr)
+			withInstruction("argList");
+		else
+			toInstruction("argList");
 
-			if (opObj.isArgumentList())
-				opList.addAll((List<?>)opObj.getLiteral());
-			else
-				opList.add(opObj);
+		if (ops.length == 0) {
+			// Add one placeholder operand to implicitly determine the data type
+			addOp(UUID.randomUUID().toString()).ofType(type);
+		} else {
+			for (String op : ops)
+				addExistingOp(op);
 		}
-
-		dt.setLiteral(opList);
-		storeVar(dt);
-		((RewriterInstruction)getCurrentInstruction()).addOp(dt);
-		if (currentStatement != null)
-			currentStatement.consolidate(ctx);
-		currentStatement = dt;
 		return this;
 	}
 

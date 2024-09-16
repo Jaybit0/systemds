@@ -60,7 +60,10 @@ public class RewriterInstruction extends RewriterStatement {
 
 		getResult(ctx).consolidate(ctx);
 
-		hashCode = Objects.hash(rid, refCtr, instr, result, operands);
+		if (isArgumentList())
+			hashCode = Objects.hash(instr, result);
+		else
+			hashCode = Objects.hash(rid, refCtr, instr, result, operands);
 		consolidated = true;
 	}
 	@Override
@@ -70,7 +73,10 @@ public class RewriterInstruction extends RewriterStatement {
 			operands.forEach(op -> op.recomputeHashCodes(true));
 		}
 
-		hashCode = Objects.hash(rid, refCtr, instr, result, operands);
+		if (isArgumentList())
+			hashCode = Objects.hash(instr, result);
+		else
+			hashCode = Objects.hash(rid, refCtr, instr, result, operands);
 		return hashCode;
 	}
 
@@ -165,12 +171,12 @@ public class RewriterInstruction extends RewriterStatement {
 
 	@Override
 	public boolean isArgumentList() {
-		return false;
+		return trueInstruction().equals("argList");
 	}
 
 	@Override
-	public List<Object> getArgumentList() {
-		return null;
+	public List<RewriterStatement> getArgumentList() {
+		return isArgumentList() ? getOperands() : null;
 	}
 
 	@Override
@@ -323,10 +329,13 @@ public class RewriterInstruction extends RewriterStatement {
 		if (!operands.isEmpty())
 			builder.append(operands.get(0).getResultingDataType(ctx));
 
-		for (int i = 1; i < operands.size(); i++) {
-			builder.append(",");
-			builder.append(operands.get(i).getResultingDataType(ctx));
+		if (!isArgumentList()) {
+			for (int i = 1; i < operands.size(); i++) {
+				builder.append(",");
+				builder.append(operands.get(i).getResultingDataType(ctx));
+			}
 		}
+
 		builder.append(")");
 		return builder.toString();
 	}
@@ -433,11 +442,15 @@ public class RewriterInstruction extends RewriterStatement {
 		return properties.contains(property);
 	}
 
-	public String trueTypedInstruction(final RuleContext ctx) {
+	public String trueInstruction() {
 		Object trueInstrObj = getMeta("trueInstr");
 		if (trueInstrObj != null && trueInstrObj instanceof String)
-			return typedInstruction((String)trueInstrObj, ctx);
-		return typedInstruction(ctx);
+			return (String)trueInstrObj;
+		return instr;
+	}
+
+	public String trueTypedInstruction(final RuleContext ctx) {
+		return typedInstruction(trueInstruction(), ctx);
 	}
 
 	public Set<String> getProperties(final RuleContext ctx) {

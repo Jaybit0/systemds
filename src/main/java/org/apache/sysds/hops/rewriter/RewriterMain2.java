@@ -12,6 +12,8 @@ public class RewriterMain2 {
 	public static void main(String[] args) {
 		StringBuilder builder = new StringBuilder();
 
+		builder.append("argList(MATRIX)::MATRIX...\n"); // This is a meta function that can take any number of MATRIX arguments
+
 		builder.append("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
 		builder.append("impl +\n");
 		builder.append("impl -\n");

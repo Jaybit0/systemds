@@ -112,7 +112,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public abstract RewriterStatement as(String id);
 	public abstract String toString(final RuleContext ctx);
 	public abstract boolean isArgumentList();
-	public abstract List<Object> getArgumentList();
+	public abstract List<RewriterStatement> getArgumentList();
 
 	@Nullable
 	public List<RewriterStatement> getOperands() {
@@ -177,6 +177,8 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	}
 
 	protected void computeRefCtrs() {
+		if (isArgumentList())
+			return;
 		refCtr++;
 		if (getOperands() != null)
 			getOperands().forEach(RewriterStatement::computeRefCtrs);
@@ -189,7 +191,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	}
 
 	protected int computeIds(int id) {
-		if (rid != 0)
+		if (rid != 0 || isArgumentList())
 			return id;
 
 		rid = id++;
