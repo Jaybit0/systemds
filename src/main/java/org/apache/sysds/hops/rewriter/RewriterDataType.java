@@ -46,6 +46,13 @@ public class RewriterDataType extends RewriterStatement {
 	}
 
 	@Override
+	public List<Object> getArgumentList() {
+		if (literal == null)
+			return null;
+		return (List<Object>)literal;
+	}
+
+	@Override
 	public void consolidate(final RuleContext ctx) {
 		if (consolidated)
 			return;
@@ -74,6 +81,7 @@ public class RewriterDataType extends RewriterStatement {
 		return consolidated;
 	}
 
+	// TODO: Match handling does not yet work for argument lists
 	@Override
 	public boolean match(final RuleContext ctx, RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValue, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks) {
 		if (stmt.getResultingDataType(ctx).equals(type)) {
@@ -181,12 +189,12 @@ public class RewriterDataType extends RewriterStatement {
 
 	@Override
 	public String toString(final RuleContext ctx) {
-		if (isLiteral() && getLiteral() != null) {
+		if (isArgumentList()) {
 			List<?> lst = (List<?>)getLiteral();
 			StringBuilder sb = new StringBuilder();
 			for (int i = 0; i < lst.size(); i++) {
 				if (i > 0)
-					sb.append(',');
+					sb.append(", ");
 				if (lst.get(i) instanceof RewriterStatement)
 					sb.append(((RewriterStatement)lst.get(i)).toString(ctx));
 				else

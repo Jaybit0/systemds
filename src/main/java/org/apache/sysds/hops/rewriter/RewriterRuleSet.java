@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -240,7 +241,7 @@ public class RewriterRuleSet {
 		return new RewriterRuleSet(ctx, rules);
 	}
 
-	public static RewriterRuleSet buildOperatorFusion(final RuleContext ctx) {
+	public static RewriterRuleSet buildDynamicOpInstructions(final RuleContext ctx) {
 		RewriterRule ruleFuse1 = new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.withInstruction("FusableBinaryOperator")
@@ -252,6 +253,7 @@ public class RewriterRuleSet {
 				.toInstruction("FusedOperator")
 				.addDynamicOpList("matrixList", "MATRIX...", "A", "B")
 				.asRootInstruction()
+				.link("result", "result", RewriterStatement::transferMeta)
 				.build();
 
 		ArrayList<RewriterRule> rules = new ArrayList<>();
@@ -259,6 +261,25 @@ public class RewriterRuleSet {
 
 		return new RewriterRuleSet(ctx, rules);
 	}
+
+	/*public static RewriterRuleSet mergeDynamicOpInstructions(final RuleContext ctx, List<String> properties) {
+		for (Map.Entry<String, HashSet<String>> p : ctx.instrProperties.entrySet()) {
+			if (p.getValue().contains("FusableBinaryOperator(MATRIX,MATRIX)")) {
+				// Then there must exist a fused version of the same operator
+				RewriterRule ruleFuse2 = new RewriterRuleBuilder(ctx)
+						.setUnidirectional(true)
+						.withInstruction(p.getKey())
+						.addDynamicOpList("matrixList", "MATRIX...")
+						.as("ir1")
+						.withInstruction(p.getKey())
+						.addExistingOp("matrixList")
+						.addOp("B").ofType("MATRIX")
+						.asRootInstruction()
+						.toInstruction(p.getKey())
+						.addDynamicOpList("newMatrixList", "MATRIX...", "matrixList", "B");
+			}
+		}
+	}*/
 
 	private static RewriterRule binaryMatrixLRIndexingPushdown(String instrName, String selectFuncOrigin, String[] indexingInput, String destSelectFuncL, String[] indexingInputL, String destSelectFuncR, String[] indexingInputR, final RuleContext ctx) {
 		return new RewriterRuleBuilder(ctx)

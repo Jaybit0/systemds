@@ -169,6 +169,11 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	@Override
+	public List<Object> getArgumentList() {
+		return null;
+	}
+
+	@Override
 	public RewriterStatement clone() {
 		RewriterInstruction mClone = new RewriterInstruction();
 		mClone.instr = instr;

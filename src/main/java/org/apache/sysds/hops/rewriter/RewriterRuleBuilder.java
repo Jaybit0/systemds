@@ -173,7 +173,10 @@ public class RewriterRuleBuilder {
 			if (opObj == null)
 				throw new IllegalArgumentException("The variable " + op + " does not exist!");
 
-			opList.add(opObj);
+			if (opObj.isArgumentList())
+				opList.addAll((List<?>)opObj.getLiteral());
+			else
+				opList.add(opObj);
 		}
 
 		dt.setLiteral(opList);

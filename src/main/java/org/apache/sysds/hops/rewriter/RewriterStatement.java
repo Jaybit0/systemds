@@ -112,6 +112,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public abstract RewriterStatement as(String id);
 	public abstract String toString(final RuleContext ctx);
 	public abstract boolean isArgumentList();
+	public abstract List<Object> getArgumentList();
 
 	@Nullable
 	public List<RewriterStatement> getOperands() {
@@ -146,7 +147,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		int idx = 0;
 
 		for (RewriterStatement stmt : root.getOperands()) {
-			if (stmt instanceof RewriterInstruction)
+			if (stmt instanceof RewriterInstruction) {
 				if (matchSubexpr(ctx, (RewriterInstruction) stmt, root, idx, matches, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, findFirst, links, ruleLinks)) {
 					dependencyMap = new DualHashBidiMap<>();
 					links = new ArrayList<>();
@@ -155,6 +156,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 					if (findFirst)
 						return true;
 				}
+			}
 			idx++;
 		}
 
