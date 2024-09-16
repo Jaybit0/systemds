@@ -4,6 +4,7 @@ import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -135,6 +136,8 @@ public class RewriterRuleSet {
 	}
 
 	public static RewriterRuleSet buildSelectionPushdownRuleSet(final RuleContext ctx) {
+		RewriterRule ruleIdxSelectionRowPushdown = binaryMatrixIndexingPushdown("IdxSelectPushableBinaryInstruction", "rowSelect", ctx);
+		RewriterRule ruleIdxSelectionColPushdown = binaryMatrixIndexingPushdown("IdxSelectPushableBinaryInstruction", "colSelect", ctx);
 		RewriterRule ruleRowSelectionPushdown = binaryMatrixIndexingPushdown("RowSelectPushableBinaryInstruction", "rowSelect", ctx);
 		RewriterRule ruleColSelectionPushdown = binaryMatrixIndexingPushdown("ColSelectPushableBinaryInstruction", "colSelect", ctx);
 
@@ -189,6 +192,8 @@ public class RewriterRuleSet {
 				.build();
 
 		ArrayList<RewriterRule> rules = new ArrayList<>();
+		rules.add(ruleIdxSelectionRowPushdown);
+		rules.add(ruleIdxSelectionColPushdown);
 		rules.add(ruleRowSelectionPushdown);
 		rules.add(ruleColSelectionPushdown);
 		rules.add(ruleRowMMSelectionPushdown);
@@ -229,6 +234,26 @@ public class RewriterRuleSet {
 
 		ArrayList<RewriterRule> rules = new ArrayList<>();
 		rules.add(ruleSimplify);
+
+		return new RewriterRuleSet(ctx, rules);
+	}
+
+	public static RewriterRuleSet buildOperatorFusion(final RuleContext ctx) {
+		RewriterRule ruleFuse1 = new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.withInstruction("FusableBinaryOperator")
+				.addOp("A")
+				.ofType("MATRIX")
+				.addOp("B")
+				.ofType("MATRIX")
+				.asRootInstruction()
+				.toInstruction("FusedOperator")
+				.addDynamicOpList("matrixList", "MATRIX...", "A", "B")
+				.asRootInstruction()
+				.build();
+
+		ArrayList<RewriterRule> rules = new ArrayList<>();
+		rules.add(ruleFuse1);
 
 		return new RewriterRuleSet(ctx, rules);
 	}

@@ -87,14 +87,14 @@ public class RuleContext {
 
 				instrTypes.put(newFName + fArgTypes, fReturnType);
 
-				final String propertyFunction = fName + fArgTypes + "::" + fReturnType;
+				final String propertyFunction = fName + fArgTypes;
 
-				if (instrProps.containsKey(newFName))
-					instrProps.get(newFName).add(propertyFunction);
+				if (instrProps.containsKey(newFName + fArgTypes))
+					instrProps.get(newFName + fArgTypes).add(propertyFunction);
 				else {
 					HashSet<String> mset = new HashSet<>();
 					mset.add(propertyFunction);
-					instrProps.put(newFName, mset);
+					instrProps.put(newFName + fArgTypes, mset);
 				}
 
 				ctx.instrCosts.put(newFName + fArgTypes, d -> 1L);

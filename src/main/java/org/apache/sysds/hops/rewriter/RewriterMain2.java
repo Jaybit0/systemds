@@ -12,7 +12,7 @@ public class RewriterMain2 {
 	public static void main(String[] args) {
 		StringBuilder builder = new StringBuilder();
 
-		builder.append("RowSelectPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
 		builder.append("impl +\n");
 		builder.append("impl -\n");
 		builder.append("impl *\n");
@@ -20,13 +20,9 @@ public class RewriterMain2 {
 		builder.append("impl min\n");
 		builder.append("impl max\n");
 
+		builder.append("RowSelectPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
+
 		builder.append("ColSelectPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
-		builder.append("impl +\n");
-		builder.append("impl -\n");
-		builder.append("impl *\n");
-		builder.append("impl /\n");
-		builder.append("impl min\n");
-		builder.append("impl max\n");
 
 		builder.append("RowSelectMMPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
 		builder.append("impl %*%\n");
@@ -40,6 +36,18 @@ public class RewriterMain2 {
 		builder.append("max(INT,INT)::INT\n");
 
 		builder.append("index(MATRIX,INT,INT,INT,INT)::MATRIX\n");
+
+		builder.append("FusableBinaryOperator(MATRIX, MATRIX)::MATRIX\n");
+		builder.append("impl +\n");
+		builder.append("impl -\n");
+		builder.append("impl *\n");
+		builder.append("impl %*%\n");
+
+		builder.append("FusedOperator(MATRIX...)::MATRIX\n");
+		builder.append("impl +\n");
+		builder.append("impl -\n");
+		builder.append("impl *\n");
+		builder.append("impl %*%\n");
 
 		RuleContext ctx = RuleContext.createContext(builder.toString());
 		ctx.customStringRepr.put("+(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" + "));
@@ -69,8 +77,9 @@ public class RewriterMain2 {
 		RewriterInstruction instr = RewriterExamples.selectionPushdownExample4(ctx);
 
 		RewriterHeuristic selectionBreakup = new RewriterHeuristic(RewriterRuleSet.buildSelectionBreakup(ctx), List.of("index"));
-		RewriterHeuristic selectionPushdown = new RewriterHeuristic(RewriterRuleSet.buildSelectionPushdownRuleSet(ctx), List.of("RowSelectPushableBinaryInstruction", "ColSelectPushableBinaryInstruction"));
-		RewriterHeuristic selectionSimplification = new RewriterHeuristic(RewriterRuleSet.buildSelectionSimplification(ctx), List.of("RowSelectPushableBinaryInstruction", "ColSelectPushableBinaryInstruction"));
+		RewriterHeuristic selectionPushdown = new RewriterHeuristic(RewriterRuleSet.buildSelectionPushdownRuleSet(ctx), List.of("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)", "RowSelectPushableBinaryInstruction(MATRIX,MATRIX)", "ColSelectPushableBinaryInstruction(MATRIX,MATRIX)"));
+		RewriterHeuristic selectionSimplification = new RewriterHeuristic(RewriterRuleSet.buildSelectionSimplification(ctx), List.of("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)", "RowSelectPushableBinaryInstruction(MATRIX,MATRIX)", "ColSelectPushableBinaryInstruction(MATRIX,MATRIX)"));
+		RewriterHeuristic operatorFusion = new RewriterHeuristic(RewriterRuleSet.buildOperatorFusion(ctx), List.of("FusableBinaryOperator(MATRIX,MATRIX)", "FusedOperator(MATRIX...)"));
 
 		long millis = System.currentTimeMillis();
 
@@ -97,6 +106,15 @@ public class RewriterMain2 {
 		System.out.println();
 
 		instr = selectionSimplification.apply(instr, current -> {
+			System.out.println(current);
+			return true;
+		});
+
+		System.out.println();
+		System.out.println("> OPERATOR FUSION <");
+		System.out.println();
+
+		instr = operatorFusion.apply(instr, current -> {
 			System.out.println(current);
 			return true;
 		});

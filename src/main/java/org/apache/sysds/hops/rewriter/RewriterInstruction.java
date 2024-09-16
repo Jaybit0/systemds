@@ -164,6 +164,11 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	@Override
+	public boolean isArgumentList() {
+		return false;
+	}
+
+	@Override
 	public RewriterStatement clone() {
 		RewriterInstruction mClone = new RewriterInstruction();
 		mClone.instr = instr;
@@ -365,7 +370,9 @@ public class RewriterInstruction extends RewriterStatement {
 
 	@Override
 	public String toString(final RuleContext ctx) {
-		Function<RewriterStatement, String> customStringFunc = ctx.customStringRepr.get(typedInstruction(ctx));
+		Object trueInstrObj = getMeta("trueInstr");
+		String typedInstr = trueInstrObj != null ? typedInstruction((String)trueInstrObj, ctx) : typedInstruction(ctx);
+		Function<RewriterStatement, String> customStringFunc = ctx.customStringRepr.get(typedInstr);
 		if (customStringFunc != null)
 			return customStringFunc.apply(this);
 
@@ -380,7 +387,7 @@ public class RewriterInstruction extends RewriterStatement {
 		for (int i = 0; i < operands.size(); i++) {
 			if (i > 0)
 				builder.append(", ");
-			builder.append(operands.get(i));
+			builder.append(operands.get(i).toString(ctx));
 		}
 		builder.append(")");
 		return builder.toString();
@@ -402,12 +409,12 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	public String changeConsolidatedInstruction(String newName, final RuleContext ctx) {
-		String typedInstruction = typedInstruction(newName, ctx);
+		String typedInstruction = newName;
 		String newInstrReturnType = ctx.instrTypes.get(typedInstruction);
 		if (newInstrReturnType == null || !newInstrReturnType.equals(getResultingDataType(ctx)))
 			throw new IllegalArgumentException("An instruction name can only be changed if it has the same signature (return type) [" + typedInstruction + "::" + newInstrReturnType + " <-> " + typedInstruction(ctx) + "::" + getResultingDataType(ctx) + "]");
 		String oldName = instr;
-		instr = newName;
+		instr = newName.substring(0, newName.indexOf('('));
 		recomputeHashCodes(false);
 		return oldName;
 	}

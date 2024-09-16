@@ -2,6 +2,7 @@ package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -26,7 +27,7 @@ public class RewriterDataType extends RewriterStatement {
 
 	@Override
 	public boolean isLiteral() {
-		return literal != null;
+		return literal != null && !(literal instanceof List<?>);
 	}
 
 	@Override
@@ -37,6 +38,11 @@ public class RewriterDataType extends RewriterStatement {
 	@Override
 	public void setLiteral(Object literal) {
 		this.literal = literal;
+	}
+
+	@Override
+	public boolean isArgumentList() {
+		return literal != null && literal instanceof List<?>;
 	}
 
 	@Override
@@ -127,9 +133,18 @@ public class RewriterDataType extends RewriterStatement {
 		RewriterDataType mCopy = new RewriterDataType();
 		mCopy.id = id;
 		mCopy.type = type;
-		mCopy.literal = literal;
+		if (literal != null && literal instanceof List<?>) {
+			final ArrayList<Object> mList = new ArrayList<>(((List<?>)literal).size());
+			mCopy.literal = mList;
+			((List<?>) literal).forEach(el -> {
+				if (el instanceof RewriterStatement)
+					mList.add(((RewriterStatement)el).nestedCopyOrInject(copiedObjects, injector));
+			});
+		} else
+			mCopy.literal = literal;
 		mCopy.consolidated = consolidated;
 		copiedObjects.put(this, mCopy);
+
 		return mCopy;
 	}
 
@@ -166,6 +181,19 @@ public class RewriterDataType extends RewriterStatement {
 
 	@Override
 	public String toString(final RuleContext ctx) {
+		if (isLiteral() && getLiteral() != null) {
+			List<?> lst = (List<?>)getLiteral();
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < lst.size(); i++) {
+				if (i > 0)
+					sb.append(',');
+				if (lst.get(i) instanceof RewriterStatement)
+					sb.append(((RewriterStatement)lst.get(i)).toString(ctx));
+				else
+					sb.append(lst.get(i));
+			}
+			return sb.toString();
+		}
 		return isLiteral() ? getLiteral().toString() : getId();
 	}
 }

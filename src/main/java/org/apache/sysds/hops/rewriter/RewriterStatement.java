@@ -111,6 +111,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public abstract RewriterStatement simplify(final RuleContext ctx);
 	public abstract RewriterStatement as(String id);
 	public abstract String toString(final RuleContext ctx);
+	public abstract boolean isArgumentList();
 
 	@Nullable
 	public List<RewriterStatement> getOperands() {

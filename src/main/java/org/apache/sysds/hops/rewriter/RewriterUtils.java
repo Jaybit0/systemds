@@ -5,16 +5,22 @@ import java.util.Set;
 import java.util.function.Function;
 
 public class RewriterUtils {
-	public static Function<RewriterStatement, Boolean> propertyExtractor(List<String> desiredProperties, final RuleContext ctx) {
+	public static Function<RewriterStatement, Boolean> propertyExtractor(final List<String> desiredProperties, final RuleContext ctx) {
 		return el -> {
 			if (el instanceof RewriterInstruction) {
 				Set<String> properties = ((RewriterInstruction) el).getProperties(ctx);
+				//System.out.println(el + " => " + properties);
 				if (properties != null) {
 					for (String desiredProperty : desiredProperties) {
 						if (properties.contains(desiredProperty)) {
+							//System.out.println("Found property: " + desiredProperty + " (for " + el + ")");
 							String oldInstr = ((RewriterInstruction) el).changeConsolidatedInstruction(desiredProperty, ctx);
-							if (el.getMeta("trueInstr") == null)
+							if (el.getMeta("trueInstr") == null) {
 								el.unsafePutMeta("trueInstr", oldInstr);
+								el.unsafePutMeta("trueName", oldInstr);
+							}
+							break;
+							//System.out.println("Property found: " + desiredProperty);
 						}
 					}
 				}
