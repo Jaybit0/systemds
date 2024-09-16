@@ -15,11 +15,25 @@ public class RewriterMain2 {
 		builder.append("RowSelectPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
 		builder.append("impl +\n");
 		builder.append("impl -\n");
+		builder.append("impl *\n");
+		builder.append("impl /\n");
 		builder.append("impl min\n");
 		builder.append("impl max\n");
+
+		builder.append("ColSelectPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("impl +\n");
+		builder.append("impl -\n");
+		builder.append("impl *\n");
+		builder.append("impl /\n");
+		builder.append("impl min\n");
+		builder.append("impl max\n");
+
 		builder.append("rowSelect(MATRIX,INT,INT)::MATRIX\n");
+		builder.append("colSelect(MATRIX,INT,INT)::MATRIX\n");
 		builder.append("min(INT,INT)::INT\n");
-		builder.append("max(INT,INT)::INT");
+		builder.append("max(INT,INT)::INT\n");
+
+		builder.append("indexRange(MATRIX,INT,INT,INT,INT)::MATRIX\n");
 
 		RuleContext ctx = RuleContext.createContext(builder.toString());
 		System.out.println(ctx.instrTypes);
@@ -28,8 +42,8 @@ public class RewriterMain2 {
 		//RewriterRuleSet ruleSet = RewriterRuleSet.selectionPushdown;
 		RewriterRuleSet ruleSet = RewriterRuleSet.buildSelectionPushdownRuleSet(ctx);
 
-		RewriterInstruction instr = RewriterExamples.selectionPushdownExample2();
-		instr.forEachPostOrderWithDuplicates(RewriterUtils.propertyExtractor(List.of("RowSelectPushableBinaryInstruction"), ruleSet.getContext()));
+		RewriterInstruction instr = RewriterExamples.selectionPushdownExample4(ctx);
+		instr.forEachPostOrderWithDuplicates(RewriterUtils.propertyExtractor(List.of("RowSelectPushableBinaryInstruction", "ColSelectPushableBinaryInstruction"), ruleSet.getContext()));
 
 		RewriterInstruction current = instr;
 

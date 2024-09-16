@@ -50,8 +50,6 @@ public class RewriterExamples {
 	}
 
 	public static RewriterInstruction selectionPushdownExample3() {
-		HashSet<String> mProperties = new HashSet<>();
-		mProperties.add("RowSelectPushableBinaryInstruction");
 		return (RewriterInstruction)new RewriterRuleBuilder(RuleContext.selectionPushdownContext)
 				.asDAGBuilder()
 				.withInstruction("+") // This is more a class of instructions
@@ -71,6 +69,39 @@ public class RewriterExamples {
 				.as("rowSelect(H + K, n, m)")
 				.withInstruction("rowSelect")
 				.addExistingOp("rowSelect(H + K, n, m)")
+				.addOp("a")
+				.ofType("INT")
+				.addOp("b")
+				.ofType("INT")
+				.asRootInstruction()
+				.buildDAG();
+	}
+
+	public static RewriterInstruction selectionPushdownExample4(final RuleContext ctx) {
+		return (RewriterInstruction)new RewriterRuleBuilder(ctx)
+				.asDAGBuilder()
+				.withInstruction("+") // This is more a class of instructions
+				.addOp("H")
+				.ofType("MATRIX")
+				.addOp("K")
+				.ofType("MATRIX")
+				.as("H + K")
+				.withInstruction("rowSelect")
+				.addExistingOp("H + K")
+				.addOp("n")
+				.ofType("INT")
+				.addOp("m")
+				.ofType("INT")
+				.as("rowSelect(H + K, n, m)")
+				.withInstruction("colSelect")
+				.addExistingOp("rowSelect(H + K, n, m)")
+				.addOp("k")
+				.ofType("INT")
+				.addOp("l")
+				.ofType("INT")
+				.as("ir")
+				.withInstruction("rowSelect")
+				.addExistingOp("ir")
 				.addOp("a")
 				.ofType("INT")
 				.addOp("b")

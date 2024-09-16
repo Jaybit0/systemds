@@ -1,13 +1,10 @@
 package org.apache.sysds.hops.rewriter;
 
-import org.apache.logging.log4j.util.Strings;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class RuleContext {
 	public HashMap<String, Function<List<RewriterStatement>, Long>> instrCosts = new HashMap<>();
@@ -95,13 +92,15 @@ public class RuleContext {
 					mset.add(propertyFunction);
 					instrProps.put(newFName, mset);
 				}
+
+				ctx.instrCosts.put(newFName + fArgTypes, d -> 1L);
 			} else {
 				String[] keyVal = readFunctionDefinition(line);
 				fName = keyVal[0];
 				fArgTypes = keyVal[1];
 				fReturnType = keyVal[2];
 				instrTypes.put(fName + fArgTypes, fReturnType);
-				ctx.instrCosts.put(fName + fArgTypes, d -> 1l);
+				ctx.instrCosts.put(fName + fArgTypes, d -> 1L);
 			}
 		}
 
