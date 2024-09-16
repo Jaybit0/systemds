@@ -428,8 +428,15 @@ public class RewriterInstruction extends RewriterStatement {
 		return properties.contains(property);
 	}
 
+	public String trueTypedInstruction(final RuleContext ctx) {
+		Object trueInstrObj = getMeta("trueInstr");
+		if (trueInstrObj != null && trueInstrObj instanceof String)
+			return typedInstruction((String)trueInstrObj, ctx);
+		return typedInstruction(ctx);
+	}
+
 	public Set<String> getProperties(final RuleContext ctx) {
-		return ctx.instrProperties.get(typedInstruction(ctx));
+		return ctx.instrProperties.get(trueTypedInstruction(ctx));
 	}
 
 }

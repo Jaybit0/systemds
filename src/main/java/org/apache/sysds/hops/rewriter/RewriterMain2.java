@@ -21,8 +21,10 @@ public class RewriterMain2 {
 		builder.append("impl max\n");
 
 		builder.append("RowSelectPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("impl IdxSelectPushableBinaryInstruction\n");
 
 		builder.append("ColSelectPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("impl IdxSelectPushableBinaryInstruction\n");
 
 		builder.append("RowSelectMMPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
 		builder.append("impl %*%\n");
@@ -37,7 +39,7 @@ public class RewriterMain2 {
 
 		builder.append("index(MATRIX,INT,INT,INT,INT)::MATRIX\n");
 
-		builder.append("FusableBinaryOperator(MATRIX, MATRIX)::MATRIX\n");
+		builder.append("FusableBinaryOperator(MATRIX,MATRIX)::MATRIX\n");
 		builder.append("impl +\n");
 		builder.append("impl -\n");
 		builder.append("impl *\n");

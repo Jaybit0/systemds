@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public class RuleContext {
@@ -105,6 +106,21 @@ public class RuleContext {
 				fReturnType = keyVal[2];
 				instrTypes.put(fName + fArgTypes, fReturnType);
 				ctx.instrCosts.put(fName + fArgTypes, d -> 1L);
+			}
+		}
+
+		// Resolve transitive function properties
+		boolean changed = true;
+		while (changed) {
+			changed = !instrProps.isEmpty();
+			for (Map.Entry<String, HashSet<String>> pair : instrProps.entrySet()) {
+				HashSet<String> toAdd = new HashSet<>();
+				for (String propertyFunction : pair.getValue()) {
+					if (instrProps.containsKey(propertyFunction))
+						toAdd.addAll(instrProps.get(propertyFunction));
+				}
+
+				changed &= pair.getValue().addAll(toAdd);
 			}
 		}
 

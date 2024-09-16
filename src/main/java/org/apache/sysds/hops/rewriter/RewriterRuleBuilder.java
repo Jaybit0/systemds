@@ -215,10 +215,12 @@ public class RewriterRuleBuilder {
 			if (toRoot != null)
 				throw new IllegalArgumentException("Cannot have more than one root instruction");
 			toRoot = getCurrentInstruction().as("result");
+			mappingSeqIds.put("result", toRoot);
 		} else {
 			if (fromRoot != null)
 				throw new IllegalArgumentException("Cannot have more than one root instruction");
 			fromRoot = getCurrentInstruction().as("result");
+			instrSeqIds.put("result", fromRoot);
 			/*if (buildSingleDAG)
 				fromRoot.withLinks(new DualHashBidiMap<>());*/
 		}

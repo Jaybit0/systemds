@@ -189,6 +189,8 @@ public class RewriterRuleSet {
 				.addExistingOp("h")
 				.addExistingOp("i")
 				.asRootInstruction()
+				.link("result", "rs", RewriterStatement::transferMeta)
+				.link("rs", "result", RewriterStatement::transferMeta)
 				.build();
 
 		ArrayList<RewriterRule> rules = new ArrayList<>();

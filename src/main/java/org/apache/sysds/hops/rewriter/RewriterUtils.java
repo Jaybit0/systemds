@@ -13,7 +13,7 @@ public class RewriterUtils {
 				if (properties != null) {
 					for (String desiredProperty : desiredProperties) {
 						if (properties.contains(desiredProperty)) {
-							//System.out.println("Found property: " + desiredProperty + " (for " + el + ")");
+							System.out.println("Found property: " + desiredProperty + " (for " + el + ")");
 							String oldInstr = ((RewriterInstruction) el).changeConsolidatedInstruction(desiredProperty, ctx);
 							if (el.getMeta("trueInstr") == null) {
 								el.unsafePutMeta("trueInstr", oldInstr);
