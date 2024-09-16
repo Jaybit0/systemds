@@ -101,9 +101,60 @@ public class RewriterRuleSet {
 		return builder.toString();
 	}
 
+	public static RewriterRuleSet buildSelectionBreakup(final RuleContext ctx) {
+		RewriterRule ruleBreakupSelections = new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.withInstruction("index")
+				.addOp("A")
+				.ofType("MATRIX")
+				.addOp("h")
+				.ofType("INT")
+				.addOp("i")
+				.ofType("INT")
+				.addOp("j")
+				.ofType("INT")
+				.addOp("k")
+				.ofType("INT")
+				.asRootInstruction()
+				.toInstruction("colSelect")
+				.addExistingOp("A")
+				.addExistingOp("j")
+				.addExistingOp("k")
+				.as("ir")
+				.toInstruction("rowSelect")
+				.addExistingOp("ir")
+				.addExistingOp("h")
+				.addExistingOp("i")
+				.asRootInstruction()
+				.build();
+
+		ArrayList<RewriterRule> rules = new ArrayList<>();
+		rules.add(ruleBreakupSelections);
+
+		return new RewriterRuleSet(ctx, rules);
+	}
+
 	public static RewriterRuleSet buildSelectionPushdownRuleSet(final RuleContext ctx) {
 		RewriterRule ruleRowSelectionPushdown = binaryMatrixIndexingPushdown("RowSelectPushableBinaryInstruction", "rowSelect", ctx);
 		RewriterRule ruleColSelectionPushdown = binaryMatrixIndexingPushdown("ColSelectPushableBinaryInstruction", "colSelect", ctx);
+
+		RewriterRule ruleRowMMSelectionPushdown = binaryMatrixLRIndexingPushdown("RowSelectMMPushableBinaryInstruction",
+				"rowSelect",
+				new String[] {"i", "j"},
+				"rowSelect",
+				new String[] {"i", "j"},
+				"colSelect",
+				new String[] {"i", "j"},
+				ctx);
+
+		RewriterRule ruleColMMSelectionPushdown = binaryMatrixLRIndexingPushdown("ColSelectMMPushableBinaryInstruction",
+				"colSelect",
+				new String[] {"i", "j"},
+				"colSelect",
+				new String[] {"i", "j"},
+				"rowSelect",
+				new String[] {"i", "j"},
+				ctx);
 
 		RewriterRule ruleEliminateMultipleRowSelects = ruleEliminateMultipleSelects("rowSelect", ctx);
 		RewriterRule ruleEliminateMultipleColSelects = ruleEliminateMultipleSelects("colSelect", ctx);
@@ -140,6 +191,8 @@ public class RewriterRuleSet {
 		ArrayList<RewriterRule> rules = new ArrayList<>();
 		rules.add(ruleRowSelectionPushdown);
 		rules.add(ruleColSelectionPushdown);
+		rules.add(ruleRowMMSelectionPushdown);
+		rules.add(ruleColMMSelectionPushdown);
 		rules.add(ruleEliminateMultipleRowSelects);
 		rules.add(ruleEliminateMultipleColSelects);
 		rules.add(ruleOrderRowColSelect);
@@ -147,16 +200,73 @@ public class RewriterRuleSet {
 		return new RewriterRuleSet(ctx, rules);
 	}
 
-	/*public static RewriterRuleSet buildSelectionSimplification(final RuleContext ctx) {
-		RewriterRule sel1 = new RewriterRuleBuilder(ctx)
-				.withInstruction("RowSelectPushableBinaryInstruction")
+	public static RewriterRuleSet buildSelectionSimplification(final RuleContext ctx) {
+		RewriterRule ruleSimplify = new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.withInstruction("colSelect")
+				.addOp("A")
+				.ofType("MATRIX")
+				.addOp("j")
+				.ofType("INT")
+				.addOp("k")
+				.ofType("INT")
+				.as("ir")
+				.withInstruction("rowSelect")
+				.addExistingOp("ir")
+				.addOp("h")
+				.ofType("INT")
+				.addOp("i")
+				.ofType("INT")
+				.asRootInstruction()
+				.toInstruction("index")
+				.addExistingOp("A")
+				.addExistingOp("h")
+				.addExistingOp("i")
+				.addExistingOp("j")
+				.addExistingOp("k")
+				.asRootInstruction()
+				.build();
+
+		ArrayList<RewriterRule> rules = new ArrayList<>();
+		rules.add(ruleSimplify);
+
+		return new RewriterRuleSet(ctx, rules);
+	}
+
+	private static RewriterRule binaryMatrixLRIndexingPushdown(String instrName, String selectFuncOrigin, String[] indexingInput, String destSelectFuncL, String[] indexingInputL, String destSelectFuncR, String[] indexingInputR, final RuleContext ctx) {
+		return new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.withInstruction(instrName) // This is more a class of instructions
 				.addOp("A")
 				.ofType("MATRIX")
 				.addOp("B")
 				.ofType("MATRIX")
-				.as("rs")
-				.withInstruction("ColSelectPushableBinaryInstruction");
-	}*/
+				.as("A + B")
+				.withInstruction(selectFuncOrigin)
+				.addExistingOp("A + B")
+				.addOp(indexingInput[0]).ofType("INT")
+				.addOp(indexingInput[1]).ofType("INT")
+				.as("res")
+				.asRootInstruction()
+				.toInstruction(destSelectFuncL)
+				.addExistingOp("A")
+				.addExistingOp(indexingInputL[0])
+				.addExistingOp(indexingInputL[1])
+				.as(destSelectFuncL + "(A...)")
+				.toInstruction(destSelectFuncR)
+				.addExistingOp("B")
+				.addExistingOp(indexingInputR[0])
+				.addExistingOp(indexingInputL[0])
+				.as(destSelectFuncR + "(B...)")
+				.toInstruction(instrName)
+				.addExistingOp(destSelectFuncL + "(A...)")
+				.addExistingOp(destSelectFuncR + "(B...)")
+				.as("res")
+				.asRootInstruction()
+				.link("A + B", "res", RewriterStatement::transferMeta)
+				.linkManyUnidirectional("res", List.of(destSelectFuncL + "(A...)", destSelectFuncR + "(B...)"), RewriterStatement::transferMeta, true)
+				.build();
+	}
 
 	private static RewriterRule binaryMatrixIndexingPushdown(String instrName, String selectFunc, final RuleContext ctx) {
 		return new RewriterRuleBuilder(ctx)

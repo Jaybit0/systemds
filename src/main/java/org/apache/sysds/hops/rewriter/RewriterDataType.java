@@ -164,7 +164,8 @@ public class RewriterDataType extends RewriterStatement {
 		return this;
 	}
 
-	public String toString() {
+	@Override
+	public String toString(final RuleContext ctx) {
 		return isLiteral() ? getLiteral().toString() : getId();
 	}
 }

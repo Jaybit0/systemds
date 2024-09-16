@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.function.Function;
 
 public class RuleContext {
+	public static RuleContext currentContext;
+
 	public HashMap<String, Function<List<RewriterStatement>, Long>> instrCosts = new HashMap<>();
 
 	public HashMap<String, String> instrTypes = new HashMap<>();
@@ -14,6 +16,8 @@ public class RuleContext {
 	public HashMap<String, Function<RewriterInstruction, RewriterStatement>> simplificationRules = new HashMap<>();
 
 	public HashMap<String, HashSet<String>> instrProperties = new HashMap<>();
+
+	public HashMap<String, Function<RewriterStatement, String>> customStringRepr = new HashMap<>();
 
 	public static RuleContext floatArithmetic = new RuleContext();
 	public static RuleContext selectionPushdownContext = new RuleContext();

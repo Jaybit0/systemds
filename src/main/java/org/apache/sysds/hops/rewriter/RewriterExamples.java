@@ -106,6 +106,13 @@ public class RewriterExamples {
 				.ofType("INT")
 				.addOp("b")
 				.ofType("INT")
+				.as("ir2")
+				.withInstruction("index")
+				.addExistingOp("ir2")
+				.addOp("q").ofType("INT")
+				.addOp("r").ofType("INT")
+				.addOp("s").ofType("INT")
+				.addOp("t").ofType("INT")
 				.asRootInstruction()
 				.buildDAG();
 	}

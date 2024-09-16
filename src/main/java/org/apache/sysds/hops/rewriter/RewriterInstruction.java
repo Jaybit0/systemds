@@ -14,12 +14,6 @@ import java.util.Set;
 import java.util.function.Function;
 
 public class RewriterInstruction extends RewriterStatement {
-	private static final HashSet<String> writeAsBinaryInstruction = new HashSet<>() {
-		{
-			add("+");
-			add("*");
-		}
-	};
 
 	private String instr;
 	private RewriterDataType result = new RewriterDataType();
@@ -369,14 +363,16 @@ public class RewriterInstruction extends RewriterStatement {
 		return builder.toString();
 	}*/
 
-	public String toString() {
-		/*if (links != null)
-			return toStringWithLinking(links);*/
+	@Override
+	public String toString(final RuleContext ctx) {
+		Function<RewriterStatement, String> customStringFunc = ctx.customStringRepr.get(typedInstruction(ctx));
+		if (customStringFunc != null)
+			return customStringFunc.apply(this);
+
 		String instrName = meta == null ? instr : meta.getOrDefault("trueName", instr).toString();
 
-
-		if (operands.size() == 2 && writeAsBinaryInstruction.contains(instrName))
-			return "(" + operands.get(0) + " " + instrName + " " + operands.get(1) + ")";
+		/*if (operands.size() == 2 && ctx.writeAsBinaryInstruction.contains(instrName))
+			return "(" + operands.get(0) + " " + instrName + " " + operands.get(1) + ")";*/
 
 		StringBuilder builder = new StringBuilder();
 		builder.append(instrName);

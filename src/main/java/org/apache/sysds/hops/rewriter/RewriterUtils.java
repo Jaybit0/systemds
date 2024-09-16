@@ -22,4 +22,11 @@ public class RewriterUtils {
 			return true;
 		};
 	}
+
+	public static Function<RewriterStatement, String> binaryStringRepr(String op) {
+		return stmt -> {
+			List<RewriterStatement> operands = ((RewriterInstruction)stmt).getOperands();
+			return operands.get(0).toString() + op + operands.get(1).toString();
+		};
+	}
 }

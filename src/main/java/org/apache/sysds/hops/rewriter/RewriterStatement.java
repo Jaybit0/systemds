@@ -110,6 +110,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public abstract long getCost();
 	public abstract RewriterStatement simplify(final RuleContext ctx);
 	public abstract RewriterStatement as(String id);
+	public abstract String toString(final RuleContext ctx);
 
 	@Nullable
 	public List<RewriterStatement> getOperands() {
@@ -243,5 +244,10 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 			link.newStmt.forEach(stmt -> stmt.meta = new HashMap<>(link.oldStmt.meta));
 		else
 			link.newStmt.forEach(stmt -> stmt.meta = null);
+	}
+
+	@Override
+	public String toString() {
+		return toString(RuleContext.currentContext);
 	}
 }

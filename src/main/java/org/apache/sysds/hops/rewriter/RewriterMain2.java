@@ -28,35 +28,80 @@ public class RewriterMain2 {
 		builder.append("impl min\n");
 		builder.append("impl max\n");
 
+		builder.append("RowSelectMMPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("impl %*%\n");
+
+		builder.append("ColSelectMMPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("impl %*%\n");
+
 		builder.append("rowSelect(MATRIX,INT,INT)::MATRIX\n");
 		builder.append("colSelect(MATRIX,INT,INT)::MATRIX\n");
 		builder.append("min(INT,INT)::INT\n");
 		builder.append("max(INT,INT)::INT\n");
 
-		builder.append("indexRange(MATRIX,INT,INT,INT,INT)::MATRIX\n");
+		builder.append("index(MATRIX,INT,INT,INT,INT)::MATRIX\n");
 
 		RuleContext ctx = RuleContext.createContext(builder.toString());
+		ctx.customStringRepr.put("+(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" + "));
+		ctx.customStringRepr.put("-(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" - "));
+		ctx.customStringRepr.put("*(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" * "));
+		ctx.customStringRepr.put("/(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" / "));
+		ctx.customStringRepr.put("index(MATRIX,INT,INT,INT,INT)", stmt -> {
+			String out;
+			RewriterInstruction mInstr = (RewriterInstruction) stmt;
+			List<RewriterStatement> ops = mInstr.getOperands();
+			RewriterStatement op1 = ops.get(0);
+
+			if (op1 instanceof RewriterDataType)
+				out = op1.toString();
+			else
+				out = "(" + op1 + ")";
+
+			out += "[" + ops.get(1) + " : " + ops.get(2) + ", " + ops.get(3) + " : " + ops.get(4) + "]";
+			return out;
+		});
+
 		System.out.println(ctx.instrTypes);
 		System.out.println(ctx.instrProperties);
 
 		//RewriterRuleSet ruleSet = RewriterRuleSet.selectionPushdown;
-		RewriterRuleSet ruleSet = RewriterRuleSet.buildSelectionPushdownRuleSet(ctx);
 
 		RewriterInstruction instr = RewriterExamples.selectionPushdownExample4(ctx);
-		instr.forEachPostOrderWithDuplicates(RewriterUtils.propertyExtractor(List.of("RowSelectPushableBinaryInstruction", "ColSelectPushableBinaryInstruction"), ruleSet.getContext()));
 
-		RewriterInstruction current = instr;
+		RewriterHeuristic selectionBreakup = new RewriterHeuristic(RewriterRuleSet.buildSelectionBreakup(ctx), List.of("index"));
+		RewriterHeuristic selectionPushdown = new RewriterHeuristic(RewriterRuleSet.buildSelectionPushdownRuleSet(ctx), List.of("RowSelectPushableBinaryInstruction", "ColSelectPushableBinaryInstruction"));
+		RewriterHeuristic selectionSimplification = new RewriterHeuristic(RewriterRuleSet.buildSelectionSimplification(ctx), List.of("RowSelectPushableBinaryInstruction", "ColSelectPushableBinaryInstruction"));
 
-		RewriterRuleSet.ApplicableRule rule = ruleSet.findFirstApplicableRule(current);
+		long millis = System.currentTimeMillis();
 
-		while (rule != null) {
+		System.out.println();
+		System.out.println("> SELECTION BREAKUP <");
+		System.out.println();
+
+		instr = selectionBreakup.apply(instr, current -> {
 			System.out.println(current);
+			return true;
+		});
 
-			current = (RewriterInstruction) rule.rule.apply(rule.matches.get(0), current, rule.forward, true);
+		System.out.println();
+		System.out.println("> SELECTION PUSHDOWN <");
+		System.out.println();
 
-			rule = ruleSet.findFirstApplicableRule(current);
-		}
+		instr = selectionPushdown.apply(instr, current -> {
+			System.out.println(current);
+			return true;
+		});
 
-		System.out.println(current);
+		System.out.println();
+		System.out.println("> SELECTION SIMPLIFICATION <");
+		System.out.println();
+
+		instr = selectionSimplification.apply(instr, current -> {
+			System.out.println(current);
+			return true;
+		});
+
+		millis = System.currentTimeMillis() - millis;
+		System.out.println("Finished in " + millis + "ms");
 	}
 }
