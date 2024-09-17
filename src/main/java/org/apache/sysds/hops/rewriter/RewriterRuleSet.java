@@ -251,6 +251,9 @@ public class RewriterRuleSet {
 				.ofType("MATRIX")
 				.asRootInstruction()
 				.addDynamicOpListInstr("matrixList", "MATRIX...", false, "A", "B")
+				.as("[A,B]")
+				.toInstruction("FusedOperator")
+				.addExistingOp("[A,B]")
 				.asRootInstruction()
 				.link("result", "result", RewriterStatement::transferMeta)
 				.build();
