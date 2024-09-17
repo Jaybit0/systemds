@@ -211,8 +211,8 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	 */
 	public void forEachPostOrderWithDuplicates(Function<RewriterStatement, Boolean> function) {
 		if (function.apply(this) && getOperands() != null)
-			for (RewriterStatement stmt : getOperands())
-				stmt.forEachPostOrderWithDuplicates(function);
+			for (int i = 0; i < getOperands().size(); i++)
+				getOperands().get(i).forEachPostOrderWithDuplicates(function);
 	}
 
 	@Override

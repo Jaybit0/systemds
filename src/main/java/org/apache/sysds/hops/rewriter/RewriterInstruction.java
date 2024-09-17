@@ -321,6 +321,10 @@ public class RewriterInstruction extends RewriterStatement {
 		return typedInstruction(this.instr, ctx);
 	}
 
+	public String getInstr() {
+		return instr;
+	}
+
 	private String typedInstruction(String instrName, final RuleContext ctx) {
 		StringBuilder builder = new StringBuilder();
 		builder.append(instrName);

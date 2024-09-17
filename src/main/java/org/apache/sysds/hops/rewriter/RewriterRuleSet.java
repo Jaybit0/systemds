@@ -97,6 +97,7 @@ public class RewriterRuleSet {
 
 	@Override
 	public String toString() {
+		RuleContext.currentContext = ctx;
 		StringBuilder builder = new StringBuilder("RuleSet:\n");
 		for (RewriterRule rule : rules)
 			builder.append(rule.toString() + "\n");
@@ -264,24 +265,37 @@ public class RewriterRuleSet {
 		return new RewriterRuleSet(ctx, rules);
 	}
 
-	/*public static RewriterRuleSet mergeDynamicOpInstructions(final RuleContext ctx, List<String> properties) {
+	public static RewriterRuleSet mergeDynamicOpInstructions(final RuleContext ctx, List<String> properties) {
+		ArrayList<RewriterRule> rules = new ArrayList<>();
 		for (Map.Entry<String, HashSet<String>> p : ctx.instrProperties.entrySet()) {
 			if (p.getValue().contains("FusableBinaryOperator(MATRIX,MATRIX)")) {
+				String fName = p.getKey().substring(0, p.getKey().indexOf('('));
 				// Then there must exist a fused version of the same operator
-				RewriterRule ruleFuse2 = new RewriterRuleBuilder(ctx)
+				RewriterRule mRule = new RewriterRuleBuilder(ctx)
 						.setUnidirectional(true)
-						.withInstruction(p.getKey())
-						.addDynamicOpList("matrixList", "MATRIX...")
-						.as("ir1")
-						.withInstruction(p.getKey())
+						.addDynamicOpListInstr("matrixList", "MATRIX...", true)
+						.withInstruction(fName)
 						.addExistingOp("matrixList")
-						.addOp("B").ofType("MATRIX")
+						.as("ir2")
+						.addDynamicOpListInstr("matrixList2", "MATRIX...", true, "ir2")
+						.as("ir3")
+						.withInstruction(fName)
+						.addExistingOp("ir3")
 						.asRootInstruction()
-						.toInstruction(p.getKey())
-						.addDynamicOpList("newMatrixList", "MATRIX...", "matrixList", "B");
+						.addDynamicOpListInstr("newMatrixList", "MATRIX...", false)
+						.toInstruction(fName)
+						.addExistingOp("newMatrixList")
+						.asRootInstruction()
+						.build();
+				rules.add(mRule);
+				properties.add(p.getKey());
 			}
 		}
-	}*/
+
+		RewriterRuleSet rs = new RewriterRuleSet(ctx, rules);
+		System.out.println(rs);
+		return rs;
+	}
 
 	private static RewriterRule binaryMatrixLRIndexingPushdown(String instrName, String selectFuncOrigin, String[] indexingInput, String destSelectFuncL, String[] indexingInputL, String destSelectFuncR, String[] indexingInputR, final RuleContext ctx) {
 		return new RewriterRuleBuilder(ctx)

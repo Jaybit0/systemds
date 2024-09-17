@@ -172,13 +172,15 @@ public class RewriterRuleBuilder {
 		else
 			toInstruction("argList");
 
-		if (ops.length == 0) {
+		if (ops.length == 0 && type.endsWith("...")) {
 			// Add one placeholder operand to implicitly determine the data type
-			addOp(UUID.randomUUID().toString()).ofType(type);
+			addOp(UUID.randomUUID().toString()).ofType(type.substring(0, type.length()-3));
 		} else {
 			for (String op : ops)
 				addExistingOp(op);
 		}
+
+		as(id);
 		return this;
 	}
 

@@ -72,58 +72,81 @@ public class RewriterMain2 {
 			out += "[" + ops.get(1) + " : " + ops.get(2) + ", " + ops.get(3) + " : " + ops.get(4) + "]";
 			return out;
 		});
+		ctx.customStringRepr.put("argList(MATRIX)", stmt -> {
+			RewriterInstruction mInstr = (RewriterInstruction) stmt;
+			String out = mInstr.getOperands().get(0).toString(ctx);
+
+			for (int i = 1; i < mInstr.getOperands().size(); i++)
+				out += ", " + mInstr.getOperands().get(i).toString(ctx);
+
+			return out;
+		});
 
 		System.out.println(ctx.instrTypes);
 		System.out.println(ctx.instrProperties);
 
 		//RewriterRuleSet ruleSet = RewriterRuleSet.selectionPushdown;
 
-		RewriterInstruction instr = RewriterExamples.selectionPushdownExample4(ctx);
-
 		RewriterHeuristic selectionBreakup = new RewriterHeuristic(RewriterRuleSet.buildSelectionBreakup(ctx), List.of("index"));
 		RewriterHeuristic selectionPushdown = new RewriterHeuristic(RewriterRuleSet.buildSelectionPushdownRuleSet(ctx), List.of("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)", "RowSelectPushableBinaryInstruction(MATRIX,MATRIX)", "ColSelectPushableBinaryInstruction(MATRIX,MATRIX)"));
 		RewriterHeuristic selectionSimplification = new RewriterHeuristic(RewriterRuleSet.buildSelectionSimplification(ctx), List.of("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)", "RowSelectPushableBinaryInstruction(MATRIX,MATRIX)", "ColSelectPushableBinaryInstruction(MATRIX,MATRIX)"));
 		RewriterHeuristic operatorFusion = new RewriterHeuristic(RewriterRuleSet.buildDynamicOpInstructions(ctx), List.of("FusableBinaryOperator(MATRIX,MATRIX)", "FusedOperator(MATRIX...)"));
 
-		long millis = System.currentTimeMillis();
+		//for (int i = 0; i < 100; i++) {
+			RewriterInstruction instr = RewriterExamples.selectionPushdownExample4(ctx);
 
-		System.out.println();
-		System.out.println("> SELECTION BREAKUP <");
-		System.out.println();
+			long millis = System.currentTimeMillis();
 
-		instr = selectionBreakup.apply(instr, current -> {
-			System.out.println(current);
-			return true;
-		});
+			System.out.println();
+			System.out.println("> SELECTION BREAKUP <");
+			System.out.println();
 
-		System.out.println();
-		System.out.println("> SELECTION PUSHDOWN <");
-		System.out.println();
+			instr = selectionBreakup.apply(instr, current -> {
+				System.out.println(current);
+				return true;
+			});
 
-		instr = selectionPushdown.apply(instr, current -> {
-			System.out.println(current);
-			return true;
-		});
+			System.out.println();
+			System.out.println("> SELECTION PUSHDOWN <");
+			System.out.println();
 
-		System.out.println();
-		System.out.println("> SELECTION SIMPLIFICATION <");
-		System.out.println();
+			instr = selectionPushdown.apply(instr, current -> {
+				System.out.println(current);
+				return true;
+			});
 
-		instr = selectionSimplification.apply(instr, current -> {
-			System.out.println(current);
-			return true;
-		});
+			System.out.println();
+			System.out.println("> SELECTION SIMPLIFICATION <");
+			System.out.println();
 
-		System.out.println();
-		System.out.println("> OPERATOR FUSION <");
-		System.out.println();
+			instr = selectionSimplification.apply(instr, current -> {
+				System.out.println(current);
+				return true;
+			});
 
-		instr = operatorFusion.apply(instr, current -> {
-			System.out.println(current);
-			return true;
-		});
+			System.out.println();
+			System.out.println("> OPERATOR FUSION <");
+			System.out.println();
 
-		millis = System.currentTimeMillis() - millis;
-		System.out.println("Finished in " + millis + "ms");
+			instr = operatorFusion.apply(instr, current -> {
+				System.out.println(current);
+				return true;
+			});
+
+			System.out.println();
+			System.out.println("> OPERATOR MERGE <");
+			System.out.println();
+
+			RewriterUtils.mergeArgLists(instr, ctx);
+			System.out.println(instr);
+			/*instr = operatorMerge.apply(instr, current -> {
+				System.out.println(current);
+				return true;
+			});*/
+
+			millis = System.currentTimeMillis() - millis;
+			System.out.println("Finished in " + millis + "ms");
+		//}
+
 	}
 }
