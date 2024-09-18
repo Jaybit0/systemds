@@ -397,7 +397,7 @@ public class RewriterRuleSet {
 	}
 
 	private static RewriterRule binaryMatrixIndexingPushdown(String instrName, String selectFunc, final RuleContext ctx) {
-		return new RewriterRuleBuilder(ctx)
+		/*return new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.withInstruction(instrName) // This is more a class of instructions
 				.addOp("A")
@@ -430,6 +430,17 @@ public class RewriterRuleSet {
 				.asRootInstruction()
 				.link("A + B", "res", RewriterStatement::transferMeta)
 				.linkManyUnidirectional("res", List.of(selectFunc + "(A,i,j)", selectFunc + "(B,i,j)"), RewriterStatement::transferMeta, true)
+				.build();*/
+
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+		return new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:i,j")
+				.withParsedStatement("$1:" + selectFunc + "($2:" + instrName + "(A,B),i,j)", hooks)
+				.toParsedStatement("$3:" + instrName + "($4:" + selectFunc + "(A,i,j),$5:" + selectFunc + "(B,i,j))", hooks)
+				.link(hooks.get(2).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
+				.linkManyUnidirectional(hooks.get(1).getId(), List.of(hooks.get(4).getId(), hooks.get(5).getId()), RewriterStatement::transferMeta, true)
 				.build();
 	}
 
