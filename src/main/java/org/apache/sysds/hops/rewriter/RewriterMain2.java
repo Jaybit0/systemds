@@ -108,13 +108,24 @@ public class RewriterMain2 {
 			return out;
 		});
 
+		/*HashMap<Integer, RewriterStatement> mHooks = new HashMap<>();
+		RewriterRule rule = new RewriterRuleBuilder(ctx)
+				.parseGlobalVars("MATRIX:A")
+				.parseGlobalVars("INT:h,i,j,k")
+				.withParsedStatement("index(A,h,i,j,k)", mHooks)
+				.toParsedStatement("rowSelect(colSelect(A,j,k),h,i)", mHooks)
+				.build();
+		System.out.println(rule);
+		if (true)
+			return;
+
 		HashMap<String, RewriterStatement> vars = new HashMap<>();
 		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 		RewriterUtils.parseDataTypes("INT:test", vars, ctx);
 
 		RewriterStatement stmt = RewriterUtils.parseExpression(new MutableObject<>("$2:+(test,$1:test2())"), hooks, vars, ctx);
 		System.out.println(hooks);
-		System.out.println(stmt.toString(ctx));
+		System.out.println(stmt.toString(ctx));*/
 
 		System.out.println(ctx.instrTypes);
 		System.out.println(ctx.instrProperties);

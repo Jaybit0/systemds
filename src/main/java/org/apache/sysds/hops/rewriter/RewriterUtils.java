@@ -152,7 +152,9 @@ public class RewriterUtils {
 
 			if (expr.charAt(matcher.end()) != ',')
 				return false;
+
 			expr = expr.substring(matcher.end()+1);
+			matcher = pattern.matcher(expr);
 		}
 
 		return false;

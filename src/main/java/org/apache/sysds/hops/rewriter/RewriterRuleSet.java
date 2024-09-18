@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -105,7 +106,7 @@ public class RewriterRuleSet {
 	}
 
 	public static RewriterRuleSet buildSelectionBreakup(final RuleContext ctx) {
-		RewriterRule ruleBreakupSelections = new RewriterRuleBuilder(ctx)
+		/*RewriterRule ruleBreakupSelections = new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.withInstruction("index")
 				.addOp("A")
@@ -129,10 +130,18 @@ public class RewriterRuleSet {
 				.addExistingOp("h")
 				.addExistingOp("i")
 				.asRootInstruction()
+				.build();*/
+
+		RewriterRule rule = new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.parseGlobalVars("INT:h,i,j,k")
+				.withParsedStatement("index(A,h,i,j,k)", new HashMap<>())
+				.toParsedStatement("rowSelect(colSelect(A,j,k),h,i)", new HashMap<>())
 				.build();
 
 		ArrayList<RewriterRule> rules = new ArrayList<>();
-		rules.add(ruleBreakupSelections);
+		rules.add(rule);
 
 		return new RewriterRuleSet(ctx, rules);
 	}
