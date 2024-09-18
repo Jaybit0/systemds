@@ -77,9 +77,6 @@ public class RewriterMain2 {
 		builder.append("-(INT,INT)::INT\n");
 		builder.append("+(INT,INT)::INT\n");
 
-		builder.append("test()::INT\n");
-		builder.append("test2()::INT\n");
-
 		RuleContext ctx = RuleContext.createContext(builder.toString());
 		ctx.customStringRepr.put("+(INT,INT)", RewriterUtils.binaryStringRepr(" + "));
 		ctx.customStringRepr.put("-(INT,INT)", RewriterUtils.binaryStringRepr(" - "));
@@ -111,7 +108,7 @@ public class RewriterMain2 {
 			return out;
 		});
 
-		HashMap<String, RewriterDataType> vars = new HashMap<>();
+		HashMap<String, RewriterStatement> vars = new HashMap<>();
 		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 		RewriterUtils.parseDataTypes("INT:test", vars, ctx);
 

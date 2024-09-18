@@ -96,7 +96,7 @@ public class RewriterUtils {
 	 * @param refmap
 	 * @return
 	 */
-	public static RewriterStatement parseExpression(MutableObject<String> mexpr, HashMap<Integer, RewriterStatement> refmap, HashMap<String, RewriterDataType> dataTypes, final RuleContext ctx) {
+	public static RewriterStatement parseExpression(MutableObject<String> mexpr, HashMap<Integer, RewriterStatement> refmap, HashMap<String, RewriterStatement> dataTypes, final RuleContext ctx) {
 		RuleContext.currentContext = ctx;
 		String expr = mexpr.getValue();
 		if (expr.startsWith("$")) {
@@ -122,7 +122,7 @@ public class RewriterUtils {
 		}
 	}
 
-	public static boolean parseDataTypes(String expr, HashMap<String, RewriterDataType> dataTypes, final RuleContext ctx) {
+	public static boolean parseDataTypes(String expr, HashMap<String, RewriterStatement> dataTypes, final RuleContext ctx) {
 		RuleContext.currentContext = ctx;
 		Pattern pattern = Pattern.compile("[A-Za-z][A-Za-z0-9]*");
 		Matcher matcher = pattern.matcher(expr);
@@ -158,7 +158,7 @@ public class RewriterUtils {
 		return false;
 	}
 
-	public static RewriterStatement parseRawExpression(MutableObject<String> mexpr, HashMap<Integer, RewriterStatement> refmap, HashMap<String, RewriterDataType> dataTypes, final RuleContext ctx) {
+	public static RewriterStatement parseRawExpression(MutableObject<String> mexpr, HashMap<Integer, RewriterStatement> refmap, HashMap<String, RewriterStatement> dataTypes, final RuleContext ctx) {
 		String expr = mexpr.getValue();
 
 		Pattern pattern = Pattern.compile("^[^(),:]+");

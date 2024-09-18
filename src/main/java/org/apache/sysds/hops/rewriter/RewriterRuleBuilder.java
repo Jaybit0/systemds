@@ -1,6 +1,7 @@
 package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+import org.apache.commons.lang3.mutable.MutableObject;
 
 import javax.ws.rs.core.Link;
 import java.util.ArrayList;
@@ -38,6 +39,36 @@ public class RewriterRuleBuilder {
 	public RewriterRuleBuilder(final RuleContext ctx, String ruleName) {
 		this.ctx = ctx;
 		this.ruleName = ruleName;
+	}
+
+	public RewriterRuleBuilder parseGlobalVars(String globalVarDefinition) {
+		if (!canBeModified)
+			throw new IllegalArgumentException();
+		RewriterUtils.parseDataTypes(globalVarDefinition, globalIds, ctx);
+		return this;
+	}
+
+	public RewriterRuleBuilder withParsedStatement(String stmt, HashMap<Integer, RewriterStatement> refMap) {
+		if (!canBeModified)
+			throw new IllegalArgumentException();
+		fromRoot = RewriterUtils.parseExpression(new MutableObject<>(stmt), refMap, globalIds, ctx);
+		fromRoot.forEachPostOrderWithDuplicates(el -> {
+			instrSeqIds.put(el.getId(), el);
+			return true;
+		});
+		return this;
+	}
+
+	public RewriterRuleBuilder toParsedStatement(String stmt, HashMap<Integer, RewriterStatement> refMap) {
+		if (!canBeModified)
+			throw new IllegalArgumentException();
+		mappingState = true;
+		toRoot = RewriterUtils.parseExpression(new MutableObject<>(stmt), refMap, globalIds, ctx);
+		toRoot.forEachPostOrderWithDuplicates(el -> {
+			mappingSeqIds.put(el.getId(), el);
+			return true;
+		});
+		return this;
 	}
 
 	public RewriterRuleBuilder prepare() {
