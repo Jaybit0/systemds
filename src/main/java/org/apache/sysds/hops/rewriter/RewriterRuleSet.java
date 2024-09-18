@@ -209,6 +209,61 @@ public class RewriterRuleSet {
 		return new RewriterRuleSet(ctx, rules);
 	}
 
+	public static RewriterRuleSet buildRbindCbindSelectionPushdown(final RuleContext ctx) {
+		ArrayList<RewriterRule> rules = new ArrayList<>();
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.withInstruction("CBind")
+				.addOp("A").ofType("MATRIX")
+				.addOp("B").ofType("MATRIX")
+				.as("cbind")
+				.withInstruction("colSelect")
+				.addExistingOp("cbind")
+				.addOp("i").ofType("INT")
+				.addOp("j").ofType("INT")
+				.asRootInstruction()
+				.toInstruction("ncols").addExistingOp("A").as("A.ncols")
+				.toInstruction("ncols").addExistingOp("B").as("B.ncols")
+				.toInstruction("min")
+				.addExistingOp("j")
+				.addExistingOp("A.ncols")
+				.as("min(j, A.ncols)")
+				.toInstruction("colSelect")
+				.addExistingOp("A")
+				.addExistingOp("i")
+				.addExistingOp("min(j, A.ncols)")
+				.as("colSelect(A, i, min(j, A.ncols)")
+				.toInstruction("-")
+				.addExistingOp("j")
+				.addExistingOp("A.ncols")
+				.as("j - A.ncols")
+				.toInstruction("-")
+				.addExistingOp("i")
+				.addExistingOp("A.ncols")
+				.as("i - A.ncols")
+				.toInstruction("+")
+				.addExistingOp("i")
+				.addExistingOp("j - A.ncols")
+				.as("i + j - A.ncols") // TODO: implement this name
+				.toInstruction("min")
+				.addExistingOp("i")
+				.addOp("zero").ofType("INT").asLiteral(0)
+				.as("min(i - A.ncols, 0)") // TODO: implement
+				.toInstruction("colSelect")
+				.addExistingOp("B")
+				.addExistingOp("min(i - A.ncols, 0)")
+				.addExistingOp("i + j - A.ncols")
+				.as("BSelect")
+				.toInstruction("CBind")
+				.addExistingOp("colSelect(A, i, min(j, A.ncols)")
+				.addExistingOp("BSelect")
+				.asRootInstruction()
+				.build()
+		);
+
+		return new RewriterRuleSet(ctx, rules);
+	}
+
 	public static RewriterRuleSet buildSelectionSimplification(final RuleContext ctx) {
 		RewriterRule ruleSimplify = new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)

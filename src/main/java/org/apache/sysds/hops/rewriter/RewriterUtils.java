@@ -1,11 +1,19 @@
 package org.apache.sysds.hops.rewriter;
 
+import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.mutable.MutableObject;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class RewriterUtils {
 	public static Function<RewriterStatement, Boolean> propertyExtractor(final List<String> desiredProperties, final RuleContext ctx) {
@@ -32,10 +40,10 @@ public class RewriterUtils {
 		};
 	}
 
-	public static Function<RewriterStatement, String> binaryStringRepr(String op) {
-		return stmt -> {
+	public static BiFunction<RewriterStatement, RuleContext, String> binaryStringRepr(String op) {
+		return (stmt, ctx) -> {
 			List<RewriterStatement> operands = ((RewriterInstruction)stmt).getOperands();
-			return operands.get(0).toString() + op + operands.get(1).toString();
+			return operands.get(0).toString(ctx) + op + operands.get(1).toString(ctx);
 		};
 	}
 
@@ -80,5 +88,131 @@ public class RewriterUtils {
 
 			return true;
 		});
+	}
+
+	/**
+	 * Parses an expression
+	 * @param mexpr the expression string. Note that all whitespaces have to already be removed
+	 * @param refmap
+	 * @return
+	 */
+	public static RewriterStatement parseExpression(MutableObject<String> mexpr, HashMap<Integer, RewriterStatement> refmap, HashMap<String, RewriterDataType> dataTypes, final RuleContext ctx) {
+		RuleContext.currentContext = ctx;
+		String expr = mexpr.getValue();
+		if (expr.startsWith("$")) {
+			expr = expr.substring(1);
+			Pattern pattern = Pattern.compile("^\\d+");
+			Matcher matcher = pattern.matcher(expr);
+
+			if (matcher.find()) {
+				String number = matcher.group();
+				int n = Integer.parseInt(number);
+				if (expr.charAt(matcher.end()) != ':')
+					throw new IllegalArgumentException("Expected the token ':'");
+				String remainder = expr.substring(matcher.end() + 1);
+				mexpr.setValue(remainder);
+				RewriterStatement stmt = parseRawExpression(mexpr, refmap, dataTypes, ctx);
+				refmap.put(n, stmt);
+				return stmt;
+			} else {
+				throw new IllegalArgumentException("Expected a number");
+			}
+		} else {
+			return parseRawExpression(mexpr, refmap, dataTypes, ctx);
+		}
+	}
+
+	public static boolean parseDataTypes(String expr, HashMap<String, RewriterDataType> dataTypes, final RuleContext ctx) {
+		RuleContext.currentContext = ctx;
+		Pattern pattern = Pattern.compile("[A-Za-z][A-Za-z0-9]*");
+		Matcher matcher = pattern.matcher(expr);
+
+		if (!matcher.find())
+			return false;
+
+		String dType = matcher.group();
+
+		if (expr.charAt(matcher.end()) != ':')
+			return false;
+
+		expr = expr.substring(matcher.end() + 1);
+
+		matcher = pattern.matcher(expr);
+
+		while (matcher.find()) {
+			String varName = matcher.group();
+
+			RewriterDataType dt = new RewriterDataType().as(varName).ofType(dType);
+			dt.consolidate(ctx);
+
+			dataTypes.put(varName, dt);
+
+			if (expr.length() == matcher.end())
+				return true;
+
+			if (expr.charAt(matcher.end()) != ',')
+				return false;
+			expr = expr.substring(matcher.end()+1);
+		}
+
+		return false;
+	}
+
+	public static RewriterStatement parseRawExpression(MutableObject<String> mexpr, HashMap<Integer, RewriterStatement> refmap, HashMap<String, RewriterDataType> dataTypes, final RuleContext ctx) {
+		String expr = mexpr.getValue();
+
+		Pattern pattern = Pattern.compile("^[^(),:]+");
+		Matcher matcher = pattern.matcher(expr);
+
+
+
+		if (matcher.find()) {
+			String token = matcher.group();
+			String remainder = expr.substring(matcher.end());
+
+			char nextChar = remainder.charAt(0);
+
+			switch (nextChar) {
+				case '(':
+					// Then this is a function
+					if (remainder.charAt(1) == ')') {
+						RewriterInstruction mInstr = new RewriterInstruction().withInstruction(token).as(UUID.randomUUID().toString());
+						mInstr.consolidate(ctx);
+						mexpr.setValue(remainder.substring(2));
+						return mInstr;
+					} else {
+						List<RewriterStatement> opList = new ArrayList<>();
+						mexpr.setValue(remainder.substring(1));
+						RewriterStatement cstmt = parseExpression(mexpr, refmap, dataTypes, ctx);
+						opList.add(cstmt);
+
+						while (mexpr.getValue().charAt(0) == ',') {
+							mexpr.setValue(mexpr.getValue().substring(1));
+							cstmt = parseExpression(mexpr, refmap, dataTypes, ctx);
+							if (cstmt == null)
+								System.out.println("NULL here");
+							opList.add(cstmt);
+						}
+
+						if (mexpr.getValue().charAt(0) != ')')
+							throw new IllegalArgumentException(mexpr.getValue());
+
+						mexpr.setValue(mexpr.getValue().substring(1));
+						RewriterInstruction instr = new RewriterInstruction().withInstruction(token).withOps(opList.toArray(RewriterStatement[]::new)).as(UUID.randomUUID().toString());
+						instr.consolidate(ctx);
+						return instr;
+					}
+				case ')':
+				case ',':
+					mexpr.setValue(remainder);
+					if (dataTypes.containsKey(token))
+						return dataTypes.get(token);
+					throw new IllegalArgumentException("DataType: '" + token + "' doesn't exist");
+				default:
+					throw new NotImplementedException();
+			}
+		} else {
+			throw new IllegalArgumentException(mexpr.getValue());
+		}
 	}
 }

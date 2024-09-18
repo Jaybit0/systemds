@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class RewriterInstruction extends RewriterStatement {
@@ -390,9 +391,9 @@ public class RewriterInstruction extends RewriterStatement {
 	public String toString(final RuleContext ctx) {
 		Object trueInstrObj = getMeta("trueInstr");
 		String typedInstr = trueInstrObj != null ? typedInstruction((String)trueInstrObj, ctx) : typedInstruction(ctx);
-		Function<RewriterStatement, String> customStringFunc = ctx.customStringRepr.get(typedInstr);
+		BiFunction<RewriterStatement, RuleContext, String> customStringFunc = ctx.customStringRepr.get(typedInstr);
 		if (customStringFunc != null)
-			return customStringFunc.apply(this);
+			return customStringFunc.apply(this, ctx);
 
 		String instrName = meta == null ? instr : meta.getOrDefault("trueName", instr).toString();
 

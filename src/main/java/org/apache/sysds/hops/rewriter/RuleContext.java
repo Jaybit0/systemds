@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class RuleContext {
@@ -18,7 +19,7 @@ public class RuleContext {
 
 	public HashMap<String, HashSet<String>> instrProperties = new HashMap<>();
 
-	public HashMap<String, Function<RewriterStatement, String>> customStringRepr = new HashMap<>();
+	public HashMap<String, BiFunction<RewriterStatement, RuleContext, String>> customStringRepr = new HashMap<>();
 
 	public static RuleContext floatArithmetic = new RuleContext();
 	public static RuleContext selectionPushdownContext = new RuleContext();
@@ -146,7 +147,7 @@ public class RuleContext {
 
 		args = Arrays.stream(args).map(arg -> arg.replace(" ", "")).toArray(String[]::new);
 
-		if (Arrays.stream(args).anyMatch(String::isEmpty))
+		if (args.length != 1 && Arrays.stream(args).anyMatch(String::isEmpty))
 			throw new IllegalArgumentException();
 
 		if (!rest.substring(parenthesisCloseIdx+1, parenthesisCloseIdx+3).equals("::"))
