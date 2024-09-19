@@ -1,5 +1,6 @@
 package org.apache.sysds.hops.rewriter;
 
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableObject;
 
 import java.util.ArrayList;
@@ -77,6 +78,11 @@ public class RewriterMain2 {
 		builder.append("-(INT,INT)::INT\n");
 		builder.append("+(INT,INT)::INT\n");
 
+		// Some bool algebra
+		builder.append("<=(INT,INT)::INT\n");
+
+		builder.append("if(INT,MATRIX,MATRIX)::MATRIX\n");
+
 		RuleContext ctx = RuleContext.createContext(builder.toString());
 		ctx.customStringRepr.put("+(INT,INT)", RewriterUtils.binaryStringRepr(" + "));
 		ctx.customStringRepr.put("-(INT,INT)", RewriterUtils.binaryStringRepr(" - "));
@@ -84,6 +90,7 @@ public class RewriterMain2 {
 		ctx.customStringRepr.put("-(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" - "));
 		ctx.customStringRepr.put("*(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" * "));
 		ctx.customStringRepr.put("/(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" / "));
+		ctx.customStringRepr.put("<=(INT,INT)", RewriterUtils.binaryStringRepr(" <= "));
 		ctx.customStringRepr.put("index(MATRIX,INT,INT,INT,INT)", (stmt, ctx2) -> {
 			String out;
 			RewriterInstruction mInstr = (RewriterInstruction) stmt;
@@ -106,6 +113,19 @@ public class RewriterMain2 {
 				out += ", " + mInstr.getOperands().get(i).toString(ctx2);
 
 			return out;
+		});
+		ctx.customStringRepr.put("if(INT,MATRIX,MATRIX)", (stmt, ctx2) -> {
+			RewriterInstruction mInstr = (RewriterInstruction) stmt;
+			StringBuilder sb = new StringBuilder();
+			sb.append("if (");
+			sb.append(mInstr.getOperands().get(0));
+			sb.append(")\n");
+			sb.append("{\n");
+			sb.append(mInstr.getOperands().get(1));
+			sb.append("\n}\nelse\n{\n");
+			sb.append(mInstr.getOperands().get(2));
+			sb.append("\n}");
+			return sb.toString();
 		});
 
 		/*HashMap<Integer, RewriterStatement> mHooks = new HashMap<>();
@@ -133,7 +153,10 @@ public class RewriterMain2 {
 		//RewriterRuleSet ruleSet = RewriterRuleSet.selectionPushdown;
 
 		RewriterHeuristic selectionBreakup = new RewriterHeuristic(RewriterRuleSet.buildSelectionBreakup(ctx), List.of("index"));
+
 		RewriterHeuristic selectionPushdown = new RewriterHeuristic(RewriterRuleSet.buildSelectionPushdownRuleSet(ctx), List.of("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)", "RowSelectPushableBinaryInstruction(MATRIX,MATRIX)", "ColSelectPushableBinaryInstruction(MATRIX,MATRIX)"));
+		RewriterHeuristic rbindcbindPushdown = new RewriterHeuristic(RewriterRuleSet.buildRbindCbindSelectionPushdown(ctx), List.of("RBind(MATRIX,MATRIX)", "CBind(MATRIX,MATRIX)", "rowSelect(MATRIX,INT,INT)", "colSelect(MATRIX,INT,INT)"));
+
 		RewriterHeuristic selectionSimplification = new RewriterHeuristic(RewriterRuleSet.buildSelectionSimplification(ctx), List.of("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)", "RowSelectPushableBinaryInstruction(MATRIX,MATRIX)", "ColSelectPushableBinaryInstruction(MATRIX,MATRIX)"));
 		RewriterHeuristic operatorFusion = new RewriterHeuristic(RewriterRuleSet.buildDynamicOpInstructions(ctx), List.of("FusableBinaryOperator(MATRIX,MATRIX)", "FusedOperator(MATRIX...)"));
 		System.out.println(RewriterRuleSet.buildRbindCbindSelectionPushdown(ctx));
@@ -156,10 +179,21 @@ public class RewriterMain2 {
 			System.out.println("> SELECTION PUSHDOWN <");
 			System.out.println();
 
-			instr = selectionPushdown.apply(instr, current -> {
-				System.out.println(current);
-				return true;
-			});
+			MutableBoolean foundRewrites = new MutableBoolean(true);
+
+			while (foundRewrites.booleanValue()) {
+				foundRewrites.setValue(false);
+				
+				instr = selectionPushdown.apply(instr, current -> {
+					System.out.println(current);
+					return true;
+				}, foundRewrites);
+
+				instr = rbindcbindPushdown.apply(instr, current -> {
+					System.out.println(current);
+					return true;
+				}, foundRewrites);
+			}
 
 			System.out.println();
 			System.out.println("> SELECTION SIMPLIFICATION <");

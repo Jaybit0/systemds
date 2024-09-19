@@ -48,10 +48,15 @@ public class RewriterRuleBuilder {
 		return this;
 	}
 
+	public RewriterRuleBuilder intLiteral(String id, int value) {
+		globalIds.put(id, new RewriterDataType().as(id).ofType("INT").asLiteral(value));
+		return this;
+	}
+
 	public RewriterRuleBuilder withParsedStatement(String stmt, HashMap<Integer, RewriterStatement> refMap) {
 		if (!canBeModified)
 			throw new IllegalArgumentException();
-		fromRoot = RewriterUtils.parseExpression(new MutableObject<>(stmt), refMap, globalIds, ctx);
+		fromRoot = RewriterUtils.parseExpression(stmt, refMap, globalIds, ctx);
 		fromRoot.forEachPostOrderWithDuplicates(el -> {
 			instrSeqIds.put(el.getId(), el);
 			return true;
@@ -63,7 +68,7 @@ public class RewriterRuleBuilder {
 		if (!canBeModified)
 			throw new IllegalArgumentException();
 		mappingState = true;
-		toRoot = RewriterUtils.parseExpression(new MutableObject<>(stmt), refMap, globalIds, ctx);
+		toRoot = RewriterUtils.parseExpression(stmt, refMap, globalIds, ctx);
 		toRoot.forEachPostOrderWithDuplicates(el -> {
 			mappingSeqIds.put(el.getId(), el);
 			return true;

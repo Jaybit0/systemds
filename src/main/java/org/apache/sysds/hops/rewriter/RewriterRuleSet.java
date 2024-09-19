@@ -219,54 +219,42 @@ public class RewriterRuleSet {
 	}
 
 	public static RewriterRuleSet buildRbindCbindSelectionPushdown(final RuleContext ctx) {
+		String mappingString =
+				"if (<=(i, ncols(A)),"
+				+ "if ( <=(j, ncols(A)),"
+				+ "colSelect(A, i, j),"
+				+ "CBind(colSelect(A,i,ncols(A)),colSelect(B, 0, -(+(i,j), ncols(A)) ))),"
+				+ "colSelect(B,-(i,ncols(A)),-(j,ncols(A)))"
+				+ ")";
+
+		String mappingString2 =
+				"if (<=(i, nrows(A)),"
+						+ "if ( <=(j, nrows(A)),"
+						+ "rowSelect(A, i, j),"
+						+ "RBind(rowSelect(A,i,nrows(A)),rowSelect(B, 0, -(+(i,j), nrows(A)) ))),"
+						+ "rowSelect(B,-(i,nrows(A)),-(j,nrows(A)))"
+						+ ")";
+
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 		ArrayList<RewriterRule> rules = new ArrayList<>();
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
-				.withInstruction("CBind")
-				.addOp("A").ofType("MATRIX")
-				.addOp("B").ofType("MATRIX")
-				.as("cbind")
-				.withInstruction("colSelect")
-				.addExistingOp("cbind")
-				.addOp("i").ofType("INT")
-				.addOp("j").ofType("INT")
-				.asRootInstruction()
-				.toInstruction("ncols").addExistingOp("A").as("A.ncols")
-				.toInstruction("ncols").addExistingOp("B").as("B.ncols")
-				.toInstruction("min")
-				.addExistingOp("j")
-				.addExistingOp("A.ncols")
-				.as("min(j, A.ncols)")
-				.toInstruction("colSelect")
-				.addExistingOp("A")
-				.addExistingOp("i")
-				.addExistingOp("min(j, A.ncols)")
-				.as("colSelect(A, i, min(j, A.ncols)")
-				.toInstruction("-")
-				.addExistingOp("j")
-				.addExistingOp("A.ncols")
-				.as("j - A.ncols")
-				.toInstruction("-")
-				.addExistingOp("i")
-				.addExistingOp("A.ncols")
-				.as("i - A.ncols")
-				.toInstruction("+")
-				.addExistingOp("i")
-				.addExistingOp("j - A.ncols")
-				.as("i + j - A.ncols") // TODO: implement this name
-				.toInstruction("min")
-				.addExistingOp("i")
-				.addOp("zero").ofType("INT").asLiteral(0)
-				.as("min(i - A.ncols, 0)") // TODO: implement
-				.toInstruction("colSelect")
-				.addExistingOp("B")
-				.addExistingOp("min(i - A.ncols, 0)")
-				.addExistingOp("i + j - A.ncols")
-				.as("BSelect")
-				.toInstruction("CBind")
-				.addExistingOp("colSelect(A, i, min(j, A.ncols)")
-				.addExistingOp("BSelect")
-				.asRootInstruction()
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:i,j")
+				.intLiteral("0", 0)
+				.withParsedStatement("colSelect(CBind(A,B),i,j)", hooks)
+				.toParsedStatement(mappingString, hooks)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:i,j")
+				.intLiteral("0", 0)
+				.withParsedStatement("rowSelect(RBind(A,B),i,j)", hooks)
+				.toParsedStatement(mappingString2, hooks)
 				.build()
 		);
 
@@ -274,9 +262,14 @@ public class RewriterRuleSet {
 	}
 
 	public static RewriterRuleSet buildSelectionSimplification(final RuleContext ctx) {
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 		RewriterRule ruleSimplify = new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
-				.withInstruction("colSelect")
+				.parseGlobalVars("MATRIX:A")
+				.parseGlobalVars("INT:h,i,j,k")
+				.withParsedStatement("rowSelect(colSelect(A,j,k),h,i)", hooks)
+				.toParsedStatement("index(A,h,i,j,k)", hooks)
+				/*.withInstruction("colSelect")
 				.addOp("A")
 				.ofType("MATRIX")
 				.addOp("j")
@@ -297,7 +290,7 @@ public class RewriterRuleSet {
 				.addExistingOp("i")
 				.addExistingOp("j")
 				.addExistingOp("k")
-				.asRootInstruction()
+				.asRootInstruction()*/
 				.build();
 
 		ArrayList<RewriterRule> rules = new ArrayList<>();
@@ -307,9 +300,13 @@ public class RewriterRuleSet {
 	}
 
 	public static RewriterRuleSet buildDynamicOpInstructions(final RuleContext ctx) {
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 		RewriterRule ruleFuse1 = new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
-				.withInstruction("FusableBinaryOperator")
+				.parseGlobalVars("MATRIX:A,B")
+				.withParsedStatement("$1:FusableBinaryOperator(A,B)", hooks)
+				.toParsedStatement("$2:FusedOperator(argList(A,B))", hooks)
+				/*.withInstruction("FusableBinaryOperator")
 				.addOp("A")
 				.ofType("MATRIX")
 				.addOp("B")
@@ -320,7 +317,8 @@ public class RewriterRuleSet {
 				.toInstruction("FusedOperator")
 				.addExistingOp("[A,B]")
 				.asRootInstruction()
-				.link("result", "result", RewriterStatement::transferMeta)
+				.link("result", "result", RewriterStatement::transferMeta)*/
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
 				.build();
 
 		ArrayList<RewriterRule> rules = new ArrayList<>();
@@ -329,40 +327,8 @@ public class RewriterRuleSet {
 		return new RewriterRuleSet(ctx, rules);
 	}
 
-	public static RewriterRuleSet mergeDynamicOpInstructions(final RuleContext ctx, List<String> properties) {
-		ArrayList<RewriterRule> rules = new ArrayList<>();
-		for (Map.Entry<String, HashSet<String>> p : ctx.instrProperties.entrySet()) {
-			if (p.getValue().contains("FusableBinaryOperator(MATRIX,MATRIX)")) {
-				String fName = p.getKey().substring(0, p.getKey().indexOf('('));
-				// Then there must exist a fused version of the same operator
-				RewriterRule mRule = new RewriterRuleBuilder(ctx)
-						.setUnidirectional(true)
-						.addDynamicOpListInstr("matrixList", "MATRIX...", true)
-						.withInstruction(fName)
-						.addExistingOp("matrixList")
-						.as("ir2")
-						.addDynamicOpListInstr("matrixList2", "MATRIX...", true, "ir2")
-						.as("ir3")
-						.withInstruction(fName)
-						.addExistingOp("ir3")
-						.asRootInstruction()
-						.addDynamicOpListInstr("newMatrixList", "MATRIX...", false)
-						.toInstruction(fName)
-						.addExistingOp("newMatrixList")
-						.asRootInstruction()
-						.build();
-				rules.add(mRule);
-				properties.add(p.getKey());
-			}
-		}
-
-		RewriterRuleSet rs = new RewriterRuleSet(ctx, rules);
-		System.out.println(rs);
-		return rs;
-	}
-
 	private static RewriterRule binaryMatrixLRIndexingPushdown(String instrName, String selectFuncOrigin, String[] indexingInput, String destSelectFuncL, String[] indexingInputL, String destSelectFuncR, String[] indexingInputR, final RuleContext ctx) {
-		return new RewriterRuleBuilder(ctx)
+		/*return new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.withInstruction(instrName) // This is more a class of instructions
 				.addOp("A")
@@ -393,6 +359,17 @@ public class RewriterRuleSet {
 				.asRootInstruction()
 				.link("A + B", "res", RewriterStatement::transferMeta)
 				.linkManyUnidirectional("res", List.of(destSelectFuncL + "(A...)", destSelectFuncR + "(B...)"), RewriterStatement::transferMeta, true)
+				.build();*/
+
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+		return new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:" + String.join(",", indexingInput))
+				.withParsedStatement("$1:" + selectFuncOrigin + "($2:" + instrName + "(A,B),i,j)", hooks)
+				.toParsedStatement("$3:" + instrName + "($4:" + destSelectFuncL + "(A," + indexingInputL[0] + "," + indexingInputL[1] + "),$5:" + destSelectFuncR + "(B," + indexingInputR[0] + "," + indexingInputR[1] + "))", hooks)
+				.link(hooks.get(2).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
+				.linkManyUnidirectional(hooks.get(1).getId(), List.of(hooks.get(4).getId(), hooks.get(5).getId()), RewriterStatement::transferMeta, true)
 				.build();
 	}
 
@@ -445,9 +422,14 @@ public class RewriterRuleSet {
 	}
 
 	private static RewriterRule ruleEliminateMultipleSelects(String selectFunc, final RuleContext ctx) {
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 		return new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
-				.withInstruction(selectFunc)
+				.parseGlobalVars("MATRIX:A")
+				.parseGlobalVars("INT:i,j,k,l")
+				.withParsedStatement(selectFunc + "(" + selectFunc + "(A,i,j),k,l)", hooks)
+				.toParsedStatement(selectFunc + "(A,max(i,k),min(j,l))", hooks)
+				/*.withInstruction(selectFunc)
 				.addOp("A")
 				.ofType("MATRIX")
 				.addOp("i")
@@ -474,7 +456,7 @@ public class RewriterRuleSet {
 				.addExistingOp("A")
 				.addExistingOp("max(i,k)")
 				.addExistingOp("min(j,l)")
-				.asRootInstruction()
+				.asRootInstruction()*/
 				.build();
 	}
 }

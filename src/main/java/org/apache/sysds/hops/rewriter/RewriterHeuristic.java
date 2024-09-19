@@ -1,5 +1,7 @@
 package org.apache.sysds.hops.rewriter;
 
+import org.apache.commons.lang3.mutable.MutableBoolean;
+
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Function;
@@ -14,6 +16,10 @@ public class RewriterHeuristic {
 	}
 
 	public RewriterInstruction apply(RewriterInstruction current, @Nullable Function<RewriterInstruction, Boolean> handler) {
+		return apply(current, handler, new MutableBoolean(false));
+	}
+
+	public RewriterInstruction apply(RewriterInstruction current, @Nullable Function<RewriterInstruction, Boolean> handler, MutableBoolean foundRewrite) {
 		RuleContext.currentContext = ruleSet.getContext();
 		current.forEachPostOrderWithDuplicates(RewriterUtils.propertyExtractor(desiredProperties, ruleSet.getContext()));
 
@@ -21,6 +27,9 @@ public class RewriterHeuristic {
 			return current;
 
 		RewriterRuleSet.ApplicableRule rule = ruleSet.findFirstApplicableRule(current);
+
+		if (rule != null)
+			foundRewrite.setValue(true);
 
 		while (rule != null) {
 			current = (RewriterInstruction) rule.rule.apply(rule.matches.get(0), current, rule.forward, true);

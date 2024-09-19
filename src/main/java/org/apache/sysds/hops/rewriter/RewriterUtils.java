@@ -92,12 +92,18 @@ public class RewriterUtils {
 
 	/**
 	 * Parses an expression
-	 * @param mexpr the expression string. Note that all whitespaces have to already be removed
+	 * @param expr the expression string. Note that all whitespaces have to already be removed
 	 * @param refmap
 	 * @return
 	 */
-	public static RewriterStatement parseExpression(MutableObject<String> mexpr, HashMap<Integer, RewriterStatement> refmap, HashMap<String, RewriterStatement> dataTypes, final RuleContext ctx) {
+	public static RewriterStatement parseExpression(String expr, HashMap<Integer, RewriterStatement> refmap, HashMap<String, RewriterStatement> dataTypes, final RuleContext ctx) {
 		RuleContext.currentContext = ctx;
+		expr = expr.replaceAll("\\s+", "");
+		MutableObject<String> mexpr = new MutableObject<>(expr);
+		return doParseExpression(mexpr, refmap, dataTypes, ctx);
+	}
+
+	private static RewriterStatement doParseExpression(MutableObject<String> mexpr, HashMap<Integer, RewriterStatement> refmap, HashMap<String, RewriterStatement> dataTypes, final RuleContext ctx) {
 		String expr = mexpr.getValue();
 		if (expr.startsWith("$")) {
 			expr = expr.substring(1);
@@ -160,7 +166,7 @@ public class RewriterUtils {
 		return false;
 	}
 
-	public static RewriterStatement parseRawExpression(MutableObject<String> mexpr, HashMap<Integer, RewriterStatement> refmap, HashMap<String, RewriterStatement> dataTypes, final RuleContext ctx) {
+	private static RewriterStatement parseRawExpression(MutableObject<String> mexpr, HashMap<Integer, RewriterStatement> refmap, HashMap<String, RewriterStatement> dataTypes, final RuleContext ctx) {
 		String expr = mexpr.getValue();
 
 		Pattern pattern = Pattern.compile("^[^(),:]+");
@@ -185,14 +191,12 @@ public class RewriterUtils {
 					} else {
 						List<RewriterStatement> opList = new ArrayList<>();
 						mexpr.setValue(remainder.substring(1));
-						RewriterStatement cstmt = parseExpression(mexpr, refmap, dataTypes, ctx);
+						RewriterStatement cstmt = doParseExpression(mexpr, refmap, dataTypes, ctx);
 						opList.add(cstmt);
 
 						while (mexpr.getValue().charAt(0) == ',') {
 							mexpr.setValue(mexpr.getValue().substring(1));
-							cstmt = parseExpression(mexpr, refmap, dataTypes, ctx);
-							if (cstmt == null)
-								System.out.println("NULL here");
+							cstmt = doParseExpression(mexpr, refmap, dataTypes, ctx);
 							opList.add(cstmt);
 						}
 
