@@ -15,6 +15,10 @@ public class RewriterHeuristic {
 		this.desiredProperties = desiredProperties;
 	}
 
+	public RewriterInstruction apply(RewriterInstruction current) {
+		return apply(current, null);
+	}
+
 	public RewriterInstruction apply(RewriterInstruction current, @Nullable Function<RewriterInstruction, Boolean> handler) {
 		return apply(current, handler, new MutableBoolean(false));
 	}

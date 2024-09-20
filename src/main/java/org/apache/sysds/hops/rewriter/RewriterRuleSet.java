@@ -1,6 +1,7 @@
 package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+import org.checkerframework.checker.units.qual.A;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -264,15 +265,20 @@ public class RewriterRuleSet {
 		return new RewriterRuleSet(ctx, rules);
 	}
 
+	/**
+	 * Expects the order colSelect(rowSelect(...))
+	 * @param ctx
+	 * @return
+	 */
 	public static RewriterRuleSet buildCBindElimination(final RuleContext ctx) {
-		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+		HashMap<Integer, RewriterStatement> hooks;
 		ArrayList<RewriterRule> rules = new ArrayList<>();
 
 		String mappingString1 = "if(&&(_compileTimeIsEqual(A, B), ==(+(i,1),l)),"
 				+ "colSelect(A, h, m),"
 				+ "$2:CBind(colSelect(A, h, i), colSelect(B, l, m)))";
 
-		String mappingString1A = "if(==(+(i,1),l),"
+		/*String mappingString1A = "if(==(+(i,1),l),"
 				+ "colSelect(A, h, m),"
 				+ "$2:CBind(colSelect(A, h, i), colSelect(A, l, m)))";
 
@@ -282,7 +288,9 @@ public class RewriterRuleSet {
 
 		String mappingString2A = "if(&&(&&(==(+(k,1),n),==(h,l)),==(i,m)),"
 				+ "index(A, h, m, j, k),"
-				+ "$2:CBind(index(A, h, i, j, k), index(A, l, m, n, o)))";
+				+ "$2:CBind(index(A, h, i, j, k), index(A, l, m, n, o)))";*/
+
+		hooks = new HashMap<>();
 
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
@@ -302,9 +310,8 @@ public class RewriterRuleSet {
 				.build()
 		);
 
-		hooks = new HashMap<>();
+		/*hooks = new HashMap<>();
 
-		// TODO: This should implicitly be handled by the matcher
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A")
@@ -362,7 +369,22 @@ public class RewriterRuleSet {
 					lnk.newStmt.get(0).unsafePutMeta("bindChecked", true);
 				})
 				.build()
-		);
+		);*/
+
+		return new RewriterRuleSet(ctx, rules);
+	}
+
+	public static RewriterRuleSet buildReorderColRowSelect(String newOuter, String newInner, final RuleContext ctx) {
+		ArrayList<RewriterRule> rules = new ArrayList<>();
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.parseGlobalVars("INT:h,i,j,k")
+				.withParsedStatement(newInner + "(" + newOuter + "(A, h, i), j, k)", hooks)
+				.toParsedStatement(newOuter + "(" + newInner + "(A, j, k), h, i)", hooks)
+				.build());
 
 		return new RewriterRuleSet(ctx, rules);
 	}
@@ -534,6 +556,82 @@ public class RewriterRuleSet {
 		rules.add(ruleFuse1);
 
 		return new RewriterRuleSet(ctx, rules);
+	}
+
+	public static RewriterHeuristic buildAggregationPushdown(final RuleContext ctx) {
+		ArrayList<RewriterRule> rules = new ArrayList<>();
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.withParsedStatement("$1:FullAggregationInstruction($2:FullAggregationPushableInstruction(A, B))", hooks)
+				.toParsedStatement("$3:FullAggregationPushableInstruction($4:FullAggregationInstruction(A), $5:FullAggregationInstruction(B))", hooks)
+				.linkManyUnidirectional(hooks.get(1).getId(), List.of(hooks.get(4).getId(), hooks.get(5).getId()), RewriterStatement::transferMeta, true)
+				.link(hooks.get(2).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.withParsedStatement("$1:RowAggregationInstruction($2:RowAggregationPushableInstruction(A, B))", hooks)
+				.toParsedStatement("$3:RowAggregationPushableInstruction($4:RowAggregationInstruction(A), $5:RowAggregationInstruction(B))", hooks)
+				.linkManyUnidirectional(hooks.get(1).getId(), List.of(hooks.get(4).getId(), hooks.get(5).getId()), RewriterStatement::transferMeta, true)
+				.link(hooks.get(2).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.withParsedStatement("$1:ColAggregationInstruction($2:ColAggregationPushableInstruction(A, B))", hooks)
+				.toParsedStatement("$3:ColAggregationPushableInstruction($4:ColAggregationInstruction(A), $5:ColAggregationInstruction(B))", hooks)
+				.linkManyUnidirectional(hooks.get(1).getId(), List.of(hooks.get(4).getId(), hooks.get(5).getId()), RewriterStatement::transferMeta, true)
+				.link(hooks.get(2).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.withParsedStatement("$1:FullAggregationInstruction($2:Permutation(A))", hooks)
+				.toParsedStatement("$3:FullAggregationInstruction(A)", hooks)
+				.link(hooks.get(1).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.withParsedStatement("$1:RowAggregationInstruction($2:Permutation(A))", hooks)
+				.toParsedStatement("$3:RowAggregationInstruction(A)", hooks)
+				.link(hooks.get(1).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.withParsedStatement("$1:ColAggregationInstruction($2:Permutation(A))", hooks)
+				.toParsedStatement("$3:ColAggregationInstruction(A)", hooks)
+				.link(hooks.get(1).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
+		return new RewriterHeuristic(new RewriterRuleSet(ctx, rules),
+				List.of("FullAggregationPushableInstruction(MATRIX,MATRIX)",
+						"FullAggregationInstruction(MATRIX)",
+						"RowAggregationInstruction(MATRIX)",
+						"RowAggregationPushableInstruction(MATRIX,MATRIX)",
+						"ColAggregationInstruction(MATRIX)",
+						"ColAggregationPushableInstruction(MATRIX,MATRIX)",
+						"Permutation(MATRIX)"));
 	}
 
 	private static RewriterRule binaryMatrixLRIndexingPushdown(String instrName, String selectFuncOrigin, String[] indexingInput, String destSelectFuncL, String[] indexingInputL, String destSelectFuncR, String[] indexingInputR, final RuleContext ctx) {

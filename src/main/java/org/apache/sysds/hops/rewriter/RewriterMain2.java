@@ -51,8 +51,55 @@ public class RewriterMain2 {
 		builder.append("ColSelectTransposePushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
 		builder.append("impl IdxSelectTransposePushableBinaryInstruction\n");
 
+		// Aggregation functions
+
+		builder.append("FullAggregationInstruction(MATRIX)::FLOAT\n");
+		builder.append("impl mean\n");
+
+		builder.append("RowAggregationInstruction(MATRIX)::MATRIX\n");
+		builder.append("impl rowSums\n");
+
+		builder.append("ColAggregationInstruction(MATRIX)::MATRIX\n");
+		builder.append("impl colSums\n");
+
+
+
+		// Function aggregation properties
+
+		builder.append("FullAggregationPushableInstruction(FLOAT,FLOAT)::FLOAT\n");
+		builder.append("impl +\n");
+		builder.append("impl -\n");
+
+		builder.append("FullAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("impl +\n");
+		builder.append("impl -\n");
+
+		builder.append("RowAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("impl rowSums\n");
+
+		builder.append("ColAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("impl colSums\n");
+
+
+		// Permutation functions
+
+		builder.append("RowPermutation(MATRIX)::MATRIX\n");
+
+		builder.append("ColPermutation(MATRIX)::MATRIX\n");
+
+		builder.append("Permutation(MATRIX)::MATRIX\n");
+		builder.append("impl RowPermutation\n");
+		builder.append("impl ColPermutation\n");
+		builder.append("impl t\n"); // Transpose matrix
+
+
+
+		// Matrix extending operations
+
 		builder.append("CBind(MATRIX,MATRIX)::MATRIX\n");
 		builder.append("RBind(MATRIX,MATRIX)::MATRIX\n");
+
+
 
 		builder.append("rowSelect(MATRIX,INT,INT)::MATRIX\n");
 		builder.append("colSelect(MATRIX,INT,INT)::MATRIX\n");
@@ -75,8 +122,18 @@ public class RewriterMain2 {
 
 		builder.append("ncols(MATRIX)::INT\n");
 		builder.append("nrows(MATRIX)::INT\n");
+
 		builder.append("-(INT,INT)::INT\n");
 		builder.append("+(INT,INT)::INT\n");
+
+		builder.append("-(FLOAT,FLOAT)::FLOAT\n");
+		builder.append("+(FLOAT,FLOAT)::FLOAT\n");
+
+		builder.append("-(INT,FLOAT)::FLOAT\n");
+		builder.append("+(INT,FLOAT)::FLOAT\n");
+
+		builder.append("-(FLOAT,INT)::FLOAT\n");
+		builder.append("+(FLOAT,INT)::FLOAT\n");
 
 		// Some bool algebra
 		builder.append("<=(INT,INT)::INT\n");
@@ -90,7 +147,15 @@ public class RewriterMain2 {
 
 		RuleContext ctx = RuleContext.createContext(builder.toString());
 		ctx.customStringRepr.put("+(INT,INT)", RewriterUtils.binaryStringRepr(" + "));
+		ctx.customStringRepr.put("+(FLOAT,FLOAT)", RewriterUtils.binaryStringRepr(" + "));
+		ctx.customStringRepr.put("+(INT,FLOAT)", RewriterUtils.binaryStringRepr(" + "));
+		ctx.customStringRepr.put("+(FLOAT,INT)", RewriterUtils.binaryStringRepr(" + "));
 		ctx.customStringRepr.put("-(INT,INT)", RewriterUtils.binaryStringRepr(" - "));
+		ctx.customStringRepr.put("-(FLOAT,INT)", RewriterUtils.binaryStringRepr(" - "));
+		ctx.customStringRepr.put("-(INT,FLOAT)", RewriterUtils.binaryStringRepr(" - "));
+		ctx.customStringRepr.put("-(FLOAT,FLOAT)", RewriterUtils.binaryStringRepr(" - "));
+
+
 		ctx.customStringRepr.put("+(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" + "));
 		ctx.customStringRepr.put("-(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" - "));
 		ctx.customStringRepr.put("*(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" * "));
@@ -166,11 +231,16 @@ public class RewriterMain2 {
 		RewriterHeuristic selectionPushdown = new RewriterHeuristic(RewriterRuleSet.buildSelectionPushdownRuleSet(ctx), List.of("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)", "RowSelectPushableBinaryInstruction(MATRIX,MATRIX)", "ColSelectPushableBinaryInstruction(MATRIX,MATRIX)"));
 		RewriterHeuristic rbindcbindPushdown = new RewriterHeuristic(RewriterRuleSet.buildRbindCbindSelectionPushdown(ctx), List.of("RBind(MATRIX,MATRIX)", "CBind(MATRIX,MATRIX)", "rowSelect(MATRIX,INT,INT)", "colSelect(MATRIX,INT,INT)"));
 
+		// TODO: These are not working in all cases right now e.g. CBind(index(A,...), colSelect(B,...)) would not be recognized
+		RewriterHeuristic rbindElimination = new RewriterHeuristic(RewriterRuleSet.buildRBindElimination(ctx), List.of("RBind(MATRIX,MATRIX)", "rowSelect(Matrix,INT,INT)"));
+
+		RewriterHeuristic prepareCBindElimination = new RewriterHeuristic(RewriterRuleSet.buildReorderColRowSelect("colSelect", "rowSelect", ctx), List.of("rowSelect(MATRIX,INT,INT)", "colSelect(MATRIX,INT,INT)"));
+		RewriterHeuristic cbindElimination = new RewriterHeuristic(RewriterRuleSet.buildCBindElimination(ctx), List.of("CBind(MATRIX,MATRIX)", "colSelect(MATRIX,INT,INT)"));
+
+		RewriterHeuristic prepareSelectionSimplification = new RewriterHeuristic(RewriterRuleSet.buildReorderColRowSelect("rowSelect", "colSelect", ctx), List.of("rowSelect(MATRIX,INT,INT)", "colSelect(MATRIX,INT,INT)"));
 		RewriterHeuristic selectionSimplification = new RewriterHeuristic(RewriterRuleSet.buildSelectionSimplification(ctx), List.of("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)", "RowSelectPushableBinaryInstruction(MATRIX,MATRIX)", "ColSelectPushableBinaryInstruction(MATRIX,MATRIX)"));
 
-		// TODO: These are not working in all cases right now e.g. CBind(index(A,...), colSelect(B,...)) would not be recognized
-		RewriterHeuristic cbindElimination = new RewriterHeuristic(RewriterRuleSet.buildCBindElimination(ctx), List.of("CBind(MATRIX,MATRIX)", "index(MATRIX,INT,INT,INT,INT)", "colSelect(MATRIX,INT,INT)"));
-		RewriterHeuristic rbindElimination = new RewriterHeuristic(RewriterRuleSet.buildRBindElimination(ctx), List.of("RBind(MATRIX,MATRIX)", "index(MATRIX,INT,INT,INT,INT)", "rowSelect(Matrix,INT,INT)"));
+		RewriterHeuristic aggregationPushdown = RewriterRuleSet.buildAggregationPushdown(ctx);
 
 		RewriterHeuristic operatorFusion = new RewriterHeuristic(RewriterRuleSet.buildDynamicOpInstructions(ctx), List.of("FusableBinaryOperator(MATRIX,MATRIX)", "FusedOperator(MATRIX...)"));
 
@@ -178,10 +248,11 @@ public class RewriterMain2 {
 
 		//for (int i = 0; i < 100; i++) {
 			//RewriterInstruction instr = RewriterExamples.selectionPushdownExample4(ctx);
-		String matrixDef = "MATRIX:A,B";
+		String matrixDef = "MATRIX:A,B,C";
 		String intDef = "INT:q,r,s,t,i,j,k,l";
 		//String expr = "colSelect(CBind(index(A, q, r, s, t), B), a, b)";
-		String expr = "RBind(CBind(index(A,q,r,s,t), index(A,i,j,k,l)), A)";
+		//String expr = "RBind(CBind(index(A,q,r,s,t), index(A,i,j,k,l)), A)";
+		String expr = "mean(-(t(rowSums(t(+(A,B)))), t(C)))";
 		RewriterInstruction instr = (RewriterInstruction) RewriterUtils.parse(expr, ctx, matrixDef, intDef);
 
 		long millis = System.currentTimeMillis();
@@ -222,19 +293,18 @@ public class RewriterMain2 {
 		}
 
 		System.out.println();
-		System.out.println("> SELECTION SIMPLIFICATION <");
+		System.out.println("> DYNAMIC RBIND/CBIND ELIMINATION <");
 		System.out.println();
 
-		instr = selectionSimplification.apply(instr, current -> {
+		instr = rbindElimination.apply(instr, current -> {
 			System.out.println(current);
+			System.out.println();
 			System.out.println("<<<");
 			System.out.println();
 			return true;
 		});
 
-		System.out.println();
-		System.out.println("> DYNAMIC RBIND/CBIND ELIMINATION <");
-		System.out.println();
+		instr = prepareCBindElimination.apply(instr);
 
 		instr = cbindElimination.apply(instr, current -> {
 			System.out.println(current);
@@ -244,9 +314,25 @@ public class RewriterMain2 {
 			return true;
 		});
 
-		instr = rbindElimination.apply(instr, current -> {
+		System.out.println();
+		System.out.println("> SELECTION SIMPLIFICATION <");
+		System.out.println();
+
+		instr = prepareSelectionSimplification.apply(instr);
+
+		instr = selectionSimplification.apply(instr, current -> {
 			System.out.println(current);
+			System.out.println("<<<");
 			System.out.println();
+			return true;
+		});
+
+		System.out.println();
+		System.out.println("> AGGREGATION PUSHDOWN <");
+		System.out.println();
+
+		instr = aggregationPushdown.apply(instr, current -> {
+			System.out.println(current);
 			System.out.println("<<<");
 			System.out.println();
 			return true;
