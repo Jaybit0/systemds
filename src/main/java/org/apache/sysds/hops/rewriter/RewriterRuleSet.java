@@ -61,12 +61,14 @@ public class RewriterRuleSet {
 		ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
 
 		for (RewriterRule rule : rules) {
-			if (rule.getStmt1().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, true, null, rule.getForwardLinks())) {
+			//if (rule.getStmt1().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, true, null, rule.getForwardLinks())) {
+			if (rule.matchStmt1(instr, matches, true)) {
 				return new ApplicableRule(matches, rule, true);
 			}
 
 			if (!rule.isUnidirectional()) {
-				if (rule.getStmt2().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, true, null, rule.getBackwardLinks())) {
+				//if (rule.getStmt2().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, true, null, rule.getBackwardLinks())) {
+				if (rule.matchStmt2(instr, matches, true)) {
 					return new ApplicableRule(matches, rule, false);
 				}
 			}
@@ -255,6 +257,56 @@ public class RewriterRuleSet {
 				.intLiteral("0", 0)
 				.withParsedStatement("rowSelect(RBind(A,B),i,j)", hooks)
 				.toParsedStatement(mappingString2, hooks)
+				.build()
+		);
+
+		return new RewriterRuleSet(ctx, rules);
+	}
+
+	public static RewriterRuleSet buildRBindCBindElimination(final RuleContext ctx) {
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+		ArrayList<RewriterRule> rules = new ArrayList<>();
+		String mappingString1 = "if(==(+(i,1),j),"
+				+ "colSelect(A, h, k),"
+				+ "$2:CBind(colSelect(A, h, i), colSelect(A, j, k)))";
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.parseGlobalVars("INT:h,i,j,k")
+				.intLiteral("1", 1)
+				.withParsedStatement("$1:CBind(colSelect(A, h, i), colSelect(A, j, k))", hooks)
+				.toParsedStatement(mappingString1, hooks)
+				.iff(match -> {
+					Object meta = match.getMatchRoot().getMeta("bindChecked");
+					//throw new IllegalArgumentException();
+					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
+				}, true)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
+					lnk.newStmt.get(0).unsafePutMeta("bindChecked", true);
+				})
+				.build()
+		);
+
+		hooks = new HashMap<>();
+		String mappingString2 = "if(==(+(i,1),j),"
+				+ "rowSelect(A, h, k),"
+				+ "$2:RBind(rowSelect(A, h, i), rowSelect(A, j, k)))";
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.parseGlobalVars("INT:h,i,j,k")
+				.intLiteral("1", 1)
+				.withParsedStatement("$1:RBind(rowSelect(A, h, i), rowSelect(A, j, k))", hooks)
+				.toParsedStatement(mappingString2, hooks)
+				.iff(match -> {
+					Object meta = match.getMatchRoot().getMeta("bindChecked");
+					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
+				}, true)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
+					lnk.newStmt.get(0).unsafePutMeta("bindChecked", true);
+				})
 				.build()
 		);
 

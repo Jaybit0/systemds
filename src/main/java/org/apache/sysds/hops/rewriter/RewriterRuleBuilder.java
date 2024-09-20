@@ -24,6 +24,8 @@ public class RewriterRuleBuilder {
 	private HashMap<RewriterStatement, RewriterRule.LinkObject> linksStmt2ToStmt1 = new HashMap<>();
 	private RewriterStatement fromRoot = null;
 	private RewriterStatement toRoot = null;
+	private Function<RewriterStatement.MatchingSubexpression, Boolean> iff1to2 = null;
+	private Function<RewriterStatement.MatchingSubexpression, Boolean> iff2to1 = null;
 	private boolean isUnidirectional = false;
 	private boolean buildSingleDAG = false;
 
@@ -39,6 +41,18 @@ public class RewriterRuleBuilder {
 	public RewriterRuleBuilder(final RuleContext ctx, String ruleName) {
 		this.ctx = ctx;
 		this.ruleName = ruleName;
+	}
+
+	public RewriterRuleBuilder iff(Function<RewriterStatement.MatchingSubexpression, Boolean> iff, boolean forward) {
+		if (buildSingleDAG)
+			throw new IllegalArgumentException();
+
+		if (forward)
+			iff1to2 = iff;
+		else
+			iff2to1 = iff;
+
+		return this;
 	}
 
 	public RewriterRuleBuilder parseGlobalVars(String globalVarDefinition) {
@@ -109,7 +123,7 @@ public class RewriterRuleBuilder {
 		if (getCurrentInstruction() != null)
 			getCurrentInstruction().consolidate(ctx);
 		prepare();
-		return new RewriterRule(ctx, ruleName, fromRoot, toRoot, isUnidirectional, linksStmt1ToStmt2, linksStmt2ToStmt1);
+		return new RewriterRule(ctx, ruleName, fromRoot, toRoot, isUnidirectional, linksStmt1ToStmt2, linksStmt2ToStmt1, iff1to2, iff2to1);
 	}
 
 	public RewriterStatement buildDAG() {

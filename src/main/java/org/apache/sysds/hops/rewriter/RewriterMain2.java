@@ -80,6 +80,7 @@ public class RewriterMain2 {
 
 		// Some bool algebra
 		builder.append("<=(INT,INT)::INT\n");
+		builder.append("==(INT,INT)::INT\n");
 
 		builder.append("if(INT,MATRIX,MATRIX)::MATRIX\n");
 
@@ -91,6 +92,7 @@ public class RewriterMain2 {
 		ctx.customStringRepr.put("*(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" * "));
 		ctx.customStringRepr.put("/(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" / "));
 		ctx.customStringRepr.put("<=(INT,INT)", RewriterUtils.binaryStringRepr(" <= "));
+		ctx.customStringRepr.put("==(INT,INT)", RewriterUtils.binaryStringRepr(" == "));
 		ctx.customStringRepr.put("index(MATRIX,INT,INT,INT,INT)", (stmt, ctx2) -> {
 			String out;
 			RewriterInstruction mInstr = (RewriterInstruction) stmt;
@@ -157,86 +159,116 @@ public class RewriterMain2 {
 		RewriterHeuristic selectionPushdown = new RewriterHeuristic(RewriterRuleSet.buildSelectionPushdownRuleSet(ctx), List.of("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)", "RowSelectPushableBinaryInstruction(MATRIX,MATRIX)", "ColSelectPushableBinaryInstruction(MATRIX,MATRIX)"));
 		RewriterHeuristic rbindcbindPushdown = new RewriterHeuristic(RewriterRuleSet.buildRbindCbindSelectionPushdown(ctx), List.of("RBind(MATRIX,MATRIX)", "CBind(MATRIX,MATRIX)", "rowSelect(MATRIX,INT,INT)", "colSelect(MATRIX,INT,INT)"));
 
+		RewriterHeuristic rbindcbindElimination = new RewriterHeuristic(RewriterRuleSet.buildRBindCBindElimination(ctx), List.of("RBind(MATRIX,MATRIX)", "CBind(MATRIX,MATRIX)", "rowSelect(MATRIX,INT,INT)", "colSelect(MATRIX,INT,INT)"));
+
 		RewriterHeuristic selectionSimplification = new RewriterHeuristic(RewriterRuleSet.buildSelectionSimplification(ctx), List.of("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)", "RowSelectPushableBinaryInstruction(MATRIX,MATRIX)", "ColSelectPushableBinaryInstruction(MATRIX,MATRIX)"));
 		RewriterHeuristic operatorFusion = new RewriterHeuristic(RewriterRuleSet.buildDynamicOpInstructions(ctx), List.of("FusableBinaryOperator(MATRIX,MATRIX)", "FusedOperator(MATRIX...)"));
-		System.out.println(RewriterRuleSet.buildRbindCbindSelectionPushdown(ctx));
+
+		//System.out.println(RewriterRuleSet.buildRbindCbindSelectionPushdown(ctx));
 
 		//for (int i = 0; i < 100; i++) {
-			RewriterInstruction instr = RewriterExamples.selectionPushdownExample4(ctx);
+			//RewriterInstruction instr = RewriterExamples.selectionPushdownExample4(ctx);
+		String matrixDef = "MATRIX:A,B";
+		String intDef = "INT:q,r,s,t,i,j,k,l";
+		//String expr = "colSelect(CBind(index(A, q, r, s, t), B), a, b)";
+		String expr = "CBind(colSelect(A,q,r), colSelect(A,i,j))";
+		RewriterInstruction instr = (RewriterInstruction) RewriterUtils.parse(expr, ctx, matrixDef, intDef);
 
-			long millis = System.currentTimeMillis();
+		long millis = System.currentTimeMillis();
 
+		System.out.println();
+		System.out.println("> SELECTION BREAKUP <");
+		System.out.println();
+
+		instr = selectionBreakup.apply(instr, current -> {
+			System.out.println(current);
+			System.out.println("<<<");
 			System.out.println();
-			System.out.println("> SELECTION BREAKUP <");
-			System.out.println();
+			return true;
+		});
 
-			instr = selectionBreakup.apply(instr, current -> {
+		System.out.println();
+		System.out.println("> SELECTION PUSHDOWN <");
+		System.out.println();
+
+		MutableBoolean foundRewrites = new MutableBoolean(true);
+
+		while (foundRewrites.booleanValue()) {
+			foundRewrites.setValue(false);
+
+			instr = selectionPushdown.apply(instr, current -> {
 				System.out.println(current);
+				System.out.println("<<<");
+				System.out.println();
 				return true;
-			});
+			}, foundRewrites);
 
-			System.out.println();
-			System.out.println("> SELECTION PUSHDOWN <");
-			System.out.println();
-
-			MutableBoolean foundRewrites = new MutableBoolean(true);
-
-			while (foundRewrites.booleanValue()) {
-				foundRewrites.setValue(false);
-				
-				instr = selectionPushdown.apply(instr, current -> {
-					System.out.println(current);
-					return true;
-				}, foundRewrites);
-
-				instr = rbindcbindPushdown.apply(instr, current -> {
-					System.out.println(current);
-					return true;
-				}, foundRewrites);
-			}
-
-			System.out.println();
-			System.out.println("> SELECTION SIMPLIFICATION <");
-			System.out.println();
-
-			instr = selectionSimplification.apply(instr, current -> {
+			instr = rbindcbindPushdown.apply(instr, current -> {
 				System.out.println(current);
+				System.out.println("<<<");
+				System.out.println();
 				return true;
-			});
+			}, foundRewrites);
+		}
 
-			/*System.out.println();
-			System.out.println("> COMMON SELECTION IDENTIFICATION <");
-			RewriterInstruction toMatch = new RewriterRuleBuilder(ctx)
-					.asDAGBuilder()
-					.withInstruction("indexRange")
-					.addOp("A").ofType("MATRIX")
-					.addOp("h").ofType("INT")
-					.addOp("i").ofType("INT")
-					.addOp("j").ofType("INT")
-					.addOp("k").ofType("INT");*/
+		System.out.println();
+		System.out.println("> DYNAMIC RBIND/CBIND ELIMINATION <");
+		System.out.println();
 
+		instr = rbindcbindElimination.apply(instr, current -> {
+			System.out.println(current);
 			System.out.println();
-			System.out.println("> OPERATOR FUSION <");
+			System.out.println("<<<");
 			System.out.println();
+			return true;
+		});
 
-			instr = operatorFusion.apply(instr, current -> {
-				System.out.println(current);
-				return true;
-			});
+		System.out.println();
+		System.out.println("> SELECTION SIMPLIFICATION <");
+		System.out.println();
 
+		instr = selectionSimplification.apply(instr, current -> {
+			System.out.println(current);
+			System.out.println("<<<");
 			System.out.println();
-			System.out.println("> OPERATOR MERGE <");
+			return true;
+		});
+
+		/*System.out.println();
+		System.out.println("> COMMON SELECTION IDENTIFICATION <");
+		RewriterInstruction toMatch = new RewriterRuleBuilder(ctx)
+				.asDAGBuilder()
+				.withInstruction("indexRange")
+				.addOp("A").ofType("MATRIX")
+				.addOp("h").ofType("INT")
+				.addOp("i").ofType("INT")
+				.addOp("j").ofType("INT")
+				.addOp("k").ofType("INT");*/
+
+		System.out.println();
+		System.out.println("> OPERATOR FUSION <");
+		System.out.println();
+
+		instr = operatorFusion.apply(instr, current -> {
+			System.out.println(current);
+			System.out.println("<<<");
 			System.out.println();
+			return true;
+		});
 
-			RewriterUtils.mergeArgLists(instr, ctx);
-			System.out.println(instr);
-			/*instr = operatorMerge.apply(instr, current -> {
-				System.out.println(current);
-				return true;
-			});*/
+		System.out.println();
+		System.out.println("> OPERATOR MERGE <");
+		System.out.println();
 
-			millis = System.currentTimeMillis() - millis;
-			System.out.println("Finished in " + millis + "ms");
+		RewriterUtils.mergeArgLists(instr, ctx);
+		System.out.println(instr);
+		/*instr = operatorMerge.apply(instr, current -> {
+			System.out.println(current);
+			return true;
+		});*/
+
+		millis = System.currentTimeMillis() - millis;
+		System.out.println("Finished in " + millis + "ms");
 		//}
 
 	}

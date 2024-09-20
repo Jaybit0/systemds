@@ -20,9 +20,15 @@ public class RewriterRule extends AbstractRewriterRule {
 	private final RewriterStatement toRoot;
 	private final HashMap<RewriterStatement, LinkObject> linksStmt1ToStmt2; // Contains the explicit links a transformation has (like instructions, (a+b)-c = a+(b-c), but '+' and '-' are the same instruction still [important if instructions have metadata])
 	private final HashMap<RewriterStatement, LinkObject> linksStmt2ToStmt1;
+	private final Function<RewriterStatement.MatchingSubexpression, Boolean> iff1to2;
+	private final Function<RewriterStatement.MatchingSubexpression, Boolean> iff2to1;
 	private final boolean unidirectional;
 
 	public RewriterRule(final RuleContext ctx, String name, RewriterStatement fromRoot, RewriterStatement toRoot, boolean unidirectional, HashMap<RewriterStatement, LinkObject> linksStmt1ToStmt2, HashMap<RewriterStatement, LinkObject> linksStmt2ToStmt1) {
+		this(ctx, name, fromRoot, toRoot, unidirectional, linksStmt1ToStmt2, linksStmt2ToStmt1, null, null);
+	}
+
+	public RewriterRule(final RuleContext ctx, String name, RewriterStatement fromRoot, RewriterStatement toRoot, boolean unidirectional, HashMap<RewriterStatement, LinkObject> linksStmt1ToStmt2, HashMap<RewriterStatement, LinkObject> linksStmt2ToStmt1, Function<RewriterStatement.MatchingSubexpression, Boolean> iff1to2, Function<RewriterStatement.MatchingSubexpression, Boolean> iff2to1) {
 		this.ctx = ctx;
 		this.name = name;
 		this.fromRoot = fromRoot;
@@ -30,6 +36,8 @@ public class RewriterRule extends AbstractRewriterRule {
 		this.unidirectional = unidirectional;
 		this.linksStmt1ToStmt2 = linksStmt1ToStmt2;
 		this.linksStmt2ToStmt1 = linksStmt2ToStmt1;
+		this.iff1to2 = iff1to2;
+		this.iff2to1 = iff2to1;
 	}
 
 	public String getName() {
@@ -70,12 +78,32 @@ public class RewriterRule extends AbstractRewriterRule {
 
 	@Override
 	public boolean matchStmt1(RewriterInstruction stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr, boolean findFirst) {
-		return getStmt1().matchSubexpr(ctx, stmt, null, -1, arr, new DualHashBidiMap<>(), true, false, findFirst, null, linksStmt1ToStmt2);
+		boolean matchFound = getStmt1().matchSubexpr(ctx, stmt, null, -1, arr, new DualHashBidiMap<>(), true, false, findFirst, null, linksStmt1ToStmt2);
+
+		if (matchFound && iff1to2 != null) {
+			List<RewriterStatement.MatchingSubexpression> remainingMatches = arr.stream().filter(iff1to2::apply).collect(Collectors.toList());
+			if (remainingMatches.isEmpty())
+				return false;
+			arr.clear();
+			arr.addAll(remainingMatches);
+		}
+
+		return matchFound;
 	}
 
 	@Override
 	public boolean matchStmt2(RewriterInstruction stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr, boolean findFirst) {
-		return getStmt2().matchSubexpr(ctx, stmt, null, -1, arr, new DualHashBidiMap<>(), true, false, findFirst, null, linksStmt2ToStmt1);
+		boolean matchFound = getStmt2().matchSubexpr(ctx, stmt, null, -1, arr, new DualHashBidiMap<>(), true, false, findFirst, null, linksStmt2ToStmt1);
+
+		if (matchFound && iff2to1 != null) {
+			List<RewriterStatement.MatchingSubexpression> remainingMatches = arr.stream().filter(iff2to1::apply).collect(Collectors.toList());
+			if (remainingMatches.isEmpty())
+				return false;
+			arr.clear();
+			arr.addAll(remainingMatches);
+		}
+
+		return matchFound;
 	}
 
 	private RewriterStatement apply(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest) {

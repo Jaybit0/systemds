@@ -90,6 +90,15 @@ public class RewriterUtils {
 		});
 	}
 
+	public static RewriterStatement parse(String expr, final RuleContext ctx, String... varDefinitions) {
+		HashMap<String, RewriterStatement> dataTypes = new HashMap<>();
+
+		for (String def : varDefinitions)
+			parseDataTypes(def, dataTypes, ctx);
+
+		return parseExpression(expr, new HashMap<>(), dataTypes, ctx);
+	}
+
 	/**
 	 * Parses an expression
 	 * @param expr the expression string. Note that all whitespaces have to already be removed
