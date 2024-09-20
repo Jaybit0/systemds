@@ -2,6 +2,8 @@ package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 
+import java.util.HashMap;
+
 public class RewriterStatementEntry {
 	private final RuleContext ctx;
 	final RewriterStatement instr;
@@ -22,9 +24,9 @@ public class RewriterStatementEntry {
 			return false;
 
 		if (o instanceof RewriterStatement)
-			return instr.match(ctx, (RewriterStatement)o, new DualHashBidiMap<>(), false, false, null, new DualHashBidiMap<>());
+			return instr.match(ctx, (RewriterStatement)o, new HashMap<>(), false, false, null, new DualHashBidiMap<>(), false);
 		if (o instanceof RewriterStatementEntry)
-			return instr.match(ctx, ((RewriterStatementEntry)o).instr, new DualHashBidiMap<>(), false, false, null, new DualHashBidiMap<>());
+			return instr.match(ctx, ((RewriterStatementEntry)o).instr, new HashMap<>(), false, false, null, new DualHashBidiMap<>(), false);
 		return false;
 	}
 }

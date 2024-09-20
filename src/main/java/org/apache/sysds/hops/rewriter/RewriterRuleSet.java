@@ -83,13 +83,13 @@ public class RewriterRuleSet {
 		ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
 
 		for (RewriterRule rule : rules) {
-			if (rule.getStmt1().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, false, null, rule.getForwardLinks())) {
+			if (rule.getStmt1().matchSubexpr(ctx, instr, null, -1, matches, new HashMap<>(), true, false, false, null, rule.getForwardLinks(), true)) {
 				applicableRules.add(new ApplicableRule(matches, rule, true));
 				matches = new ArrayList<>();
 			}
 
 			if (!rule.isUnidirectional()) {
-				if (rule.getStmt2().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, false, null, rule.getBackwardLinks())) {
+				if (rule.getStmt2().matchSubexpr(ctx, instr, null, -1, matches, new HashMap<>(), true, false, false, null, rule.getBackwardLinks(), true)) {
 					applicableRules.add(new ApplicableRule(matches, rule, false));
 					matches = new ArrayList<>();
 				}

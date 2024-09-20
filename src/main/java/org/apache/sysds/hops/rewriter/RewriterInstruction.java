@@ -87,7 +87,7 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	@Override
-	public boolean match(final RuleContext ctx, RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks) {
+	public boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers) {
 		if (stmt instanceof RewriterInstruction
 				&& getResultingDataType(ctx).equals(stmt.getResultingDataType(ctx))) {
 			RewriterInstruction inst = (RewriterInstruction)stmt;
@@ -121,7 +121,7 @@ public class RewriterInstruction extends RewriterStatement {
 			int s = inst.operands.size();
 
 			for (int i = 0; i < s; i++) {
-				if (!operands.get(i).match(ctx, inst.operands.get(i), dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks)) {
+				if (!operands.get(i).match(ctx, inst.operands.get(i), dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks, allowDuplicatePointers)) {
 					return false;
 				}
 			}

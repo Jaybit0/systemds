@@ -51,10 +51,10 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		private final RewriterInstruction matchRoot;
 		private final RewriterInstruction matchParent;
 		private final int rootIndex;
-		private final DualHashBidiMap<RewriterStatement, RewriterStatement> assocs;
+		private final HashMap<RewriterStatement, RewriterStatement> assocs;
 		private final List<RewriterRule.ExplicitLink> links;
 
-		public MatchingSubexpression(RewriterInstruction matchRoot, RewriterInstruction matchParent, int rootIndex, DualHashBidiMap<RewriterStatement, RewriterStatement> assocs, List<RewriterRule.ExplicitLink> links) {
+		public MatchingSubexpression(RewriterInstruction matchRoot, RewriterInstruction matchParent, int rootIndex, HashMap<RewriterStatement, RewriterStatement> assocs, List<RewriterRule.ExplicitLink> links) {
 			this.matchRoot = matchRoot;
 			this.matchParent = matchParent;
 			this.assocs = assocs;
@@ -78,7 +78,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 			return rootIndex;
 		}
 
-		public DualHashBidiMap<RewriterStatement, RewriterStatement> getAssocs() {
+		public HashMap<RewriterStatement, RewriterStatement> getAssocs() {
 			return assocs;
 		}
 
@@ -105,7 +105,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	//String toStringWithLinking(int dagId, DualHashBidiMap<RewriterStatementLink, RewriterStatementLink> links);
 
 	// Returns the root of the matching sub-statement, null if there is no match
-	public abstract boolean match(final RuleContext ctx, RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks);
+	public abstract boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers);
 	public abstract int recomputeHashCodes(boolean recursively);
 	public abstract long getCost();
 	public abstract RewriterStatement simplify(final RuleContext ctx);
@@ -122,9 +122,9 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public int recomputeHashCodes() {
 		return recomputeHashCodes(true);
 	}
-	public boolean matchSubexpr(final RuleContext ctx, RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks) {
+	public boolean matchSubexpr(final RuleContext ctx, RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers) {
 		if (dependencyMap == null)
-			dependencyMap = new DualHashBidiMap<>();
+			dependencyMap = new HashMap<>();
 		else
 			dependencyMap.clear();
 
@@ -133,7 +133,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		else
 			links.clear();
 
-		boolean foundMatch = match(ctx, root, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks);
+		boolean foundMatch = match(ctx, root, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks, allowDuplicatePointers);
 
 		if (foundMatch) {
 			matches.add(new MatchingSubexpression(root, parent, rootIndex, dependencyMap, links));
@@ -148,8 +148,8 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 
 		for (RewriterStatement stmt : root.getOperands()) {
 			if (stmt instanceof RewriterInstruction) {
-				if (matchSubexpr(ctx, (RewriterInstruction) stmt, root, idx, matches, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, findFirst, links, ruleLinks)) {
-					dependencyMap = new DualHashBidiMap<>();
+				if (matchSubexpr(ctx, (RewriterInstruction) stmt, root, idx, matches, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, findFirst, links, ruleLinks, allowDuplicatePointers)) {
+					dependencyMap = new HashMap<>();
 					links = new ArrayList<>();
 					foundMatch = true;
 

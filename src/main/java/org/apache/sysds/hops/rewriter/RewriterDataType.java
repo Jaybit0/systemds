@@ -3,6 +3,7 @@ package org.apache.sysds.hops.rewriter;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -80,7 +81,7 @@ public class RewriterDataType extends RewriterStatement {
 	}
 
 	@Override
-	public boolean match(final RuleContext ctx, RewriterStatement stmt, DualHashBidiMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValue, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks) {
+	public boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValue, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers) {
 		if (stmt.getResultingDataType(ctx).equals(type)) {
 			// TODO: This way of literal matching might cause confusion later on
 			if (literalsCanBeVariables) {
@@ -97,7 +98,7 @@ public class RewriterDataType extends RewriterStatement {
 
 			RewriterStatement assoc = dependencyMap.get(this);
 			if (assoc == null) {
-				if (dependencyMap.containsValue(stmt))
+				if (!allowDuplicatePointers && dependencyMap.containsValue(stmt))
 					return false; // Then the statement variable is already associated with another variable
 				dependencyMap.put(this, stmt);
 				return true;
