@@ -63,7 +63,22 @@ public class RewriterRuleBuilder {
 	}
 
 	public RewriterRuleBuilder intLiteral(String id, int value) {
-		globalIds.put(id, new RewriterDataType().as(id).ofType("INT").asLiteral(value));
+		return intLiteral(id, value, "global");
+	}
+
+	public RewriterRuleBuilder intLiteral(String id, int value, String scope) {
+		switch (scope) {
+			case "global":
+				globalIds.put(id, new RewriterDataType().as(id).ofType("INT").asLiteral(value));
+				break;
+			case "from":
+				instrSeqIds.put(id, new RewriterDataType().as(id).ofType("INT").asLiteral(value));
+				break;
+			case "to":
+				mappingSeqIds.put(id, new RewriterDataType().as(id).ofType("INT").asLiteral(value));
+				break;
+		}
+
 		return this;
 	}
 

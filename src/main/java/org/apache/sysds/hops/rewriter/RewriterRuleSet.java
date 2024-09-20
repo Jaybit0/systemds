@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class RewriterRuleSet {
 
@@ -263,48 +264,204 @@ public class RewriterRuleSet {
 		return new RewriterRuleSet(ctx, rules);
 	}
 
-	public static RewriterRuleSet buildRBindCBindElimination(final RuleContext ctx) {
+	public static RewriterRuleSet buildCBindElimination(final RuleContext ctx) {
 		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 		ArrayList<RewriterRule> rules = new ArrayList<>();
-		String mappingString1 = "if(==(+(i,1),j),"
-				+ "colSelect(A, h, k),"
-				+ "$2:CBind(colSelect(A, h, i), colSelect(A, j, k)))";
+
+		String mappingString1 = "if(&&(_compileTimeIsEqual(A, B), ==(+(i,1),l)),"
+				+ "colSelect(A, h, m),"
+				+ "$2:CBind(colSelect(A, h, i), colSelect(B, l, m)))";
+
+		String mappingString1A = "if(==(+(i,1),l),"
+				+ "colSelect(A, h, m),"
+				+ "$2:CBind(colSelect(A, h, i), colSelect(A, l, m)))";
+
+		String mappingString2 = "if(&&(&&(&&(_compileTimeIsEqual(A, B), ==(+(k,1),n)),==(h,l)),==(i,m)),"
+				+ "index(A, h, m, j, k),"
+				+ "$2:CBind(index(A, h, i, j, k), index(B, l, m, n, o)))";
+
+		String mappingString2A = "if(&&(&&(==(+(k,1),n),==(h,l)),==(i,m)),"
+				+ "index(A, h, m, j, k),"
+				+ "$2:CBind(index(A, h, i, j, k), index(A, l, m, n, o)))";
 
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
-				.parseGlobalVars("MATRIX:A")
-				.parseGlobalVars("INT:h,i,j,k")
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:h,i,l,m")
 				.intLiteral("1", 1)
-				.withParsedStatement("$1:CBind(colSelect(A, h, i), colSelect(A, j, k))", hooks)
+				.withParsedStatement("$1:CBind(colSelect(A, h, i), colSelect(B, l, m))", hooks)
 				.toParsedStatement(mappingString1, hooks)
 				.iff(match -> {
 					Object meta = match.getMatchRoot().getMeta("bindChecked");
-					//throw new IllegalArgumentException();
 					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
 				}, true)
 				.link(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
+					RewriterStatement.transferMeta(lnk);
 					lnk.newStmt.get(0).unsafePutMeta("bindChecked", true);
 				})
 				.build()
 		);
 
 		hooks = new HashMap<>();
-		String mappingString2 = "if(==(+(i,1),j),"
-				+ "rowSelect(A, h, k),"
-				+ "$2:RBind(rowSelect(A, h, i), rowSelect(A, j, k)))";
 
+		// TODO: This should implicitly be handled by the matcher
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A")
-				.parseGlobalVars("INT:h,i,j,k")
+				.parseGlobalVars("INT:h,i,l,m")
 				.intLiteral("1", 1)
-				.withParsedStatement("$1:RBind(rowSelect(A, h, i), rowSelect(A, j, k))", hooks)
+				.withParsedStatement("$1:CBind(colSelect(A, h, i), colSelect(A, l, m))", hooks)
+				.toParsedStatement(mappingString1A, hooks)
+				.iff(match -> {
+					Object meta = match.getMatchRoot().getMeta("bindChecked");
+					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
+				}, true)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
+					RewriterStatement.transferMeta(lnk);
+					lnk.newStmt.get(0).unsafePutMeta("bindChecked", true);
+				})
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:h,i,j,k,l,m,n,o")
+				.intLiteral("1", 1)
+				.withParsedStatement("$1:CBind(index(A, h, i, j, k), index(B, l, m, n, o))", hooks)
 				.toParsedStatement(mappingString2, hooks)
 				.iff(match -> {
 					Object meta = match.getMatchRoot().getMeta("bindChecked");
 					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
 				}, true)
 				.link(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
+					RewriterStatement.transferMeta(lnk);
+					lnk.newStmt.get(0).unsafePutMeta("bindChecked", true);
+				})
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		// TODO: This should implicitly be handled by the matcher
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.parseGlobalVars("INT:h,i,j,k,l,m,n,o")
+				.intLiteral("1", 1)
+				.withParsedStatement("$1:CBind(index(A, h, i, j, k), index(A, l, m, n, o))", hooks)
+				.toParsedStatement(mappingString2A, hooks)
+				.iff(match -> {
+					Object meta = match.getMatchRoot().getMeta("bindChecked");
+					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
+				}, true)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
+					RewriterStatement.transferMeta(lnk);
+					lnk.newStmt.get(0).unsafePutMeta("bindChecked", true);
+				})
+				.build()
+		);
+
+		return new RewriterRuleSet(ctx, rules);
+	}
+
+	public static RewriterRuleSet buildRBindElimination(final RuleContext ctx) {
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+		ArrayList<RewriterRule> rules = new ArrayList<>();
+
+		String mappingString1 = "if(&&(_compileTimeIsEqual(A, B), ==(+(i,1),l)),"
+				+ "rowSelect(A, h, m),"
+				+ "$2:RBind(rowSelect(A, h, i), rowSelect(B, l, m)))";
+
+		String mappingString1A = "if(==(+(i,1),l),"
+				+ "rowSelect(A, h, m),"
+				+ "$2:RBind(rowSelect(A, h, i), rowSelect(A, l, m)))";
+
+		String mappingString2 = "if(&&(&&(&&(_compileTimeIsEqual(A, B), ==(+(i,1),l)),==(j,n)),==(k,o)),"
+				+ "index(A, h, m, j, k),"
+				+ "$2:RBind(index(A, h, i, j, k), index(B, l, m, n, o)))";
+
+		String mappingString2A = "if(&&(&&(==(+(i,1),l),==(j,n)),==(k,o)),"
+				+ "index(A, h, m, j, k),"
+				+ "$2:RBind(index(A, h, i, j, k), index(A, l, m, n, o)))";
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:h,i,l,m")
+				.intLiteral("1", 1)
+				.withParsedStatement("$1:RBind(rowSelect(A, h, i), rowSelect(B, l, m))", hooks)
+				.toParsedStatement(mappingString1, hooks)
+				.iff(match -> {
+					Object meta = match.getMatchRoot().getMeta("bindChecked");
+					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
+				}, true)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
+					RewriterStatement.transferMeta(lnk);
+					lnk.newStmt.get(0).unsafePutMeta("bindChecked", true);
+				})
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		// TODO: This should implicitly be handled by the matcher
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.parseGlobalVars("INT:h,i,l,m")
+				.intLiteral("1", 1)
+				.withParsedStatement("$1:RBind(rowSelect(A, h, i), rowSelect(A, l, m))", hooks)
+				.toParsedStatement(mappingString1A, hooks)
+				.iff(match -> {
+					Object meta = match.getMatchRoot().getMeta("bindChecked");
+					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
+				}, true)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
+					RewriterStatement.transferMeta(lnk);
+					lnk.newStmt.get(0).unsafePutMeta("bindChecked", true);
+				})
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:h,i,j,k,l,m,n,o")
+				.intLiteral("1", 1)
+				.withParsedStatement("$1:RBind(index(A, h, i, j, k), index(B, l, m, n, o))", hooks)
+				.toParsedStatement(mappingString2, hooks)
+				.iff(match -> {
+					Object meta = match.getMatchRoot().getMeta("bindChecked");
+					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
+				}, true)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
+					RewriterStatement.transferMeta(lnk);
+					lnk.newStmt.get(0).unsafePutMeta("bindChecked", true);
+				})
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		// TODO: This should implicitly be handled by the matcher
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.parseGlobalVars("INT:h,i,j,k,l,m,n,o")
+				.intLiteral("1", 1)
+				.withParsedStatement("$1:RBind(index(A, h, i, j, k), index(A, l, m, n, o))", hooks)
+				.toParsedStatement(mappingString2A, hooks)
+				.iff(match -> {
+					Object meta = match.getMatchRoot().getMeta("bindChecked");
+					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
+				}, true)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
+					RewriterStatement.transferMeta(lnk);
 					lnk.newStmt.get(0).unsafePutMeta("bindChecked", true);
 				})
 				.build()

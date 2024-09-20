@@ -81,8 +81,12 @@ public class RewriterMain2 {
 		// Some bool algebra
 		builder.append("<=(INT,INT)::INT\n");
 		builder.append("==(INT,INT)::INT\n");
+		builder.append("&&(INT,INT)::INT\n");
 
 		builder.append("if(INT,MATRIX,MATRIX)::MATRIX\n");
+
+		// Compile time functions
+		builder.append("_compileTimeIsEqual(MATRIX,MATRIX)::INT");
 
 		RuleContext ctx = RuleContext.createContext(builder.toString());
 		ctx.customStringRepr.put("+(INT,INT)", RewriterUtils.binaryStringRepr(" + "));
@@ -93,6 +97,7 @@ public class RewriterMain2 {
 		ctx.customStringRepr.put("/(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" / "));
 		ctx.customStringRepr.put("<=(INT,INT)", RewriterUtils.binaryStringRepr(" <= "));
 		ctx.customStringRepr.put("==(INT,INT)", RewriterUtils.binaryStringRepr(" == "));
+		ctx.customStringRepr.put("&&(INT,INT)", RewriterUtils.binaryStringRepr(" && "));
 		ctx.customStringRepr.put("index(MATRIX,INT,INT,INT,INT)", (stmt, ctx2) -> {
 			String out;
 			RewriterInstruction mInstr = (RewriterInstruction) stmt;
@@ -154,14 +159,19 @@ public class RewriterMain2 {
 
 		//RewriterRuleSet ruleSet = RewriterRuleSet.selectionPushdown;
 
+		// TODO: Adapt matcher such that for instance RBind(A, A) matches RBind(A, B); BUT: Not the other way round
+
 		RewriterHeuristic selectionBreakup = new RewriterHeuristic(RewriterRuleSet.buildSelectionBreakup(ctx), List.of("index"));
 
 		RewriterHeuristic selectionPushdown = new RewriterHeuristic(RewriterRuleSet.buildSelectionPushdownRuleSet(ctx), List.of("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)", "RowSelectPushableBinaryInstruction(MATRIX,MATRIX)", "ColSelectPushableBinaryInstruction(MATRIX,MATRIX)"));
 		RewriterHeuristic rbindcbindPushdown = new RewriterHeuristic(RewriterRuleSet.buildRbindCbindSelectionPushdown(ctx), List.of("RBind(MATRIX,MATRIX)", "CBind(MATRIX,MATRIX)", "rowSelect(MATRIX,INT,INT)", "colSelect(MATRIX,INT,INT)"));
 
-		RewriterHeuristic rbindcbindElimination = new RewriterHeuristic(RewriterRuleSet.buildRBindCBindElimination(ctx), List.of("RBind(MATRIX,MATRIX)", "CBind(MATRIX,MATRIX)", "rowSelect(MATRIX,INT,INT)", "colSelect(MATRIX,INT,INT)"));
-
 		RewriterHeuristic selectionSimplification = new RewriterHeuristic(RewriterRuleSet.buildSelectionSimplification(ctx), List.of("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)", "RowSelectPushableBinaryInstruction(MATRIX,MATRIX)", "ColSelectPushableBinaryInstruction(MATRIX,MATRIX)"));
+
+		// TODO: These are not working in all cases right now e.g. CBind(index(A,...), colSelect(B,...)) would not be recognized
+		RewriterHeuristic cbindElimination = new RewriterHeuristic(RewriterRuleSet.buildCBindElimination(ctx), List.of("CBind(MATRIX,MATRIX)", "index(MATRIX,INT,INT,INT,INT)", "colSelect(MATRIX,INT,INT)"));
+		RewriterHeuristic rbindElimination = new RewriterHeuristic(RewriterRuleSet.buildRBindElimination(ctx), List.of("RBind(MATRIX,MATRIX)", "index(MATRIX,INT,INT,INT,INT)", "rowSelect(Matrix,INT,INT)"));
+
 		RewriterHeuristic operatorFusion = new RewriterHeuristic(RewriterRuleSet.buildDynamicOpInstructions(ctx), List.of("FusableBinaryOperator(MATRIX,MATRIX)", "FusedOperator(MATRIX...)"));
 
 		//System.out.println(RewriterRuleSet.buildRbindCbindSelectionPushdown(ctx));
@@ -171,7 +181,7 @@ public class RewriterMain2 {
 		String matrixDef = "MATRIX:A,B";
 		String intDef = "INT:q,r,s,t,i,j,k,l";
 		//String expr = "colSelect(CBind(index(A, q, r, s, t), B), a, b)";
-		String expr = "CBind(colSelect(A,q,r), colSelect(A,i,j))";
+		String expr = "RBind(CBind(index(A,q,r,s,t), index(A,i,j,k,l)), A)";
 		RewriterInstruction instr = (RewriterInstruction) RewriterUtils.parse(expr, ctx, matrixDef, intDef);
 
 		long millis = System.currentTimeMillis();
@@ -212,10 +222,21 @@ public class RewriterMain2 {
 		}
 
 		System.out.println();
+		System.out.println("> SELECTION SIMPLIFICATION <");
+		System.out.println();
+
+		instr = selectionSimplification.apply(instr, current -> {
+			System.out.println(current);
+			System.out.println("<<<");
+			System.out.println();
+			return true;
+		});
+
+		System.out.println();
 		System.out.println("> DYNAMIC RBIND/CBIND ELIMINATION <");
 		System.out.println();
 
-		instr = rbindcbindElimination.apply(instr, current -> {
+		instr = cbindElimination.apply(instr, current -> {
 			System.out.println(current);
 			System.out.println();
 			System.out.println("<<<");
@@ -223,12 +244,9 @@ public class RewriterMain2 {
 			return true;
 		});
 
-		System.out.println();
-		System.out.println("> SELECTION SIMPLIFICATION <");
-		System.out.println();
-
-		instr = selectionSimplification.apply(instr, current -> {
+		instr = rbindElimination.apply(instr, current -> {
 			System.out.println(current);
+			System.out.println();
 			System.out.println("<<<");
 			System.out.println();
 			return true;

@@ -21,9 +21,9 @@ public class RewriterUtils {
 			if (el instanceof RewriterInstruction) {
 				Set<String> properties = ((RewriterInstruction) el).getProperties(ctx);
 				String trueInstr = ((RewriterInstruction)el).trueTypedInstruction(ctx);
-				if (properties != null) {
+				//if (properties != null) {
 					for (String desiredProperty : desiredProperties) {
-						if (trueInstr.equals(desiredProperty) || properties.contains(desiredProperty)) {
+						if (trueInstr.equals(desiredProperty) || (properties != null && properties.contains(desiredProperty))) {
 							System.out.println("Found property: " + desiredProperty + " (for " + el + ")");
 							String oldInstr = ((RewriterInstruction) el).changeConsolidatedInstruction(desiredProperty, ctx);
 							if (el.getMeta("trueInstr") == null) {
@@ -34,7 +34,7 @@ public class RewriterUtils {
 							//System.out.println("Property found: " + desiredProperty);
 						}
 					}
-				}
+				//}
 			}
 			return true;
 		};
