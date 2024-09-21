@@ -87,13 +87,18 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	@Override
-	public boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers) {
-		if (stmt instanceof RewriterInstruction
-				&& getResultingDataType(ctx).equals(stmt.getResultingDataType(ctx))) {
+	public boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan) {
+		if (stmt instanceof RewriterInstruction && getResultingDataType(ctx).equals(stmt.getResultingDataType(ctx))) {
 			RewriterInstruction inst = (RewriterInstruction)stmt;
 
-			if(!inst.instr.equals(this.instr))
-				return false;
+			if(!inst.instr.equals(this.instr)) {
+				if (!allowPropertyScan)
+					return false;
+				Set<String> props = inst.getProperties(ctx);
+
+				if (props == null || !props.contains(typedInstruction(ctx)))
+					return false;
+			}
 			if (this.operands.size() != inst.operands.size())
 				return false;
 
@@ -121,7 +126,7 @@ public class RewriterInstruction extends RewriterStatement {
 			int s = inst.operands.size();
 
 			for (int i = 0; i < s; i++) {
-				if (!operands.get(i).match(ctx, inst.operands.get(i), dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks, allowDuplicatePointers)) {
+				if (!operands.get(i).match(ctx, inst.operands.get(i), dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks, allowDuplicatePointers, allowPropertyScan)) {
 					return false;
 				}
 			}

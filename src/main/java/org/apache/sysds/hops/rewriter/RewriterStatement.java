@@ -105,7 +105,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	//String toStringWithLinking(int dagId, DualHashBidiMap<RewriterStatementLink, RewriterStatementLink> links);
 
 	// Returns the root of the matching sub-statement, null if there is no match
-	public abstract boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers);
+	public abstract boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan);
 	public abstract int recomputeHashCodes(boolean recursively);
 	public abstract long getCost();
 	public abstract RewriterStatement simplify(final RuleContext ctx);
@@ -122,7 +122,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public int recomputeHashCodes() {
 		return recomputeHashCodes(true);
 	}
-	public boolean matchSubexpr(final RuleContext ctx, RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers) {
+	public boolean matchSubexpr(final RuleContext ctx, RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan) {
 		if (dependencyMap == null)
 			dependencyMap = new HashMap<>();
 		else
@@ -133,7 +133,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		else
 			links.clear();
 
-		boolean foundMatch = match(ctx, root, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks, allowDuplicatePointers);
+		boolean foundMatch = match(ctx, root, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks, allowDuplicatePointers, allowPropertyScan);
 
 		if (foundMatch) {
 			matches.add(new MatchingSubexpression(root, parent, rootIndex, dependencyMap, links));
@@ -148,7 +148,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 
 		for (RewriterStatement stmt : root.getOperands()) {
 			if (stmt instanceof RewriterInstruction) {
-				if (matchSubexpr(ctx, (RewriterInstruction) stmt, root, idx, matches, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, findFirst, links, ruleLinks, allowDuplicatePointers)) {
+				if (matchSubexpr(ctx, (RewriterInstruction) stmt, root, idx, matches, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, findFirst, links, ruleLinks, allowDuplicatePointers, allowPropertyScan)) {
 					dependencyMap = new HashMap<>();
 					links = new ArrayList<>();
 					foundMatch = true;

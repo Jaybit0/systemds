@@ -83,6 +83,10 @@ public class RewriterMain2 {
 
 		// Permutation functions
 
+		builder.append("Rearrangement(MATRIX)::MATRIX\n"); // An operation that keeps all elements but can reformat the matrix
+		builder.append("impl Permutation\n");
+		builder.append("impl t\n"); // Transposition
+
 		builder.append("RowPermutation(MATRIX)::MATRIX\n");
 
 		builder.append("ColPermutation(MATRIX)::MATRIX\n");
@@ -90,7 +94,7 @@ public class RewriterMain2 {
 		builder.append("Permutation(MATRIX)::MATRIX\n");
 		builder.append("impl RowPermutation\n");
 		builder.append("impl ColPermutation\n");
-		builder.append("impl t\n"); // Transpose matrix
+		//builder.append("impl t\n"); // Transpose matrix
 
 
 
@@ -252,7 +256,8 @@ public class RewriterMain2 {
 		String intDef = "INT:q,r,s,t,i,j,k,l";
 		//String expr = "colSelect(CBind(index(A, q, r, s, t), B), a, b)";
 		//String expr = "RBind(CBind(index(A,q,r,s,t), index(A,i,j,k,l)), A)";
-		String expr = "mean(-(t(rowSums(t(+(A,B)))), t(C)))";
+		//String expr = "colSelect(RBind(index(CBind(colSums(-(t(rowSums(t(+(A,B)))), t(C))), rowSelect(C, q, r)), q, r, s, t), rowSelect(B, k, l)), i, j)";
+		String expr = "mean(RowPermutation(A))";
 		RewriterInstruction instr = (RewriterInstruction) RewriterUtils.parse(expr, ctx, matrixDef, intDef);
 
 		long millis = System.currentTimeMillis();

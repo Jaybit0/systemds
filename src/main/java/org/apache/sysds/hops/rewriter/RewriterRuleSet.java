@@ -84,13 +84,13 @@ public class RewriterRuleSet {
 		ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
 
 		for (RewriterRule rule : rules) {
-			if (rule.getStmt1().matchSubexpr(ctx, instr, null, -1, matches, new HashMap<>(), true, false, false, null, rule.getForwardLinks(), true)) {
+			if (rule.getStmt1().matchSubexpr(ctx, instr, null, -1, matches, new HashMap<>(), true, false, false, null, rule.getForwardLinks(), true, true)) {
 				applicableRules.add(new ApplicableRule(matches, rule, true));
 				matches = new ArrayList<>();
 			}
 
 			if (!rule.isUnidirectional()) {
-				if (rule.getStmt2().matchSubexpr(ctx, instr, null, -1, matches, new HashMap<>(), true, false, false, null, rule.getBackwardLinks(), true)) {
+				if (rule.getStmt2().matchSubexpr(ctx, instr, null, -1, matches, new HashMap<>(), true, false, false, null, rule.getBackwardLinks(), true, true)) {
 					applicableRules.add(new ApplicableRule(matches, rule, false));
 					matches = new ArrayList<>();
 				}
@@ -562,6 +562,8 @@ public class RewriterRuleSet {
 		ArrayList<RewriterRule> rules = new ArrayList<>();
 		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 
+		// TODO: This does not work properly as we have overlapping properties
+
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
@@ -598,7 +600,7 @@ public class RewriterRuleSet {
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
-				.withParsedStatement("$1:FullAggregationInstruction($2:Permutation(A))", hooks)
+				.withParsedStatement("$1:FullAggregationInstruction($2:Rearrangement(A))", hooks)
 				.toParsedStatement("$3:FullAggregationInstruction(A)", hooks)
 				.link(hooks.get(1).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
 				.build()
@@ -608,7 +610,7 @@ public class RewriterRuleSet {
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
-				.withParsedStatement("$1:RowAggregationInstruction($2:Permutation(A))", hooks)
+				.withParsedStatement("$1:RowAggregationInstruction($2:RowPermutation(A))", hooks)
 				.toParsedStatement("$3:RowAggregationInstruction(A)", hooks)
 				.link(hooks.get(1).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
 				.build()
@@ -618,7 +620,7 @@ public class RewriterRuleSet {
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
-				.withParsedStatement("$1:ColAggregationInstruction($2:Permutation(A))", hooks)
+				.withParsedStatement("$1:ColAggregationInstruction($2:ColPermutation(A))", hooks)
 				.toParsedStatement("$3:ColAggregationInstruction(A)", hooks)
 				.link(hooks.get(1).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
 				.build()
@@ -631,7 +633,10 @@ public class RewriterRuleSet {
 						"RowAggregationPushableInstruction(MATRIX,MATRIX)",
 						"ColAggregationInstruction(MATRIX)",
 						"ColAggregationPushableInstruction(MATRIX,MATRIX)",
-						"Permutation(MATRIX)"));
+						"RowPermutation(MATRIX)",
+						"ColPermutation(MATRIX)",
+						"Permutation(MATRIX)",
+						"Rearrangement(MATRIX)"));
 	}
 
 	private static RewriterRule binaryMatrixLRIndexingPushdown(String instrName, String selectFuncOrigin, String[] indexingInput, String destSelectFuncL, String[] indexingInputL, String destSelectFuncR, String[] indexingInputR, final RuleContext ctx) {
