@@ -3,16 +3,15 @@ package org.apache.sysds.hops.rewriter;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.function.Function;
 
 public class RewriterHeuristic {
 	private final RewriterRuleSet ruleSet;
-	private final List<String> desiredProperties;
+	//private final List<String> desiredProperties;
 
-	public RewriterHeuristic(RewriterRuleSet ruleSet, List<String> desiredProperties) {
+	public RewriterHeuristic(RewriterRuleSet ruleSet/*, List<String> desiredProperties*/) {
 		this.ruleSet = ruleSet;
-		this.desiredProperties = desiredProperties;
+		//this.desiredProperties = desiredProperties;
 	}
 
 	public RewriterInstruction apply(RewriterInstruction current) {
@@ -25,7 +24,7 @@ public class RewriterHeuristic {
 
 	public RewriterInstruction apply(RewriterInstruction current, @Nullable Function<RewriterInstruction, Boolean> handler, MutableBoolean foundRewrite) {
 		RuleContext.currentContext = ruleSet.getContext();
-		current.forEachPostOrderWithDuplicates(RewriterUtils.propertyExtractor(desiredProperties, ruleSet.getContext()));
+		//current.forEachPostOrderWithDuplicates(RewriterUtils.propertyExtractor(desiredProperties, ruleSet.getContext()));
 
 		if (handler != null && !handler.apply(current))
 			return current;

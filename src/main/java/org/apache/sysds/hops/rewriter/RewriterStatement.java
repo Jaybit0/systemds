@@ -245,6 +245,15 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	}
 
 	public static void transferMeta(RewriterRule.ExplicitLink link) {
+		if (link.oldStmt instanceof RewriterInstruction) {
+			for (RewriterStatement mNew : link.newStmt) {
+				if (mNew instanceof RewriterInstruction &&
+						!((RewriterInstruction)mNew).trueInstruction().equals(((RewriterInstruction)link.oldStmt).trueInstruction())) {
+					((RewriterInstruction) mNew).unsafeSetInstructionName(((RewriterInstruction)link.oldStmt).trueInstruction());
+				}
+			}
+		}
+
 		if (link.oldStmt.meta != null)
 			link.newStmt.forEach(stmt -> stmt.meta = new HashMap<>(link.oldStmt.meta));
 		else

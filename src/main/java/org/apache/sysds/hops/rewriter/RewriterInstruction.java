@@ -467,4 +467,8 @@ public class RewriterInstruction extends RewriterStatement {
 		return ctx.instrProperties.get(trueTypedInstruction(ctx));
 	}
 
+	void unsafeSetInstructionName(String str) {
+		this.instr = str;
+	}
+
 }

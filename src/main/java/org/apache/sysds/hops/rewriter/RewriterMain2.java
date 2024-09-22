@@ -104,6 +104,19 @@ public class RewriterMain2 {
 		builder.append("RBind(MATRIX,MATRIX)::MATRIX\n");
 
 
+		// Meta preserving instructions
+
+		builder.append("SizePreservingInstruction(MATRIX,MATRIX)::MATRIX\n"); // Maintains the size information of the matrix
+		builder.append("impl +\n");
+		builder.append("impl -\n");
+		builder.append("impl *\n");
+		builder.append("impl /\n");
+		builder.append("impl min\n");
+		builder.append("impl max\n");
+
+
+
+
 
 		builder.append("rowSelect(MATRIX,INT,INT)::MATRIX\n");
 		builder.append("colSelect(MATRIX,INT,INT)::MATRIX\n");
@@ -230,23 +243,22 @@ public class RewriterMain2 {
 
 		// TODO: Adapt matcher such that for instance RBind(A, A) matches RBind(A, B); BUT: Not the other way round
 
-		RewriterHeuristic selectionBreakup = new RewriterHeuristic(RewriterRuleSet.buildSelectionBreakup(ctx), List.of("index"));
+		RewriterHeuristic selectionBreakup = new RewriterHeuristic(RewriterRuleSet.buildSelectionBreakup(ctx));
 
-		RewriterHeuristic selectionPushdown = new RewriterHeuristic(RewriterRuleSet.buildSelectionPushdownRuleSet(ctx), List.of("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)", "RowSelectPushableBinaryInstruction(MATRIX,MATRIX)", "ColSelectPushableBinaryInstruction(MATRIX,MATRIX)"));
-		RewriterHeuristic rbindcbindPushdown = new RewriterHeuristic(RewriterRuleSet.buildRbindCbindSelectionPushdown(ctx), List.of("RBind(MATRIX,MATRIX)", "CBind(MATRIX,MATRIX)", "rowSelect(MATRIX,INT,INT)", "colSelect(MATRIX,INT,INT)"));
+		RewriterHeuristic selectionPushdown = new RewriterHeuristic(RewriterRuleSet.buildSelectionPushdownRuleSet(ctx));
+		RewriterHeuristic rbindcbindPushdown = new RewriterHeuristic(RewriterRuleSet.buildRbindCbindSelectionPushdown(ctx));
 
-		// TODO: These are not working in all cases right now e.g. CBind(index(A,...), colSelect(B,...)) would not be recognized
-		RewriterHeuristic rbindElimination = new RewriterHeuristic(RewriterRuleSet.buildRBindElimination(ctx), List.of("RBind(MATRIX,MATRIX)", "rowSelect(Matrix,INT,INT)"));
+		RewriterHeuristic rbindElimination = new RewriterHeuristic(RewriterRuleSet.buildRBindElimination(ctx));
 
-		RewriterHeuristic prepareCBindElimination = new RewriterHeuristic(RewriterRuleSet.buildReorderColRowSelect("colSelect", "rowSelect", ctx), List.of("rowSelect(MATRIX,INT,INT)", "colSelect(MATRIX,INT,INT)"));
-		RewriterHeuristic cbindElimination = new RewriterHeuristic(RewriterRuleSet.buildCBindElimination(ctx), List.of("CBind(MATRIX,MATRIX)", "colSelect(MATRIX,INT,INT)"));
+		RewriterHeuristic prepareCBindElimination = new RewriterHeuristic(RewriterRuleSet.buildReorderColRowSelect("colSelect", "rowSelect", ctx));
+		RewriterHeuristic cbindElimination = new RewriterHeuristic(RewriterRuleSet.buildCBindElimination(ctx));
 
-		RewriterHeuristic prepareSelectionSimplification = new RewriterHeuristic(RewriterRuleSet.buildReorderColRowSelect("rowSelect", "colSelect", ctx), List.of("rowSelect(MATRIX,INT,INT)", "colSelect(MATRIX,INT,INT)"));
-		RewriterHeuristic selectionSimplification = new RewriterHeuristic(RewriterRuleSet.buildSelectionSimplification(ctx), List.of("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)", "RowSelectPushableBinaryInstruction(MATRIX,MATRIX)", "ColSelectPushableBinaryInstruction(MATRIX,MATRIX)"));
+		RewriterHeuristic prepareSelectionSimplification = new RewriterHeuristic(RewriterRuleSet.buildReorderColRowSelect("rowSelect", "colSelect", ctx));
+		RewriterHeuristic selectionSimplification = new RewriterHeuristic(RewriterRuleSet.buildSelectionSimplification(ctx));
 
-		RewriterHeuristic aggregationPushdown = RewriterRuleSet.buildAggregationPushdown(ctx);
+		RewriterHeuristic aggregationPushdown = new RewriterHeuristic(RewriterRuleSet.buildAggregationPushdown(ctx));
 
-		RewriterHeuristic operatorFusion = new RewriterHeuristic(RewriterRuleSet.buildDynamicOpInstructions(ctx), List.of("FusableBinaryOperator(MATRIX,MATRIX)", "FusedOperator(MATRIX...)"));
+		RewriterHeuristic operatorFusion = new RewriterHeuristic(RewriterRuleSet.buildDynamicOpInstructions(ctx));
 
 		//System.out.println(RewriterRuleSet.buildRbindCbindSelectionPushdown(ctx));
 

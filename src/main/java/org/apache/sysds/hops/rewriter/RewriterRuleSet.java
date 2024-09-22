@@ -558,7 +558,7 @@ public class RewriterRuleSet {
 		return new RewriterRuleSet(ctx, rules);
 	}
 
-	public static RewriterHeuristic buildAggregationPushdown(final RuleContext ctx) {
+	public static RewriterRuleSet buildAggregationPushdown(final RuleContext ctx) {
 		ArrayList<RewriterRule> rules = new ArrayList<>();
 		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 
@@ -626,17 +626,7 @@ public class RewriterRuleSet {
 				.build()
 		);
 
-		return new RewriterHeuristic(new RewriterRuleSet(ctx, rules),
-				List.of("FullAggregationPushableInstruction(MATRIX,MATRIX)",
-						"FullAggregationInstruction(MATRIX)",
-						"RowAggregationInstruction(MATRIX)",
-						"RowAggregationPushableInstruction(MATRIX,MATRIX)",
-						"ColAggregationInstruction(MATRIX)",
-						"ColAggregationPushableInstruction(MATRIX,MATRIX)",
-						"RowPermutation(MATRIX)",
-						"ColPermutation(MATRIX)",
-						"Permutation(MATRIX)",
-						"Rearrangement(MATRIX)"));
+		return new RewriterRuleSet(ctx, rules);
 	}
 
 	private static RewriterRule binaryMatrixLRIndexingPushdown(String instrName, String selectFuncOrigin, String[] indexingInput, String destSelectFuncL, String[] indexingInputL, String destSelectFuncR, String[] indexingInputR, final RuleContext ctx) {
