@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -24,8 +25,8 @@ public class RewriterRuleBuilder {
 	private HashMap<RewriterStatement, RewriterRule.LinkObject> linksStmt2ToStmt1 = new HashMap<>();
 	private RewriterStatement fromRoot = null;
 	private RewriterStatement toRoot = null;
-	private Function<RewriterStatement.MatchingSubexpression, Boolean> iff1to2 = null;
-	private Function<RewriterStatement.MatchingSubexpression, Boolean> iff2to1 = null;
+	private BiFunction<RewriterStatement.MatchingSubexpression, List<RewriterRule.ExplicitLink>, Boolean> iff1to2 = null;
+	private BiFunction<RewriterStatement.MatchingSubexpression, List<RewriterRule.ExplicitLink>, Boolean> iff2to1 = null;
 	private boolean isUnidirectional = false;
 	private boolean buildSingleDAG = false;
 
@@ -43,7 +44,7 @@ public class RewriterRuleBuilder {
 		this.ruleName = ruleName;
 	}
 
-	public RewriterRuleBuilder iff(Function<RewriterStatement.MatchingSubexpression, Boolean> iff, boolean forward) {
+	public RewriterRuleBuilder iff(BiFunction<RewriterStatement.MatchingSubexpression, List<RewriterRule.ExplicitLink>, Boolean> iff, boolean forward) {
 		if (buildSingleDAG)
 			throw new IllegalArgumentException();
 

@@ -299,7 +299,7 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("$1:CBind(colSelect(A, h, i), colSelect(B, l, m))", hooks)
 				.toParsedStatement(mappingString1, hooks)
-				.iff(match -> {
+				.iff((match, links) -> {
 					Object meta = match.getMatchRoot().getMeta("bindChecked");
 					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
 				}, true)
@@ -416,7 +416,7 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("$1:RBind(rowSelect(A, h, i), rowSelect(B, l, m))", hooks)
 				.toParsedStatement(mappingString1, hooks)
-				.iff(match -> {
+				.iff((match, links) -> {
 					Object meta = match.getMatchRoot().getMeta("bindChecked");
 					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
 				}, true)
@@ -437,7 +437,7 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("$1:RBind(rowSelect(A, h, i), rowSelect(A, l, m))", hooks)
 				.toParsedStatement(mappingString1A, hooks)
-				.iff(match -> {
+				.iff((match, links) -> {
 					Object meta = match.getMatchRoot().getMeta("bindChecked");
 					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
 				}, true)
@@ -457,7 +457,7 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("$1:RBind(index(A, h, i, j, k), index(B, l, m, n, o))", hooks)
 				.toParsedStatement(mappingString2, hooks)
-				.iff(match -> {
+				.iff((match, links) -> {
 					Object meta = match.getMatchRoot().getMeta("bindChecked");
 					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
 				}, true)
@@ -478,7 +478,7 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("$1:RBind(index(A, h, i, j, k), index(A, l, m, n, o))", hooks)
 				.toParsedStatement(mappingString2A, hooks)
-				.iff(match -> {
+				.iff((match, links) -> {
 					Object meta = match.getMatchRoot().getMeta("bindChecked");
 					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
 				}, true)
@@ -660,6 +660,16 @@ public class RewriterRuleSet {
 				.withParsedStatement("$1:ElementWiseInstruction(t(A), t(B))", hooks)
 				.toParsedStatement("t($2:ElementWiseInstruction(A, B))", hooks)
 				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.withParsedStatement("%*%(t(A), t(B))", hooks)
+				.toParsedStatement("%*%(B, A)", hooks)
 				.build()
 		);
 

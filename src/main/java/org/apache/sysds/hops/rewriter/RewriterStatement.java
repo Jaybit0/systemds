@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -122,7 +123,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public int recomputeHashCodes() {
 		return recomputeHashCodes(true);
 	}
-	public boolean matchSubexpr(final RuleContext ctx, RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, Function<MatchingSubexpression, Boolean> iff) {
+	public boolean matchSubexpr(final RuleContext ctx, RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, BiFunction<MatchingSubexpression, List<RewriterRule.ExplicitLink>, Boolean> iff) {
 		if (dependencyMap == null)
 			dependencyMap = new HashMap<>();
 		else
@@ -137,7 +138,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 
 		if (foundMatch) {
 			MatchingSubexpression match = new MatchingSubexpression(root, parent, rootIndex, dependencyMap, links);
-			if (iff == null || iff.apply(match)) {
+			if (iff == null || iff.apply(match, links)) {
 				matches.add(match);
 				dependencyMap = null;
 				links = null;
