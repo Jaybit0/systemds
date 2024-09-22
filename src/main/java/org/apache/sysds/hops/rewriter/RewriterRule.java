@@ -78,7 +78,7 @@ public class RewriterRule extends AbstractRewriterRule {
 
 	@Override
 	public boolean matchStmt1(RewriterInstruction stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr, boolean findFirst) {
-		boolean matchFound = getStmt1().matchSubexpr(ctx, stmt, null, -1, arr, new HashMap<>(), true, false, findFirst, null, linksStmt1ToStmt2, true, true);
+		boolean matchFound = getStmt1().matchSubexpr(ctx, stmt, null, -1, arr, new HashMap<>(), true, false, findFirst, null, linksStmt1ToStmt2, true, true, iff1to2);
 
 		if (matchFound && iff1to2 != null) {
 			List<RewriterStatement.MatchingSubexpression> remainingMatches = arr.stream().filter(iff1to2::apply).collect(Collectors.toList());
@@ -93,7 +93,7 @@ public class RewriterRule extends AbstractRewriterRule {
 
 	@Override
 	public boolean matchStmt2(RewriterInstruction stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr, boolean findFirst) {
-		boolean matchFound = getStmt2().matchSubexpr(ctx, stmt, null, -1, arr, new HashMap<>(), true, false, findFirst, null, linksStmt2ToStmt1, true, true);
+		boolean matchFound = getStmt2().matchSubexpr(ctx, stmt, null, -1, arr, new HashMap<>(), true, false, findFirst, null, linksStmt2ToStmt1, true, true, iff2to1);
 
 		if (matchFound && iff2to1 != null) {
 			List<RewriterStatement.MatchingSubexpression> remainingMatches = arr.stream().filter(iff2to1::apply).collect(Collectors.toList());

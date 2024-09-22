@@ -286,6 +286,8 @@ public class RewriterMain2 {
 
 		RewriterHeuristic aggregationPushdown = new RewriterHeuristic(RewriterRuleSet.buildAggregationPushdown(ctx));
 
+		RewriterHeuristic transposeElimination = new RewriterHeuristic(RewriterRuleSet.buildTransposeElimination(ctx));
+
 		RewriterHeuristic metaInstructionSimplification = new RewriterHeuristic(RewriterRuleSet.buildMetaInstructionSimplification(ctx));
 
 		RewriterHeuristic operatorFusion = new RewriterHeuristic(RewriterRuleSet.buildDynamicOpInstructions(ctx));
@@ -298,9 +300,10 @@ public class RewriterMain2 {
 		String intDef = "INT:q,r,s,t,i,j,k,l";
 		//String expr = "colSelect(CBind(index(A, q, r, s, t), B), a, b)";
 		//String expr = "RBind(CBind(index(A,q,r,s,t), index(A,i,j,k,l)), A)";
-		String expr = "colSelect(RBind(index(CBind(colSums(-(t(rowSums(t(+(A,B)))), t(C))), rowSelect(C, q, r)), q, r, s, t), rowSelect(B, k, l)), i, j)";
+		//String expr = "colSelect(RBind(index(CBind(colSums(-(t(rowSums(t(+(A,B)))), t(C))), rowSelect(C, q, r)), q, r, s, t), rowSelect(B, k, l)), i, j)";
 		//String expr = "mean(RowPermutation(A))";
 		//String expr = "rowSums(+(A,B))";
+		String expr = "t(+(t(A), t(B)))";
 		RewriterInstruction instr = (RewriterInstruction) RewriterUtils.parse(expr, ctx, matrixDef, intDef);
 
 		long millis = System.currentTimeMillis();
@@ -391,6 +394,17 @@ public class RewriterMain2 {
 		System.out.println();
 
 		instr = aggregationPushdown.apply(instr, current -> {
+			System.out.println(current);
+			System.out.println("<<<");
+			System.out.println();
+			return true;
+		});
+
+		System.out.println();
+		System.out.println("> TRANSPOSITION ELIMINATION <");
+		System.out.println();
+
+		instr = transposeElimination.apply(instr, current -> {
 			System.out.println(current);
 			System.out.println("<<<");
 			System.out.println();

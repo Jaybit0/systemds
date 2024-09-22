@@ -84,13 +84,13 @@ public class RewriterRuleSet {
 		ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
 
 		for (RewriterRule rule : rules) {
-			if (rule.getStmt1().matchSubexpr(ctx, instr, null, -1, matches, new HashMap<>(), true, false, false, null, rule.getForwardLinks(), true, true)) {
+			if (rule.matchStmt1(instr, matches, false)) {
 				applicableRules.add(new ApplicableRule(matches, rule, true));
 				matches = new ArrayList<>();
 			}
 
 			if (!rule.isUnidirectional()) {
-				if (rule.getStmt2().matchSubexpr(ctx, instr, null, -1, matches, new HashMap<>(), true, false, false, null, rule.getBackwardLinks(), true, true)) {
+				if (rule.matchStmt2(instr, matches, false)) {
 					applicableRules.add(new ApplicableRule(matches, rule, false));
 					matches = new ArrayList<>();
 				}
@@ -660,6 +660,21 @@ public class RewriterRuleSet {
 				.withParsedStatement("$1:ElementWiseInstruction(t(A), t(B))", hooks)
 				.toParsedStatement("t($2:ElementWiseInstruction(A, B))", hooks)
 				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
+		return new RewriterRuleSet(ctx, rules);
+	}
+
+	public static RewriterRuleSet buildTransposeElimination(final RuleContext ctx) {
+		ArrayList<RewriterRule> rules = new ArrayList<>();
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("t(t(A))", hooks)
+				.toParsedStatement("A", hooks)
 				.build()
 		);
 

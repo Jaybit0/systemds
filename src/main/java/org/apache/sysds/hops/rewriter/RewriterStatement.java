@@ -122,7 +122,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public int recomputeHashCodes() {
 		return recomputeHashCodes(true);
 	}
-	public boolean matchSubexpr(final RuleContext ctx, RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan) {
+	public boolean matchSubexpr(final RuleContext ctx, RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, Function<MatchingSubexpression, Boolean> iff) {
 		if (dependencyMap == null)
 			dependencyMap = new HashMap<>();
 		else
@@ -136,19 +136,22 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		boolean foundMatch = match(ctx, root, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks, allowDuplicatePointers, allowPropertyScan);
 
 		if (foundMatch) {
-			matches.add(new MatchingSubexpression(root, parent, rootIndex, dependencyMap, links));
-			dependencyMap = null;
-			links = null;
+			MatchingSubexpression match = new MatchingSubexpression(root, parent, rootIndex, dependencyMap, links);
+			if (iff == null || iff.apply(match)) {
+				matches.add(match);
+				dependencyMap = null;
+				links = null;
 
-			if (findFirst)
-				return true;
+				if (findFirst)
+					return true;
+			}
 		}
 
 		int idx = 0;
 
 		for (RewriterStatement stmt : root.getOperands()) {
 			if (stmt instanceof RewriterInstruction) {
-				if (matchSubexpr(ctx, (RewriterInstruction) stmt, root, idx, matches, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, findFirst, links, ruleLinks, allowDuplicatePointers, allowPropertyScan)) {
+				if (matchSubexpr(ctx, (RewriterInstruction) stmt, root, idx, matches, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, findFirst, links, ruleLinks, allowDuplicatePointers, allowPropertyScan, iff)) {
 					dependencyMap = new HashMap<>();
 					links = new ArrayList<>();
 					foundMatch = true;
