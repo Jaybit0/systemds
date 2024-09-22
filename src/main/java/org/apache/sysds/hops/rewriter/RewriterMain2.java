@@ -178,6 +178,8 @@ public class RewriterMain2 {
 		// Compile time functions
 		builder.append("_compileTimeIsEqual(MATRIX,MATRIX)::INT\n");
 		builder.append("_compileTimeSelectLeastExpensive(MATRIX,MATRIX)::MATRIX\n"); // Selects the least expensive of the two matrices to obtain
+		builder.append("_compileTimeSelectLeastExpensive(INT,INT)::INT\n");
+		builder.append("_compileTimeSelectLeastExpensive(FLOAT,FLOAT)::FLOAT\n");
 
 		RuleContext ctx = RuleContext.createContext(builder.toString());
 		ctx.customStringRepr.put("+(INT,INT)", RewriterUtils.binaryStringRepr(" + "));
@@ -279,6 +281,8 @@ public class RewriterMain2 {
 		RewriterHeuristic elementWiseInstructionPushdown = new RewriterHeuristic(RewriterRuleSet.buildElementWiseInstructionPushdown(ctx));
 
 		// TODO: Eliminate e.g. colSums(colSums(A))
+
+		// TODO: t(+(t(A), B)) = +(A, t(B))
 
 		RewriterHeuristic aggregationPushdown = new RewriterHeuristic(RewriterRuleSet.buildAggregationPushdown(ctx));
 

@@ -624,6 +624,8 @@ public class RewriterRuleSet {
 				.build()
 		);
 
+		// TODO: Remove redundant aggregation instructions (rowSums(rowSums(A)) = rowSums(A))
+
 		// TODO: We would need a mapping of equivalent row- / col- aggregations (like rowSums <-> colSums) to make it more general
 		hooks = new HashMap<>();
 		rules.add(new RewriterRuleBuilder(ctx)
@@ -726,8 +728,8 @@ public class RewriterRuleSet {
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
 				.withParsedStatement("$1:SizeInstruction(SizePreservingInstruction(A, B))", hooks)
-				.toParsedStatement("$2:SizeInstruction(_compileTimeSelectLeastExpensive(A, B))", hooks)
-				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
+				.toParsedStatement("_compileTimeSelectLeastExpensive($2:SizeInstruction(A), $3:SizeInstruction(B))", hooks)
+				.linkManyUnidirectional(hooks.get(1).getId(), List.of(hooks.get(2).getId(), hooks.get(3).getId()), RewriterStatement::transferMeta, true)
 				.build()
 		);
 
