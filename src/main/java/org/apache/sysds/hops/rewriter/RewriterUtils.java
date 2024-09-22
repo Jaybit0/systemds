@@ -187,6 +187,14 @@ public class RewriterUtils {
 			String token = matcher.group();
 			String remainder = expr.substring(matcher.end());
 
+			if (remainder.isEmpty()) {
+				mexpr.setValue(remainder);
+				if (dataTypes.containsKey(token))
+					return dataTypes.get(token);
+				throw new IllegalArgumentException("DataType: '" + token + "' doesn't exist");
+			}
+
+
 			char nextChar = remainder.charAt(0);
 
 			switch (nextChar) {

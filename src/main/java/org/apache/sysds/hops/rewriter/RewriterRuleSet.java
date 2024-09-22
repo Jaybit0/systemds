@@ -562,8 +562,6 @@ public class RewriterRuleSet {
 		ArrayList<RewriterRule> rules = new ArrayList<>();
 		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 
-		// TODO: This does not work properly as we have overlapping properties
-
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
@@ -623,6 +621,113 @@ public class RewriterRuleSet {
 				.withParsedStatement("$1:ColAggregationInstruction($2:ColPermutation(A))", hooks)
 				.toParsedStatement("$3:ColAggregationInstruction(A)", hooks)
 				.link(hooks.get(1).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
+		// TODO: We would need a mapping of equivalent row- / col- aggregations (like rowSums <-> colSums) to make it more general
+		hooks = new HashMap<>();
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("colSums(t(A))", hooks)
+				.toParsedStatement("t(rowSums(A))", hooks)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("rowSums(t(A))", hooks)
+				.toParsedStatement("t(colSums(A))", hooks)
+				.build()
+		);
+
+		return new RewriterRuleSet(ctx, rules);
+	}
+
+	public static RewriterRuleSet buildElementWiseInstructionPushdown(final RuleContext ctx) {
+		// TODO: e.g. t(A) + t(B) = t(A + B)
+
+		ArrayList<RewriterRule> rules = new ArrayList<>();
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.withParsedStatement("$1:ElementWiseInstruction(t(A), t(B))", hooks)
+				.toParsedStatement("t($2:ElementWiseInstruction(A, B))", hooks)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
+		return new RewriterRuleSet(ctx, rules);
+	}
+
+	public static RewriterRuleSet buildMetaInstructionSimplification(final RuleContext ctx) {
+		ArrayList<RewriterRule> rules = new ArrayList<>();
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("nrows(SizeSwappingInstruction(A))", hooks)
+				.toParsedStatement("ncols(A)", hooks)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("ncols(SizeSwappingInstruction(A))", hooks)
+				.toParsedStatement("nrows(A)", hooks)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.intLiteral("1", 1)
+				.withParsedStatement("ncols(ColAggregationInstruction(A))", hooks)
+				.toParsedStatement("1", hooks)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.intLiteral("1", 1)
+				.withParsedStatement("nrows(RowAggregationInstruction(A))", hooks)
+				.toParsedStatement("1", hooks)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.intLiteral("1", 1)
+				.withParsedStatement("ncols(RowAggregationInstruction(A))", hooks)
+				.toParsedStatement("ncols(A)", hooks)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.intLiteral("1", 1)
+				.withParsedStatement("nrows(ColAggregationInstruction(A))", hooks)
+				.toParsedStatement("nrows(A)", hooks)
+				.build()
+		);
+
+		// TODO: This rule fucks everything up because it will introduce _compileTimeSelectLeastExpensive inbetween
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.withParsedStatement("$1:SizeInstruction(SizePreservingInstruction(A, B))", hooks)
+				.toParsedStatement("$2:SizeInstruction(_compileTimeSelectLeastExpensive(A, B))", hooks)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
 				.build()
 		);
 
