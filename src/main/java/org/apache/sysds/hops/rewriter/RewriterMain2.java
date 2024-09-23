@@ -303,10 +303,23 @@ public class RewriterMain2 {
 
 		RewriterHeuristic operatorFusion = new RewriterHeuristic(RewriterRuleSet.buildDynamicOpInstructions(ctx));
 
-		//System.out.println(RewriterRuleSet.buildRbindCbindSelectionPushdown(ctx));
+		RewriterHeuristics heur = new RewriterHeuristics();
+		heur.add("SELECTION BREAKUP", selectionBreakup);
+		heur.add("SELECTION PUSHDOWN", selectionPushdown);
+		heur.add("PREPARE SELECTION SIMPLIFICATION", prepareSelectionSimplification);
+		heur.add("SELECTION SIMPLIFICATION", selectionSimplification);
+		heur.add("AGGREGATION PUSHDOWN", aggregationPushdown);
+		heur.add("ELEMENT-WISE INSTRUCTION PUSHDOWN", elementWiseInstructionPushdown);
+		heur.add("TRANSPOSITION ELIMINATION", transposeElimination);
+		heur.add("META-INSTRUCTION SIMPLIFICATION", metaInstructionSimplification);
+		heur.add("OPERATOR FUSION", operatorFusion);
+		heur.add("OPERATOR MERGE", (stmt, func, bool) -> {
+			if (stmt instanceof RewriterInstruction)
+				RewriterUtils.mergeArgLists((RewriterInstruction) stmt, ctx);
+			func.apply(stmt);
+			return stmt;
+		});
 
-		//for (int i = 0; i < 100; i++) {
-			//RewriterInstruction instr = RewriterExamples.selectionPushdownExample4(ctx);
 		String matrixDef = "MATRIX:A,B,C";
 		String intDef = "INT:q,r,s,t,i,j,k,l";
 		//String expr = "colSelect(CBind(index(A, q, r, s, t), B), a, b)";
@@ -323,159 +336,15 @@ public class RewriterMain2 {
 
 		long millis = System.currentTimeMillis();
 
-		System.out.println();
-		System.out.println("> SELECTION BREAKUP <");
-		System.out.println();
-
-		instr = selectionBreakup.apply(instr, current -> {
+		heur.apply(instr, current -> {
 			println(current);
 			println("<<<");
 			println();
 			return true;
 		});
-
-		System.out.println();
-		System.out.println("> SELECTION PUSHDOWN <");
-		System.out.println();
-
-		MutableBoolean foundRewrites = new MutableBoolean(true);
-
-		while (foundRewrites.booleanValue()) {
-			foundRewrites.setValue(false);
-
-			instr = selectionPushdown.apply(instr, current -> {
-				println(current);
-				println("<<<");
-				println();
-				return true;
-			}, foundRewrites);
-
-			/*instr = rbindcbindPushdown.apply(instr, current -> {
-				println(current);
-				println("<<<");
-				println();
-				return true;
-			}, foundRewrites);*/
-		}
-
-		/*System.out.println();
-		System.out.println("> DYNAMIC RBIND/CBIND ELIMINATION <");
-		System.out.println();
-
-		instr = rbindElimination.apply(instr, current -> {
-			println(current);
-			println();
-			println("<<<");
-			println();
-			return true;
-		});
-
-		instr = prepareCBindElimination.apply(instr);
-
-		instr = cbindElimination.apply(instr, current -> {
-			println(current);
-			println();
-			println("<<<");
-			println();
-			return true;
-		});*/
-
-		System.out.println();
-		System.out.println("> SELECTION SIMPLIFICATION <");
-		System.out.println();
-
-		instr = prepareSelectionSimplification.apply(instr);
-
-		instr = selectionSimplification.apply(instr, current -> {
-			println(current);
-			println("<<<");
-			println();
-			return true;
-		});
-
-		System.out.println();
-		System.out.println("> AGGREGATION PUSHDOWN <");
-		System.out.println();
-
-		instr = aggregationPushdown.apply(instr, current -> {
-			println(current);
-			println("<<<");
-			println();
-			return true;
-		});
-
-		System.out.println();
-		System.out.println("> ELEMENT-WISE INSTRUCTION PUSHDOWN <");
-		System.out.println();
-
-		instr = elementWiseInstructionPushdown.apply(instr, current -> {
-			println(current);
-			println("<<<");
-			println();
-			return true;
-		});
-
-		System.out.println();
-		System.out.println("> TRANSPOSITION ELIMINATION <");
-		System.out.println();
-
-		instr = transposeElimination.apply(instr, current -> {
-			println(current);
-			println("<<<");
-			println();
-			return true;
-		});
-
-		System.out.println();
-		System.out.println("> META INSTRUCTION SIMPLIFICATION <");
-		System.out.println();
-
-		instr = metaInstructionSimplification.apply(instr, current -> {
-			println(current);
-			println("<<<");
-			println();
-			return true;
-		});
-
-		System.out.println();
-		System.out.println("> COMPILE-TIME FOLDING <");
-		System.out.println();
-
-		instr = compileTimeFolding.apply(instr, current -> {
-			println(current);
-			println("<<<");
-			println();
-			return true;
-		});
-
-		System.out.println();
-		System.out.println("> OPERATOR FUSION <");
-		System.out.println();
-
-		instr = operatorFusion.apply(instr, current -> {
-			println(current);
-			println("<<<");
-			println();
-			return true;
-		});
-
-		System.out.println();
-		System.out.println("> OPERATOR MERGE <");
-		System.out.println();
-
-		if (instr instanceof RewriterInstruction)
-			RewriterUtils.mergeArgLists((RewriterInstruction) instr, ctx);
-
-		System.out.println(instr);
-		/*instr = operatorMerge.apply(instr, current -> {
-			System.out.println(current);
-			return true;
-		});*/
 
 		millis = System.currentTimeMillis() - millis;
 		System.out.println("Finished in " + millis + "ms");
-		//}
-
 	}
 
 	public static boolean doPrint = true;

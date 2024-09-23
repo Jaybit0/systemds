@@ -5,7 +5,7 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
 import javax.annotation.Nullable;
 import java.util.function.Function;
 
-public class RewriterHeuristic {
+public class RewriterHeuristic implements RewriterHeuristicTransformation {
 	private final RewriterRuleSet ruleSet;
 	//private final List<String> desiredProperties;
 
