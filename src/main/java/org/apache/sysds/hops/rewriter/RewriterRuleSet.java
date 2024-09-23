@@ -908,6 +908,28 @@ public class RewriterRuleSet {
 				.build()
 		);
 
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("INT:a")
+				.intLiteral("0", 0)
+				.withParsedStatement("&&(0, a)", hooks)
+				.toParsedStatement("0", hooks)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("INT:a")
+				.intLiteral("0", 0)
+				.withParsedStatement("&&(a, 0)", hooks)
+				.toParsedStatement("0", hooks)
+				.build()
+		);
+
 
 
 		// Eliminate the compileTimeEqualityCheck

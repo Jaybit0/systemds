@@ -6,6 +6,7 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -241,5 +242,25 @@ public class RewriterUtils {
 		} else {
 			throw new IllegalArgumentException(mexpr.getValue());
 		}
+	}
+
+	public static HashMap<String, List<RewriterStatement>> createIndex(RewriterStatement stmt, final RuleContext ctx) {
+		HashMap<String, List<RewriterStatement>> index = new HashMap<>();
+		stmt.forEachPostOrderWithDuplicates(mstmt -> {
+			if (mstmt instanceof RewriterInstruction) {
+				RewriterInstruction instr = (RewriterInstruction)mstmt;
+				index.compute(instr.trueTypedInstruction(ctx), (k, v) -> {
+					if (v == null) {
+						return List.of(mstmt);
+					} else {
+						if (v.stream().noneMatch(el -> el == instr))
+							v.add(instr);
+						return v;
+					}
+				});
+			}
+			return true;
+		});
+		return index;
 	}
 }
