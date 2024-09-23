@@ -1,5 +1,6 @@
 package org.apache.sysds.hops.rewriter;
 
+import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableObject;
 
@@ -13,6 +14,13 @@ import java.util.PriorityQueue;
 public class RewriterMain2 {
 
 	public static void main(String[] args) {
+		DualHashBidiMap<String, String> equivalentRowColAggregations = new DualHashBidiMap<>() {
+			{
+				put("rowSums(MATRIX)", "colSums(MATRIX)");
+				put("rowMeans(MATRIX)", "colMeans(MATRIX)");
+			}
+		};
+
 		StringBuilder builder = new StringBuilder();
 
 		builder.append("argList(MATRIX)::MATRIX...\n"); // This is a meta function that can take any number of MATRIX arguments
@@ -54,13 +62,16 @@ public class RewriterMain2 {
 		// Aggregation functions
 
 		builder.append("FullAggregationInstruction(MATRIX)::FLOAT\n");
+		builder.append("impl sum\n");
 		builder.append("impl mean\n");
 
-		builder.append("RowAggregationInstruction(MATRIX)::MATRIX\n");
+		builder.append("RowAggregationInstruction(MATRIX)::MATRIX\n"); // Assumes that rowAggregation of a row vector is itself
 		builder.append("impl rowSums\n");
+		builder.append("impl colMeans\n");
 
-		builder.append("ColAggregationInstruction(MATRIX)::MATRIX\n");
+		builder.append("ColAggregationInstruction(MATRIX)::MATRIX\n"); // Assumes that colAggregation of a column vector is itself
 		builder.append("impl colSums\n");
+		builder.append("impl colMeans\n");
 
 
 
@@ -76,11 +87,9 @@ public class RewriterMain2 {
 
 		builder.append("RowAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
 		builder.append("impl FullAggregationPushableInstruction\n");
-		builder.append("impl rowSums\n");
 
 		builder.append("ColAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
 		builder.append("impl FullAggregationPushableInstruction\n");
-		builder.append("impl colSums\n");
 
 
 		// Permutation functions
@@ -177,6 +186,7 @@ public class RewriterMain2 {
 
 		// Compile time functions
 		builder.append("_compileTimeIsEqual(MATRIX,MATRIX)::INT\n");
+		builder.append("_compileTimeIsEqual(INT,INT)::INT\n");
 		builder.append("_compileTimeSelectLeastExpensive(MATRIX,MATRIX)::MATRIX\n"); // Selects the least expensive of the two matrices to obtain
 		builder.append("_compileTimeSelectLeastExpensive(INT,INT)::INT\n");
 		builder.append("_compileTimeSelectLeastExpensive(FLOAT,FLOAT)::FLOAT\n");
@@ -196,6 +206,7 @@ public class RewriterMain2 {
 		ctx.customStringRepr.put("-(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" - "));
 		ctx.customStringRepr.put("*(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" * "));
 		ctx.customStringRepr.put("/(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" / "));
+		ctx.customStringRepr.put("%*%(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" %*% "));
 		ctx.customStringRepr.put("<=(INT,INT)", RewriterUtils.binaryStringRepr(" <= "));
 		ctx.customStringRepr.put("==(INT,INT)", RewriterUtils.binaryStringRepr(" == "));
 		ctx.customStringRepr.put("&&(INT,INT)", RewriterUtils.binaryStringRepr(" && "));
@@ -279,7 +290,7 @@ public class RewriterMain2 {
 
 		// TODO: Eliminate e.g. colSums(colSums(A))
 
-		RewriterHeuristic aggregationPushdown = new RewriterHeuristic(RewriterRuleSet.buildAggregationPushdown(ctx));
+		RewriterHeuristic aggregationPushdown = new RewriterHeuristic(RewriterRuleSet.buildAggregationPushdown(ctx, equivalentRowColAggregations));
 
 		// TODO: This is still narrow and experimental
 		RewriterHeuristic elementWiseInstructionPushdown = new RewriterHeuristic(RewriterRuleSet.buildElementWiseInstructionPushdown(ctx));
@@ -288,20 +299,25 @@ public class RewriterMain2 {
 
 		RewriterHeuristic metaInstructionSimplification = new RewriterHeuristic(RewriterRuleSet.buildMetaInstructionSimplification(ctx));
 
+		RewriterHeuristic compileTimeFolding = new RewriterHeuristic(RewriterRuleSet.buildCompileTimeFolding(ctx));
+
 		RewriterHeuristic operatorFusion = new RewriterHeuristic(RewriterRuleSet.buildDynamicOpInstructions(ctx));
 
 		//System.out.println(RewriterRuleSet.buildRbindCbindSelectionPushdown(ctx));
 
-		//for (int i = 0; i < 100; i++) {
+		for (int i = 0; i < 100; i++) {
 			//RewriterInstruction instr = RewriterExamples.selectionPushdownExample4(ctx);
 		String matrixDef = "MATRIX:A,B,C";
 		String intDef = "INT:q,r,s,t,i,j,k,l";
 		//String expr = "colSelect(CBind(index(A, q, r, s, t), B), a, b)";
 		//String expr = "RBind(CBind(index(A,q,r,s,t), index(A,i,j,k,l)), A)";
-		//String expr = "colSelect(RBind(index(CBind(colSums(-(t(rowSums(t(+(A,B)))), t(C))), rowSelect(C, q, r)), q, r, s, t), rowSelect(B, k, l)), i, j)";
+		String expr = "colSelect(RBind(index(CBind(colSums(-(t(rowSums(t(+(A,B)))), t(C))), rowSelect(C, q, r)), q, r, s, t), rowSelect(B, k, l)), i, j)";
 		//String expr = "mean(RowPermutation(A))";
 		//String expr = "rowSums(+(A,B))";
-		String expr = "t(%*%(colSums(t(A)), t(B)))";
+		//String expr = "t(%*%(colSums(t(+(rowSums(A), rowSums(C)))), t(B)))";
+		//String expr = "colSums(+(colSums(A), colSums(B)))";
+		//String expr = "colSums(+(colMeans(A), colMeans(B)))";
+		//String expr = "CBind(colSelect(A, q, r), colSelect(A, +(r, i), s))";
 		RewriterInstruction instr = (RewriterInstruction) RewriterUtils.parse(expr, ctx, matrixDef, intDef);
 
 		long millis = System.currentTimeMillis();
@@ -311,9 +327,9 @@ public class RewriterMain2 {
 		System.out.println();
 
 		instr = selectionBreakup.apply(instr, current -> {
-			System.out.println(current);
-			System.out.println("<<<");
-			System.out.println();
+			println(current);
+			println("<<<");
+			println();
 			return true;
 		});
 
@@ -327,16 +343,16 @@ public class RewriterMain2 {
 			foundRewrites.setValue(false);
 
 			instr = selectionPushdown.apply(instr, current -> {
-				System.out.println(current);
-				System.out.println("<<<");
-				System.out.println();
+				println(current);
+				println("<<<");
+				println();
 				return true;
 			}, foundRewrites);
 
 			instr = rbindcbindPushdown.apply(instr, current -> {
-				System.out.println(current);
-				System.out.println("<<<");
-				System.out.println();
+				println(current);
+				println("<<<");
+				println();
 				return true;
 			}, foundRewrites);
 		}
@@ -346,20 +362,20 @@ public class RewriterMain2 {
 		System.out.println();
 
 		instr = rbindElimination.apply(instr, current -> {
-			System.out.println(current);
-			System.out.println();
-			System.out.println("<<<");
-			System.out.println();
+			println(current);
+			println();
+			println("<<<");
+			println();
 			return true;
 		});
 
 		instr = prepareCBindElimination.apply(instr);
 
 		instr = cbindElimination.apply(instr, current -> {
-			System.out.println(current);
-			System.out.println();
-			System.out.println("<<<");
-			System.out.println();
+			println(current);
+			println();
+			println("<<<");
+			println();
 			return true;
 		});
 
@@ -370,9 +386,9 @@ public class RewriterMain2 {
 		instr = prepareSelectionSimplification.apply(instr);
 
 		instr = selectionSimplification.apply(instr, current -> {
-			System.out.println(current);
-			System.out.println("<<<");
-			System.out.println();
+			println(current);
+			println("<<<");
+			println();
 			return true;
 		});
 
@@ -381,9 +397,9 @@ public class RewriterMain2 {
 		System.out.println();
 
 		instr = aggregationPushdown.apply(instr, current -> {
-			System.out.println(current);
-			System.out.println("<<<");
-			System.out.println();
+			println(current);
+			println("<<<");
+			println();
 			return true;
 		});
 
@@ -392,9 +408,9 @@ public class RewriterMain2 {
 		System.out.println();
 
 		instr = elementWiseInstructionPushdown.apply(instr, current -> {
-			System.out.println(current);
-			System.out.println("<<<");
-			System.out.println();
+			println(current);
+			println("<<<");
+			println();
 			return true;
 		});
 
@@ -403,9 +419,9 @@ public class RewriterMain2 {
 		System.out.println();
 
 		instr = transposeElimination.apply(instr, current -> {
-			System.out.println(current);
-			System.out.println("<<<");
-			System.out.println();
+			println(current);
+			println("<<<");
+			println();
 			return true;
 		});
 
@@ -414,9 +430,20 @@ public class RewriterMain2 {
 		System.out.println();
 
 		instr = metaInstructionSimplification.apply(instr, current -> {
-			System.out.println(current);
-			System.out.println("<<<");
-			System.out.println();
+			println(current);
+			println("<<<");
+			println();
+			return true;
+		});
+
+		System.out.println();
+		System.out.println("> COMPILE-TIME FOLDING <");
+		System.out.println();
+
+		instr = compileTimeFolding.apply(instr, current -> {
+			println(current);
+			println("<<<");
+			println();
 			return true;
 		});
 
@@ -425,9 +452,9 @@ public class RewriterMain2 {
 		System.out.println();
 
 		instr = operatorFusion.apply(instr, current -> {
-			System.out.println(current);
-			System.out.println("<<<");
-			System.out.println();
+			println(current);
+			println("<<<");
+			println();
 			return true;
 		});
 
@@ -444,7 +471,19 @@ public class RewriterMain2 {
 
 		millis = System.currentTimeMillis() - millis;
 		System.out.println("Finished in " + millis + "ms");
-		//}
+		}
 
+	}
+
+	public static boolean doPrint = false;
+
+	public static void println() {
+		if (doPrint)
+			System.out.println();
+	}
+
+	public static void println(Object o) {
+		if (doPrint)
+			System.out.println(o);
 	}
 }

@@ -558,7 +558,7 @@ public class RewriterRuleSet {
 		return new RewriterRuleSet(ctx, rules);
 	}
 
-	public static RewriterRuleSet buildAggregationPushdown(final RuleContext ctx) {
+	public static RewriterRuleSet buildAggregationPushdown(final RuleContext ctx, DualHashBidiMap<String, String> equivalendRowColAggregations) {
 		ArrayList<RewriterRule> rules = new ArrayList<>();
 		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 
@@ -626,13 +626,15 @@ public class RewriterRuleSet {
 
 		// TODO: Remove redundant aggregation instructions (rowSums(rowSums(A)) = rowSums(A))
 
-		// TODO: We would need a mapping of equivalent row- / col- aggregations (like rowSums <-> colSums) to make it more general
+		// TODO: What happens if rowSums(rowSums(A) + rowSums(B))? We need to track the dimensions
+
 		hooks = new HashMap<>();
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A")
-				.withParsedStatement("colSums(t(A))", hooks)
-				.toParsedStatement("t(rowSums(A))", hooks)
+				.withParsedStatement("ColAggregationInstruction($1:ColAggregationInstruction(A))", hooks)
+				.toParsedStatement("$2:ColAggregationInstruction(A)", hooks)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
 				.build()
 		);
 
@@ -640,10 +642,47 @@ public class RewriterRuleSet {
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("RowAggregationInstruction($1:RowAggregationInstruction(A))", hooks)
+				.toParsedStatement("$2:RowAggregationInstruction(A)", hooks)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
+
+		hooks = new HashMap<>();
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("$1:ColAggregationInstruction(t(A))", hooks)
+				.toParsedStatement("t($2:RowAggregationInstruction(A))", hooks)
+				.iff((match, links) -> equivalendRowColAggregations.containsValue(match.getMatchRoot().trueTypedInstruction(ctx)), true)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), link -> {
+					((RewriterInstruction)link.newStmt.get(0)).unsafeSetInstructionName(RewriterUtils.typedToUntypedInstruction(equivalendRowColAggregations.getKey(((RewriterInstruction)link.oldStmt).trueTypedInstruction(ctx))));
+				})
+				.build()
+		);
+
+		hooks = new HashMap<>();
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("$1:RowAggregationInstruction(t(A))", hooks)
+				.toParsedStatement("t($2:ColAggregationInstruction(A))", hooks)
+				.iff((match, links) -> equivalendRowColAggregations.containsKey(match.getMatchRoot().trueTypedInstruction(ctx)), true)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), link -> {
+					((RewriterInstruction)link.newStmt.get(0)).unsafeSetInstructionName(RewriterUtils.typedToUntypedInstruction(equivalendRowColAggregations.get(((RewriterInstruction)link.oldStmt).trueTypedInstruction(ctx))));
+				})
+				.build()
+		);
+
+		/*hooks = new HashMap<>();
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
 				.withParsedStatement("rowSums(t(A))", hooks)
 				.toParsedStatement("t(colSums(A))", hooks)
 				.build()
-		);
+		);*/
 
 		return new RewriterRuleSet(ctx, rules);
 	}
@@ -692,6 +731,44 @@ public class RewriterRuleSet {
 				.withParsedStatement("t($1:ElementWiseInstruction(A, t(B)))", hooks)
 				.toParsedStatement("$2:ElementWiseInstruction(t(A), B))", hooks)
 				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
+
+
+		hooks = new HashMap<>();
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.intLiteral("1", 1)
+				.withParsedStatement("$1:RowAggregationInstruction(A)", hooks)
+				.toParsedStatement("if(_compileTimeIsEqual(ncols(A), 1), A, $2:RowAggregationInstruction(A))", hooks)
+				.iff((match, lnk) -> {
+					Object checked = match.getMatchRoot().getMeta("aggSizeChecked");
+					return checked == null || (checked instanceof Boolean && !((Boolean)checked));
+				}, true)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
+					RewriterStatement.transferMeta(lnk);
+					lnk.newStmt.get(0).unsafePutMeta("aggSizeChecked", true);
+				})
+				.build()
+		);
+
+		hooks = new HashMap<>();
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.intLiteral("1", 1)
+				.withParsedStatement("$1:ColAggregationInstruction(A)", hooks)
+				.toParsedStatement("if(_compileTimeIsEqual(nrows(A), 1), A, $2:ColAggregationInstruction(A))", hooks)
+				.iff((match, lnk) -> {
+					Object checked = match.getMatchRoot().getMeta("aggSizeChecked");
+					return checked == null || (checked instanceof Boolean && !((Boolean)checked));
+				}, true)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
+					RewriterStatement.transferMeta(lnk);
+					lnk.newStmt.get(0).unsafePutMeta("aggSizeChecked", true);
+				})
 				.build()
 		);
 
@@ -769,8 +846,6 @@ public class RewriterRuleSet {
 				.build()
 		);
 
-		// TODO: This rule fucks everything up because it will introduce _compileTimeSelectLeastExpensive inbetween
-
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
@@ -783,40 +858,107 @@ public class RewriterRuleSet {
 		return new RewriterRuleSet(ctx, rules);
 	}
 
-	private static RewriterRule binaryMatrixLRIndexingPushdown(String instrName, String selectFuncOrigin, String[] indexingInput, String destSelectFuncL, String[] indexingInputL, String destSelectFuncR, String[] indexingInputR, final RuleContext ctx) {
-		/*return new RewriterRuleBuilder(ctx)
-				.setUnidirectional(true)
-				.withInstruction(instrName) // This is more a class of instructions
-				.addOp("A")
-				.ofType("MATRIX")
-				.addOp("B")
-				.ofType("MATRIX")
-				.as("A + B")
-				.withInstruction(selectFuncOrigin)
-				.addExistingOp("A + B")
-				.addOp(indexingInput[0]).ofType("INT")
-				.addOp(indexingInput[1]).ofType("INT")
-				.as("res")
-				.asRootInstruction()
-				.toInstruction(destSelectFuncL)
-				.addExistingOp("A")
-				.addExistingOp(indexingInputL[0])
-				.addExistingOp(indexingInputL[1])
-				.as(destSelectFuncL + "(A...)")
-				.toInstruction(destSelectFuncR)
-				.addExistingOp("B")
-				.addExistingOp(indexingInputR[0])
-				.addExistingOp(indexingInputL[0])
-				.as(destSelectFuncR + "(B...)")
-				.toInstruction(instrName)
-				.addExistingOp(destSelectFuncL + "(A...)")
-				.addExistingOp(destSelectFuncR + "(B...)")
-				.as("res")
-				.asRootInstruction()
-				.link("A + B", "res", RewriterStatement::transferMeta)
-				.linkManyUnidirectional("res", List.of(destSelectFuncL + "(A...)", destSelectFuncR + "(B...)"), RewriterStatement::transferMeta, true)
-				.build();*/
+	public static RewriterRuleSet buildCompileTimeFolding(final RuleContext ctx) {
+		ArrayList<RewriterRule> rules = new ArrayList<>();
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("INT:a,b")
+				.intLiteral("1", 1)
+				.withParsedStatement("_compileTimeIsEqual($1:a, $2:b)", hooks)
+				.toParsedStatement("1", hooks)
+				.iff((match, links) -> {
+					List<RewriterStatement> ops = match.getMatchRoot().getOperands();
+					return ops.get(0).isLiteral() && ops.get(1).isLiteral() && ops.get(0).getLiteral().equals(ops.get(1).getLiteral());
+				}, true)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.intLiteral("1", 1)
+				.withParsedStatement("_compileTimeIsEqual(A, A)", hooks)
+				.toParsedStatement("1", hooks)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("INT:a")
+				.intLiteral("1", 1)
+				.withParsedStatement("&&(1, a)", hooks)
+				.toParsedStatement("a", hooks)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("INT:a")
+				.intLiteral("1", 1)
+				.withParsedStatement("&&(a, 1)", hooks)
+				.toParsedStatement("a", hooks)
+				.build()
+		);
+
+
+
+		// Eliminate the compileTimeEqualityCheck
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("INT:a,b")
+				.intLiteral("0", 0)
+				.withParsedStatement("_compileTimeIsEqual($1:a, $2:b)", hooks)
+				.toParsedStatement("0", hooks)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.intLiteral("0", 0)
+				.withParsedStatement("_compileTimeIsEqual($1:A, $2:B)", hooks)
+				.toParsedStatement("0", hooks)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.intLiteral("0", 0)
+				.withParsedStatement("if(0, A, B)", hooks)
+				.toParsedStatement("B", hooks)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.intLiteral("1", 1)
+				.withParsedStatement("if(1, A, B)", hooks)
+				.toParsedStatement("A", hooks)
+				.build()
+		);
+
+		return new RewriterRuleSet(ctx, rules);
+	}
+
+	private static RewriterRule binaryMatrixLRIndexingPushdown(String instrName, String selectFuncOrigin, String[] indexingInput, String destSelectFuncL, String[] indexingInputL, String destSelectFuncR, String[] indexingInputR, final RuleContext ctx) {
 		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 		return new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
@@ -830,40 +972,6 @@ public class RewriterRuleSet {
 	}
 
 	private static RewriterRule binaryMatrixIndexingPushdown(String instrName, String selectFunc, final RuleContext ctx) {
-		/*return new RewriterRuleBuilder(ctx)
-				.setUnidirectional(true)
-				.withInstruction(instrName) // This is more a class of instructions
-				.addOp("A")
-				.ofType("MATRIX")
-				.addOp("B")
-				.ofType("MATRIX")
-				.as("A + B")
-				.withInstruction(selectFunc)
-				.addExistingOp("A + B")
-				.addOp("i")
-				.ofType("INT")
-				.addOp("j")
-				.ofType("INT")
-				.as("res")
-				.asRootInstruction()
-				.toInstruction(selectFunc)
-				.addExistingOp("A")
-				.addExistingOp("i")
-				.addExistingOp("j")
-				.as(selectFunc + "(A,i,j)")
-				.toInstruction(selectFunc)
-				.addExistingOp("B")
-				.addExistingOp("i")
-				.addExistingOp("j")
-				.as(selectFunc + "(B,i,j)")
-				.toInstruction(instrName)
-				.addExistingOp(selectFunc + "(A,i,j)")
-				.addExistingOp(selectFunc + "(B,i,j)")
-				.as("res")
-				.asRootInstruction()
-				.link("A + B", "res", RewriterStatement::transferMeta)
-				.linkManyUnidirectional("res", List.of(selectFunc + "(A,i,j)", selectFunc + "(B,i,j)"), RewriterStatement::transferMeta, true)
-				.build();*/
 
 		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 		return new RewriterRuleBuilder(ctx)
@@ -885,34 +993,6 @@ public class RewriterRuleSet {
 				.parseGlobalVars("INT:i,j,k,l")
 				.withParsedStatement(selectFunc + "(" + selectFunc + "(A,i,j),k,l)", hooks)
 				.toParsedStatement(selectFunc + "(A,max(i,k),min(j,l))", hooks)
-				/*.withInstruction(selectFunc)
-				.addOp("A")
-				.ofType("MATRIX")
-				.addOp("i")
-				.ofType("INT")
-				.addOp("j")
-				.ofType("INT")
-				.as("tmp1")
-				.withInstruction(selectFunc)
-				.addExistingOp("tmp1")
-				.addOp("k")
-				.ofType("INT")
-				.addOp("l")
-				.ofType("INT")
-				.asRootInstruction()
-				.toInstruction("max")
-				.addExistingOp("i")
-				.addExistingOp("k")
-				.as("max(i,k)")
-				.toInstruction("min")
-				.addExistingOp("j")
-				.addExistingOp("l")
-				.as("min(j,l)")
-				.toInstruction(selectFunc)
-				.addExistingOp("A")
-				.addExistingOp("max(i,k)")
-				.addExistingOp("min(j,l)")
-				.asRootInstruction()*/
 				.build();
 	}
 }

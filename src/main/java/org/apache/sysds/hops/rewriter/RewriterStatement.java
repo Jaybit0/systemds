@@ -140,11 +140,16 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 			MatchingSubexpression match = new MatchingSubexpression(root, parent, rootIndex, dependencyMap, links);
 			if (iff == null || iff.apply(match, links)) {
 				matches.add(match);
-				dependencyMap = null;
-				links = null;
 
 				if (findFirst)
 					return true;
+
+				dependencyMap = null;
+				links = null;
+			} else {
+				foundMatch = false;
+				links.clear();
+				dependencyMap.clear();
 			}
 		}
 

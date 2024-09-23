@@ -16,6 +16,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class RewriterUtils {
+	public static String typedToUntypedInstruction(String instr) {
+		return instr.substring(0, instr.indexOf('('));
+	}
+
 	public static Function<RewriterStatement, Boolean> propertyExtractor(final List<String> desiredProperties, final RuleContext ctx) {
 		return el -> {
 			if (el instanceof RewriterInstruction) {
