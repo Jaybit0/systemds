@@ -277,14 +277,12 @@ public class RewriterMain2 {
 		RewriterHeuristic prepareSelectionSimplification = new RewriterHeuristic(RewriterRuleSet.buildReorderColRowSelect("rowSelect", "colSelect", ctx));
 		RewriterHeuristic selectionSimplification = new RewriterHeuristic(RewriterRuleSet.buildSelectionSimplification(ctx));
 
-		// TODO: This is still narrow and experimental
-		RewriterHeuristic elementWiseInstructionPushdown = new RewriterHeuristic(RewriterRuleSet.buildElementWiseInstructionPushdown(ctx));
-
 		// TODO: Eliminate e.g. colSums(colSums(A))
 
-		// TODO: t(+(t(A), B)) = +(A, t(B))
-
 		RewriterHeuristic aggregationPushdown = new RewriterHeuristic(RewriterRuleSet.buildAggregationPushdown(ctx));
+
+		// TODO: This is still narrow and experimental
+		RewriterHeuristic elementWiseInstructionPushdown = new RewriterHeuristic(RewriterRuleSet.buildElementWiseInstructionPushdown(ctx));
 
 		RewriterHeuristic transposeElimination = new RewriterHeuristic(RewriterRuleSet.buildTransposeElimination(ctx));
 
@@ -303,7 +301,7 @@ public class RewriterMain2 {
 		//String expr = "colSelect(RBind(index(CBind(colSums(-(t(rowSums(t(+(A,B)))), t(C))), rowSelect(C, q, r)), q, r, s, t), rowSelect(B, k, l)), i, j)";
 		//String expr = "mean(RowPermutation(A))";
 		//String expr = "rowSums(+(A,B))";
-		String expr = "t(%*%(t(A), t(B)))";
+		String expr = "t(%*%(colSums(t(A)), t(B)))";
 		RewriterInstruction instr = (RewriterInstruction) RewriterUtils.parse(expr, ctx, matrixDef, intDef);
 
 		long millis = System.currentTimeMillis();
@@ -379,10 +377,10 @@ public class RewriterMain2 {
 		});
 
 		System.out.println();
-		System.out.println("> ELEMENT-WISE INSTRUCTION PUSHDOWN <");
+		System.out.println("> AGGREGATION PUSHDOWN <");
 		System.out.println();
 
-		instr = elementWiseInstructionPushdown.apply(instr, current -> {
+		instr = aggregationPushdown.apply(instr, current -> {
 			System.out.println(current);
 			System.out.println("<<<");
 			System.out.println();
@@ -390,10 +388,10 @@ public class RewriterMain2 {
 		});
 
 		System.out.println();
-		System.out.println("> AGGREGATION PUSHDOWN <");
+		System.out.println("> ELEMENT-WISE INSTRUCTION PUSHDOWN <");
 		System.out.println();
 
-		instr = aggregationPushdown.apply(instr, current -> {
+		instr = elementWiseInstructionPushdown.apply(instr, current -> {
 			System.out.println(current);
 			System.out.println("<<<");
 			System.out.println();

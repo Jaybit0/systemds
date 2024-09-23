@@ -673,6 +673,28 @@ public class RewriterRuleSet {
 				.build()
 		);
 
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.withParsedStatement("t($1:ElementWiseInstruction(t(A), B)))", hooks)
+				.toParsedStatement("$2:ElementWiseInstruction(A, t(B))", hooks)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.withParsedStatement("t($1:ElementWiseInstruction(A, t(B)))", hooks)
+				.toParsedStatement("$2:ElementWiseInstruction(t(A), B))", hooks)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
 		return new RewriterRuleSet(ctx, rules);
 	}
 
