@@ -1,6 +1,7 @@
 package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+import org.apache.sysds.utils.Hash;
 import org.checkerframework.checker.units.qual.A;
 import org.jetbrains.annotations.NotNull;
 
@@ -107,6 +108,72 @@ public class RewriterRuleSet {
 		for (RewriterRule rule : rules)
 			builder.append(rule.toString() + "\n");
 		return builder.toString();
+	}
+
+	public static RewriterRuleSet buildUnfoldAggregations(final RuleContext ctx) {
+		ArrayList<RewriterRule> rules = new ArrayList<>();
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+
+		// TODO: Variance unfolding may lead to worse results
+		/*rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.intLiteral("1", 1)
+				.intLiteral("0", 0)
+				.withParsedStatement("var(A)", hooks)
+				.toParsedStatement("if(==(*(nrows(A), ncols(A)), 1), asMatrix(0), *(/(1,*(nrows(A), ncols(A))), *(-(A, mean(A)), -(A, mean(A)))))", hooks)
+				.build()
+		);*/
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("mean(A)", hooks)
+				.toParsedStatement("/(sum(A), *(nrows(A), ncols(A)))", hooks)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("sum(A)", hooks)
+				.toParsedStatement("rowSums(colSums(A))", hooks)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("colSums(rowSums(A))", hooks)
+				.toParsedStatement("rowSums(colSums(A))", hooks)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("rowMeans(A)", hooks)
+				.toParsedStatement("/(rowSums(A), ncols(A))", hooks)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("colMeans(A)", hooks)
+				.toParsedStatement("/(colSums(A), nrows(A))", hooks)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("rowMeans(A)", hooks)
+				.toParsedStatement("/(rowSums(A), ncols(A))", hooks)
+				.build()
+		);
+
+		return new RewriterRuleSet(ctx, rules);
 	}
 
 	public static RewriterRuleSet buildSelectionBreakup(final RuleContext ctx) {
@@ -977,6 +1044,89 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("if(1, A, B)", hooks)
 				.toParsedStatement("A", hooks)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.intLiteral("1", 1)
+				.withParsedStatement("_compileTimeSelectLeastExpensive(A, B)", hooks)
+				.toParsedStatement("A", hooks)
+				.iff((match, lnk) -> {
+					List<RewriterStatement> ops = match.getMatchRoot().getOperands();
+					return ops.get(0).getCost() >= ops.get(1).getCost();
+				}, true)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.intLiteral("1", 1)
+				.withParsedStatement("_compileTimeSelectLeastExpensive(A, B)", hooks)
+				.toParsedStatement("A", hooks)
+				.iff((match, lnk) -> {
+					List<RewriterStatement> ops = match.getMatchRoot().getOperands();
+					return ops.get(0).getCost() < ops.get(1).getCost();
+				}, true)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("INT:A,B")
+				.intLiteral("1", 1)
+				.withParsedStatement("_compileTimeSelectLeastExpensive(A, B)", hooks)
+				.toParsedStatement("A", hooks)
+				.iff((match, lnk) -> {
+					List<RewriterStatement> ops = match.getMatchRoot().getOperands();
+					return ops.get(0).getCost() >= ops.get(1).getCost();
+				}, true)
+				.build()
+		);
+
+		hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("INT:A,B")
+				.intLiteral("1", 1)
+				.withParsedStatement("_compileTimeSelectLeastExpensive(A, B)", hooks)
+				.toParsedStatement("A", hooks)
+				.iff((match, lnk) -> {
+					List<RewriterStatement> ops = match.getMatchRoot().getOperands();
+					return ops.get(0).getCost() < ops.get(1).getCost();
+				}, true)
+				.build()
+		);
+
+		return new RewriterRuleSet(ctx, rules);
+	}
+
+	public static RewriterRuleSet buildAggregationFolding(final RuleContext ctx) {
+		ArrayList<RewriterRule> rules = new ArrayList<>();
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.withParsedStatement("rowSums(colSums(A))", hooks)
+				.toParsedStatement("sum(A)", hooks)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("/(sum(A), *(nrows(A), ncols(A)))", hooks)
+				.toParsedStatement("mean(A)", hooks)
 				.build()
 		);
 

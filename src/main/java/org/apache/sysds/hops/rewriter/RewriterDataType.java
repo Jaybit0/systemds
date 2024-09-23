@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 
 public class RewriterDataType extends RewriterStatement {
@@ -81,31 +82,41 @@ public class RewriterDataType extends RewriterStatement {
 	}
 
 	@Override
-	public boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValue, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan) {
-		if (stmt.getResultingDataType(ctx).equals(type)) {
-			// TODO: This way of literal matching might cause confusion later on
-			if (literalsCanBeVariables) {
-				if (isLiteral())
-					if (!ignoreLiteralValue && (!stmt.isLiteral() || !getLiteral().equals(stmt.getLiteral())))
-						return false;
-			} else {
-				if (isLiteral() != stmt.isLiteral())
-					return false;
-				if (!ignoreLiteralValue && isLiteral() && !getLiteral().equals(stmt.getLiteral()))
-					return false;
-			}
+	public boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValue, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, boolean allowTypeHierarchy) {
+		String dType = stmt.getResultingDataType(ctx);
 
+		if (!dType.equals(type)) {
+			if (!allowTypeHierarchy)
+				return false;
 
-			RewriterStatement assoc = dependencyMap.get(this);
-			if (assoc == null) {
-				if (!allowDuplicatePointers && dependencyMap.containsValue(stmt))
-					return false; // Then the statement variable is already associated with another variable
-				dependencyMap.put(this, stmt);
-				return true;
-			} else if (assoc == stmt) {
-				return true;
-			}
+			Set<String> types = ctx.typeHierarchy.get(dType);
+			if (types == null || !types.contains(type))
+				return false;
 		}
+
+		// TODO: This way of literal matching might cause confusion later on
+		if (literalsCanBeVariables) {
+			if (isLiteral())
+				if (!ignoreLiteralValue && (!stmt.isLiteral() || !getLiteral().equals(stmt.getLiteral())))
+					return false;
+		} else {
+			if (isLiteral() != stmt.isLiteral())
+				return false;
+			if (!ignoreLiteralValue && isLiteral() && !getLiteral().equals(stmt.getLiteral()))
+				return false;
+		}
+
+
+		RewriterStatement assoc = dependencyMap.get(this);
+		if (assoc == null) {
+			if (!allowDuplicatePointers && dependencyMap.containsValue(stmt))
+				return false; // Then the statement variable is already associated with another variable
+			dependencyMap.put(this, stmt);
+			return true;
+		} else if (assoc == stmt) {
+			return true;
+		}
+
 		return false;
 	}
 

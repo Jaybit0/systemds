@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -18,6 +19,8 @@ public class RuleContext {
 	public HashMap<String, Function<RewriterInstruction, RewriterStatement>> simplificationRules = new HashMap<>();
 
 	public HashMap<String, HashSet<String>> instrProperties = new HashMap<>();
+
+	public HashMap<String, HashSet<String>> typeHierarchy = new HashMap<>();
 
 	public HashMap<String, BiFunction<RewriterStatement, RuleContext, String>> customStringRepr = new HashMap<>();
 
@@ -100,6 +103,14 @@ public class RuleContext {
 				}
 
 				ctx.instrCosts.put(newFName + fArgTypes, d -> 1L);
+			} else if (line.startsWith("dtype ")) {
+				String[] dTypeStr = line.substring(6).split("::");
+				if (dTypeStr.length > 1) {
+					Set<String> mSet = ctx.typeHierarchy.compute(dTypeStr[0], (k, v) -> v == null ? new HashSet<>() : v);
+					for (int i = 1; i < dTypeStr.length; i++)
+						mSet.add(dTypeStr[i]);
+				}
+
 			} else {
 				String[] keyVal = readFunctionDefinition(line);
 				fName = keyVal[0];
@@ -119,6 +130,20 @@ public class RuleContext {
 				for (String propertyFunction : pair.getValue()) {
 					if (instrProps.containsKey(propertyFunction))
 						toAdd.addAll(instrProps.get(propertyFunction));
+				}
+
+				changed &= pair.getValue().addAll(toAdd);
+			}
+		}
+
+		changed = true;
+		while (changed) {
+			changed = !ctx.typeHierarchy.isEmpty();
+			for (Map.Entry<String, HashSet<String>> pair : ctx.typeHierarchy.entrySet()) {
+				HashSet<String> toAdd = new HashSet<>();
+				for (String superTypes : pair.getValue()) {
+					if (instrProps.containsKey(superTypes))
+						toAdd.addAll(instrProps.get(superTypes));
 				}
 
 				changed &= pair.getValue().addAll(toAdd);

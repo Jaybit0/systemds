@@ -23,6 +23,13 @@ public class RewriterMain2 {
 
 		StringBuilder builder = new StringBuilder();
 
+		builder.append("dtype ANY");
+		builder.append("dtype COLLECTION::ANY");
+		builder.append("dtype NUMERIC::ANY");
+		builder.append("dtype INT::NUMERIC\n");
+		builder.append("dtype FLOAT::NUMERIC\n");
+		builder.append("dtype MATRIX::COLLECTION\n");
+
 		builder.append("argList(MATRIX)::MATRIX...\n"); // This is a meta function that can take any number of MATRIX arguments
 
 		builder.append("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
@@ -61,21 +68,24 @@ public class RewriterMain2 {
 
 		// Aggregation functions
 
-		builder.append("FullAggregationInstruction(MATRIX)::FLOAT\n");
+		builder.append("FullAggregationInstruction(MATRIX)::MATRIX\n");
 		builder.append("impl FullAdditiveAggregationInstruction(MATRIX)\n");
 		builder.append("impl mean\n");
+		builder.append("impl var\n");
 
 		builder.append("RowAggregationInstruction(MATRIX)::MATRIX\n"); // Assumes that rowAggregation of a row vector is itself
 		builder.append("impl RowAdditiveAggregationInstruction\n");
 		builder.append("impl rowMeans\n");
+		builder.append("impl rowVars\n");
 
 		builder.append("ColAggregationInstruction(MATRIX)::MATRIX\n"); // Assumes that colAggregation of a column vector is itself
 		builder.append("impl ColAdditiveAggregationInstruction\n");
 		builder.append("impl colMeans\n");
+		builder.append("impl colVars\n");
 
 
 
-		builder.append("FullAdditiveAggregationInstruction(MATRIX)::FLOAT\n");
+		builder.append("FullAdditiveAggregationInstruction(MATRIX)::MATRIX\n");
 		builder.append("impl sum\n");
 
 		builder.append("RowAdditiveAggregationInstruction(MATRIX)::MATRIX\n");
@@ -103,8 +113,8 @@ public class RewriterMain2 {
 
 		// Additive aggregations
 
-		builder.append("FullAdditiveAggregationPushableInstruction(FLOAT,FLOAT)::FLOAT\n");
-		builder.append("impl ElementWiseAdditiveInstruction\n");
+		/*builder.append("FullAdditiveAggregationPushableInstruction(FLOAT,FLOAT)::FLOAT\n");
+		builder.append("impl ElementWiseAdditiveInstruction\n");*/
 
 		builder.append("FullAdditiveAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
 		builder.append("impl ElementWiseAdditiveInstruction\n");
@@ -195,17 +205,32 @@ public class RewriterMain2 {
 		builder.append("ncols(MATRIX)::INT\n");
 		builder.append("nrows(MATRIX)::INT\n");
 
-		builder.append("-(INT,INT)::INT\n");
+		RewriterUtils.buildBinaryAlgebraInstructions(builder, "+", List.of("INT", "FLOAT", "MATRIX"));
+		RewriterUtils.buildBinaryAlgebraInstructions(builder, "-", List.of("INT", "FLOAT", "MATRIX"));
+		RewriterUtils.buildBinaryAlgebraInstructions(builder, "*", List.of("INT", "FLOAT", "MATRIX"));
+		RewriterUtils.buildBinaryAlgebraInstructions(builder, "/", List.of("INT", "FLOAT", "MATRIX"));
+
+		/*builder.append("-(INT,INT)::INT\n");
 		builder.append("+(INT,INT)::INT\n");
+		builder.append("*(INT,INT)::INT\n");
+		builder.append("/(INT,INT)::INT\n");
 
 		builder.append("-(FLOAT,FLOAT)::FLOAT\n");
 		builder.append("+(FLOAT,FLOAT)::FLOAT\n");
+		builder.append("*(FLOAT,FLOAT)::FLOAT\n");
+		builder.append("/(FLOAT,FLOAT)::FLOAT\n");
 
 		builder.append("-(INT,FLOAT)::FLOAT\n");
 		builder.append("+(INT,FLOAT)::FLOAT\n");
+		builder.append("*(INT,FLOAT)::FLOAT\n");
+		builder.append("/(INT,FLOAT)::FLOAT\n");
 
 		builder.append("-(FLOAT,INT)::FLOAT\n");
 		builder.append("+(FLOAT,INT)::FLOAT\n");
+		builder.append("*(FLOAT,INT)::FLOAT\n");
+		builder.append("/(FLOAT,INT)::FLOAT\n");
+
+		builder.append("/(MATRIX,INT)::FLOAT\n");*/
 
 		// Some bool algebra
 		builder.append("<=(INT,INT)::INT\n");
@@ -213,6 +238,10 @@ public class RewriterMain2 {
 		builder.append("&&(INT,INT)::INT\n");
 
 		builder.append("if(INT,MATRIX,MATRIX)::MATRIX\n");
+
+		// Some others
+		builder.append("asMatrix(INT)::MATRIX\n");
+		builder.append("asMatrix(FLOAT)::MATRIX\n");
 
 		// Compile time functions
 		builder.append("_compileTimeIsEqual(MATRIX,MATRIX)::INT\n");
@@ -230,6 +259,15 @@ public class RewriterMain2 {
 		ctx.customStringRepr.put("-(FLOAT,INT)", RewriterUtils.binaryStringRepr(" - "));
 		ctx.customStringRepr.put("-(INT,FLOAT)", RewriterUtils.binaryStringRepr(" - "));
 		ctx.customStringRepr.put("-(FLOAT,FLOAT)", RewriterUtils.binaryStringRepr(" - "));
+		ctx.customStringRepr.put("/(INT,INT)", RewriterUtils.binaryStringRepr(" / "));
+		ctx.customStringRepr.put("/(FLOAT,FLOAT)", RewriterUtils.binaryStringRepr(" / "));
+		ctx.customStringRepr.put("/(INT,FLOAT)", RewriterUtils.binaryStringRepr(" / "));
+		ctx.customStringRepr.put("/(FLOAT,INT)", RewriterUtils.binaryStringRepr(" / "));
+		ctx.customStringRepr.put("/(MATRIX,INT)", RewriterUtils.binaryStringRepr(" / "));
+		ctx.customStringRepr.put("*(INT,INT)", RewriterUtils.binaryStringRepr(" * "));
+		ctx.customStringRepr.put("*(FLOAT,INT)", RewriterUtils.binaryStringRepr(" * "));
+		ctx.customStringRepr.put("*(INT,FLOAT)", RewriterUtils.binaryStringRepr(" * "));
+		ctx.customStringRepr.put("*(FLOAT,FLOAT)", RewriterUtils.binaryStringRepr(" * "));
 
 
 		ctx.customStringRepr.put("+(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" + "));
@@ -334,6 +372,7 @@ public class RewriterMain2 {
 		RewriterHeuristic operatorFusion = new RewriterHeuristic(RewriterRuleSet.buildDynamicOpInstructions(ctx));
 
 		RewriterHeuristics heur = new RewriterHeuristics();
+		heur.add("UNFOLD AGGREGATIONS", new RewriterHeuristic(RewriterRuleSet.buildUnfoldAggregations(ctx)));
 		heur.add("SELECTION BREAKUP", selectionBreakup);
 		heur.add("SELECTION PUSHDOWN", selectionPushdown);
 		heur.add("PREPARE SELECTION SIMPLIFICATION", prepareSelectionSimplification);
@@ -342,13 +381,15 @@ public class RewriterMain2 {
 		heur.add("ELEMENT-WISE INSTRUCTION PUSHDOWN", elementWiseInstructionPushdown);
 		heur.add("TRANSPOSITION ELIMINATION", transposeElimination);
 		heur.add("META-INSTRUCTION SIMPLIFICATION", metaInstructionSimplification);
-		heur.add("OPERATOR FUSION", operatorFusion);
+		heur.add("COMPILE-TIME FOLDING", compileTimeFolding);
+		heur.add("AGGREGATION FOLDING", new RewriterHeuristic(RewriterRuleSet.buildAggregationFolding(ctx)));
+		/*heur.add("OPERATOR FUSION", operatorFusion);
 		heur.add("OPERATOR MERGE", (stmt, func, bool) -> {
 			if (stmt instanceof RewriterInstruction)
 				RewriterUtils.mergeArgLists((RewriterInstruction) stmt, ctx);
 			func.apply(stmt);
 			return stmt;
-		});
+		});*/
 
 		String matrixDef = "MATRIX:A,B,C";
 		String intDef = "INT:q,r,s,t,i,j,k,l";
@@ -363,7 +404,7 @@ public class RewriterMain2 {
 		//String expr = "CBind(colSelect(A, q, r), colSelect(A, +(r, i), s))";
 		//String expr = "nrows(rowSums(A))";
 		//String expr = "argList(+(t(A), t(B)), -(t(B), t(C)))";
-		String expr = "colMeans(+(A, B))";
+		String expr = "mean(+(A, B)))";
 		//String expr = "+(max(A, B), max(A, C))";
 		RewriterStatement instr = RewriterUtils.parse(expr, ctx, matrixDef, intDef);
 

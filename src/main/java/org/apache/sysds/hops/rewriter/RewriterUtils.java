@@ -48,7 +48,20 @@ public class RewriterUtils {
 	public static BiFunction<RewriterStatement, RuleContext, String> binaryStringRepr(String op) {
 		return (stmt, ctx) -> {
 			List<RewriterStatement> operands = ((RewriterInstruction)stmt).getOperands();
-			return operands.get(0).toString(ctx) + op + operands.get(1).toString(ctx);
+			String op1Str = operands.get(0).toString(ctx);
+			if (operands.get(0) instanceof RewriterInstruction && ((RewriterInstruction)operands.get(0)).getOperands().size() > 1)
+				op1Str = "(" + op1Str + ")";
+			String op2Str = operands.get(1).toString(ctx);
+			if (operands.get(1) instanceof RewriterInstruction && ((RewriterInstruction)operands.get(1)).getOperands().size() > 1)
+				op2Str = "(" + op2Str + ")";
+			return op1Str + op + op2Str;
+		};
+	}
+
+	public static BiFunction<RewriterStatement, RuleContext, String> wrappedBinaryStringRepr(String op) {
+		return (stmt, ctx) -> {
+			List<RewriterStatement> operands = ((RewriterInstruction)stmt).getOperands();
+			return "(" + operands.get(0).toString(ctx) + ")" + op + "(" + operands.get(1).toString(ctx) + ")";
 		};
 	}
 
@@ -262,5 +275,20 @@ public class RewriterUtils {
 			return true;
 		});
 		return index;
+	}
+
+	public static void buildBinaryAlgebraInstructions(StringBuilder sb, String instr, List<String> instructions) {
+		for (String arg1 : instructions) {
+			for (String arg2 : instructions) {
+				sb.append(instr + "(" + arg1 + "," + arg2 + ")::");
+
+				if (arg1.equals("MATRIX") || arg2.equals("MATRIX"))
+					sb.append("MATRIX\n");
+				else if (arg1.equals("FLOAT") || arg2.equals("FLOAT"))
+					sb.append("FLOAT\n");
+				else
+					sb.append("INT\n");
+			}
+		}
 	}
 }
