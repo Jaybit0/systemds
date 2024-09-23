@@ -305,20 +305,21 @@ public class RewriterMain2 {
 
 		//System.out.println(RewriterRuleSet.buildRbindCbindSelectionPushdown(ctx));
 
-		for (int i = 0; i < 100; i++) {
+		//for (int i = 0; i < 100; i++) {
 			//RewriterInstruction instr = RewriterExamples.selectionPushdownExample4(ctx);
 		String matrixDef = "MATRIX:A,B,C";
 		String intDef = "INT:q,r,s,t,i,j,k,l";
 		//String expr = "colSelect(CBind(index(A, q, r, s, t), B), a, b)";
 		//String expr = "RBind(CBind(index(A,q,r,s,t), index(A,i,j,k,l)), A)";
-		String expr = "colSelect(RBind(index(CBind(colSums(-(t(rowSums(t(+(A,B)))), t(C))), rowSelect(C, q, r)), q, r, s, t), rowSelect(B, k, l)), i, j)";
+		//String expr = "colSelect(RBind(index(CBind(colSums(-(t(rowSums(t(+(A,B)))), t(C))), rowSelect(C, q, r)), q, r, s, t), rowSelect(B, k, l)), i, j)";
 		//String expr = "mean(RowPermutation(A))";
 		//String expr = "rowSums(+(A,B))";
 		//String expr = "t(%*%(colSums(t(+(rowSums(A), rowSums(C)))), t(B)))";
 		//String expr = "colSums(+(colSums(A), colSums(B)))";
 		//String expr = "colSums(+(colMeans(A), colMeans(B)))";
 		//String expr = "CBind(colSelect(A, q, r), colSelect(A, +(r, i), s))";
-		RewriterInstruction instr = (RewriterInstruction) RewriterUtils.parse(expr, ctx, matrixDef, intDef);
+		String expr = "nrows(rowSums(A))";
+		RewriterStatement instr = RewriterUtils.parse(expr, ctx, matrixDef, intDef);
 
 		long millis = System.currentTimeMillis();
 
@@ -462,7 +463,9 @@ public class RewriterMain2 {
 		System.out.println("> OPERATOR MERGE <");
 		System.out.println();
 
-		RewriterUtils.mergeArgLists(instr, ctx);
+		if (instr instanceof RewriterInstruction)
+			RewriterUtils.mergeArgLists((RewriterInstruction) instr, ctx);
+
 		System.out.println(instr);
 		/*instr = operatorMerge.apply(instr, current -> {
 			System.out.println(current);
@@ -471,11 +474,11 @@ public class RewriterMain2 {
 
 		millis = System.currentTimeMillis() - millis;
 		System.out.println("Finished in " + millis + "ms");
-		}
+		//}
 
 	}
 
-	public static boolean doPrint = false;
+	public static boolean doPrint = true;
 
 	public static void println() {
 		if (doPrint)

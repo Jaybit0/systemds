@@ -14,20 +14,26 @@ public class RewriterHeuristic {
 		//this.desiredProperties = desiredProperties;
 	}
 
-	public RewriterInstruction apply(RewriterInstruction current) {
+	public RewriterStatement apply(RewriterStatement current) {
 		return apply(current, null);
 	}
 
-	public RewriterInstruction apply(RewriterInstruction current, @Nullable Function<RewriterInstruction, Boolean> handler) {
+	public RewriterStatement apply(RewriterStatement current, @Nullable Function<RewriterStatement, Boolean> handler) {
 		return apply(current, handler, new MutableBoolean(false));
 	}
 
-	public RewriterInstruction apply(RewriterInstruction current, @Nullable Function<RewriterInstruction, Boolean> handler, MutableBoolean foundRewrite) {
+	public RewriterStatement apply(RewriterStatement currentStmt, @Nullable Function<RewriterStatement, Boolean> handler, MutableBoolean foundRewrite) {
 		RuleContext.currentContext = ruleSet.getContext();
+
 		//current.forEachPostOrderWithDuplicates(RewriterUtils.propertyExtractor(desiredProperties, ruleSet.getContext()));
 
-		if (handler != null && !handler.apply(current))
-			return current;
+		if (handler != null && !handler.apply(currentStmt))
+			return currentStmt;
+
+		if (!(currentStmt instanceof RewriterInstruction))
+			return currentStmt;
+
+		RewriterInstruction current = (RewriterInstruction) currentStmt;
 
 		RewriterRuleSet.ApplicableRule rule = ruleSet.findFirstApplicableRule(current);
 
@@ -35,14 +41,19 @@ public class RewriterHeuristic {
 			foundRewrite.setValue(true);
 
 		while (rule != null) {
-			current = (RewriterInstruction) rule.rule.apply(rule.matches.get(0), current, rule.forward, true);
+			currentStmt = rule.rule.apply(rule.matches.get(0), current, rule.forward, true);
 
-			if (handler != null && !handler.apply(current))
+			if (handler != null && !handler.apply(currentStmt))
 				break;
+
+			if (!(currentStmt instanceof RewriterInstruction))
+				break;
+
+			current = (RewriterInstruction)currentStmt;
 
 			rule = ruleSet.findFirstApplicableRule(current);
 		}
 
-		return current;
+		return currentStmt;
 	}
 }

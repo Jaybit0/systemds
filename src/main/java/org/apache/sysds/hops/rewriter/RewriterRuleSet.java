@@ -736,7 +736,9 @@ public class RewriterRuleSet {
 
 
 
-		hooks = new HashMap<>();
+		// TODO: We must put this at the end
+
+		/*hooks = new HashMap<>();
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A")
@@ -770,7 +772,7 @@ public class RewriterRuleSet {
 					lnk.newStmt.get(0).unsafePutMeta("aggSizeChecked", true);
 				})
 				.build()
-		);
+		);*/
 
 		return new RewriterRuleSet(ctx, rules);
 	}
@@ -846,6 +848,7 @@ public class RewriterRuleSet {
 				.build()
 		);
 
+		hooks = new HashMap<>();
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
