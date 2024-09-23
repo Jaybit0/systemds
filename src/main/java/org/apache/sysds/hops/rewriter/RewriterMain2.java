@@ -62,34 +62,58 @@ public class RewriterMain2 {
 		// Aggregation functions
 
 		builder.append("FullAggregationInstruction(MATRIX)::FLOAT\n");
-		builder.append("impl sum\n");
+		builder.append("impl FullAdditiveAggregationInstruction(MATRIX)\n");
 		builder.append("impl mean\n");
 
 		builder.append("RowAggregationInstruction(MATRIX)::MATRIX\n"); // Assumes that rowAggregation of a row vector is itself
-		builder.append("impl rowSums\n");
-		builder.append("impl colMeans\n");
+		builder.append("impl RowAdditiveAggregationInstruction\n");
+		builder.append("impl rowMeans\n");
 
 		builder.append("ColAggregationInstruction(MATRIX)::MATRIX\n"); // Assumes that colAggregation of a column vector is itself
-		builder.append("impl colSums\n");
+		builder.append("impl ColAdditiveAggregationInstruction\n");
 		builder.append("impl colMeans\n");
+
+
+
+		builder.append("FullAdditiveAggregationInstruction(MATRIX)::FLOAT\n");
+		builder.append("impl sum\n");
+
+		builder.append("RowAdditiveAggregationInstruction(MATRIX)::MATRIX\n");
+		builder.append("impl rowSums\n");
+
+		builder.append("ColAdditiveAggregationInstruction(MATRIX)::MATRIX\n");
+		builder.append("impl colSums\n");
 
 
 
 		// Function aggregation properties
 
-		builder.append("FullAggregationPushableInstruction(FLOAT,FLOAT)::FLOAT\n");
-		builder.append("impl +\n");
-		builder.append("impl -\n");
+		/*builder.append("FullAggregationPushableInstruction(FLOAT,FLOAT)::FLOAT\n");
+		builder.append("impl FullAdditiveAggregationPushableInstruction\n");
+		builder.append("impl mean\n");
 
 		builder.append("FullAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
-		builder.append("impl +\n");
-		builder.append("impl -\n");
+		builder.append("impl FullAdditiveAggregationPushableInstruction\n");
 
 		builder.append("RowAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
-		builder.append("impl FullAggregationPushableInstruction\n");
+		builder.append("impl RowAdditiveAggregationPushableInstruction\n");
 
 		builder.append("ColAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
-		builder.append("impl FullAggregationPushableInstruction\n");
+		builder.append("impl ColAdditiveAggregationPushableInstruction\n");*/
+
+		// Additive aggregations
+
+		builder.append("FullAdditiveAggregationPushableInstruction(FLOAT,FLOAT)::FLOAT\n");
+		builder.append("impl ElementWiseAdditiveInstruction\n");
+
+		builder.append("FullAdditiveAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("impl ElementWiseAdditiveInstruction\n");
+
+		builder.append("RowAdditiveAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("impl ElementWiseAdditiveInstruction\n");
+
+		builder.append("ColAdditiveAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("impl ElementWiseAdditiveInstruction\n");
 
 
 		// Permutation functions
@@ -135,13 +159,19 @@ public class RewriterMain2 {
 
 
 		// Element-wise instruction
-		builder.append("ElementWiseInstruction(MATRIX, MATRIX)::MATRIX\n");
-		builder.append("impl +\n");
-		builder.append("impl -\n");
+		builder.append("ElementWiseInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("impl ElementWiseAdditiveInstruction\n");
 		builder.append("impl *\n");
 		builder.append("impl /\n");
 		builder.append("impl max\n");
 		builder.append("impl min\n");
+
+		//
+		builder.append("ElementWiseAdditiveInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("impl +\n");
+		builder.append("impl -\n");
+
+		//
 
 		builder.append("rowSelect(MATRIX,INT,INT)::MATRIX\n");
 		builder.append("colSelect(MATRIX,INT,INT)::MATRIX\n");
@@ -324,7 +354,7 @@ public class RewriterMain2 {
 		String intDef = "INT:q,r,s,t,i,j,k,l";
 		//String expr = "colSelect(CBind(index(A, q, r, s, t), B), a, b)";
 		//String expr = "RBind(CBind(index(A,q,r,s,t), index(A,i,j,k,l)), A)";
-		String expr = "colSelect(RBind(index(CBind(colSums(-(t(rowSums(t(+(A,B)))), t(C))), rowSelect(C, q, r)), q, r, s, t), rowSelect(B, k, l)), i, j)";
+		//String expr = "colSelect(RBind(index(CBind(colSums(-(t(rowSums(t(+(A,B)))), t(C))), rowSelect(C, q, r)), q, r, s, t), rowSelect(B, k, l)), i, j)";
 		//String expr = "mean(RowPermutation(A))";
 		//String expr = "rowSums(+(A,B))";
 		//String expr = "t(%*%(colSums(t(+(rowSums(A), rowSums(C)))), t(B)))";
@@ -332,6 +362,9 @@ public class RewriterMain2 {
 		//String expr = "colSums(+(colMeans(A), colMeans(B)))";
 		//String expr = "CBind(colSelect(A, q, r), colSelect(A, +(r, i), s))";
 		//String expr = "nrows(rowSums(A))";
+		//String expr = "argList(+(t(A), t(B)), -(t(B), t(C)))";
+		String expr = "colMeans(+(A, B))";
+		//String expr = "+(max(A, B), max(A, C))";
 		RewriterStatement instr = RewriterUtils.parse(expr, ctx, matrixDef, intDef);
 
 		long millis = System.currentTimeMillis();

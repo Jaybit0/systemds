@@ -565,8 +565,8 @@ public class RewriterRuleSet {
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
-				.withParsedStatement("$1:FullAggregationInstruction($2:FullAggregationPushableInstruction(A, B))", hooks)
-				.toParsedStatement("$3:FullAggregationPushableInstruction($4:FullAggregationInstruction(A), $5:FullAggregationInstruction(B))", hooks)
+				.withParsedStatement("$1:FullAdditiveAggregationInstruction($2:FullAdditiveAggregationPushableInstruction(A, B))", hooks)
+				.toParsedStatement("$3:FullAdditiveAggregationPushableInstruction($4:FullAdditiveAggregationInstruction(A), $5:FullAdditiveAggregationInstruction(B))", hooks)
 				.linkManyUnidirectional(hooks.get(1).getId(), List.of(hooks.get(4).getId(), hooks.get(5).getId()), RewriterStatement::transferMeta, true)
 				.link(hooks.get(2).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
 				.build()
@@ -576,8 +576,8 @@ public class RewriterRuleSet {
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
-				.withParsedStatement("$1:RowAggregationInstruction($2:RowAggregationPushableInstruction(A, B))", hooks)
-				.toParsedStatement("$3:RowAggregationPushableInstruction($4:RowAggregationInstruction(A), $5:RowAggregationInstruction(B))", hooks)
+				.withParsedStatement("$1:RowAdditiveAggregationInstruction($2:RowAdditiveAggregationPushableInstruction(A, B))", hooks)
+				.toParsedStatement("$3:RowAdditiveAggregationPushableInstruction($4:RowAdditiveAggregationInstruction(A), $5:RowAdditiveAggregationInstruction(B))", hooks)
 				.linkManyUnidirectional(hooks.get(1).getId(), List.of(hooks.get(4).getId(), hooks.get(5).getId()), RewriterStatement::transferMeta, true)
 				.link(hooks.get(2).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
 				.build()
@@ -587,8 +587,8 @@ public class RewriterRuleSet {
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
-				.withParsedStatement("$1:ColAggregationInstruction($2:ColAggregationPushableInstruction(A, B))", hooks)
-				.toParsedStatement("$3:ColAggregationPushableInstruction($4:ColAggregationInstruction(A), $5:ColAggregationInstruction(B))", hooks)
+				.withParsedStatement("$1:ColAdditiveAggregationInstruction($2:ColAdditiveAggregationPushableInstruction(A, B))", hooks)
+				.toParsedStatement("$3:ColAdditiveAggregationPushableInstruction($4:ColAdditiveAggregationInstruction(A), $5:ColAdditiveAggregationInstruction(B))", hooks)
 				.linkManyUnidirectional(hooks.get(1).getId(), List.of(hooks.get(4).getId(), hooks.get(5).getId()), RewriterStatement::transferMeta, true)
 				.link(hooks.get(2).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
 				.build()
@@ -603,6 +603,8 @@ public class RewriterRuleSet {
 				.link(hooks.get(1).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
 				.build()
 		);
+
+		// TODO: This works if it is not variance
 
 		hooks = new HashMap<>();
 		rules.add(new RewriterRuleBuilder(ctx)
@@ -623,8 +625,6 @@ public class RewriterRuleSet {
 				.link(hooks.get(1).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
 				.build()
 		);
-
-		// TODO: Remove redundant aggregation instructions (rowSums(rowSums(A)) = rowSums(A))
 
 		// TODO: What happens if rowSums(rowSums(A) + rowSums(B))? We need to track the dimensions
 
