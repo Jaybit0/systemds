@@ -311,14 +311,14 @@ public class RewriterMain2 {
 		String intDef = "INT:q,r,s,t,i,j,k,l";
 		//String expr = "colSelect(CBind(index(A, q, r, s, t), B), a, b)";
 		//String expr = "RBind(CBind(index(A,q,r,s,t), index(A,i,j,k,l)), A)";
-		//String expr = "colSelect(RBind(index(CBind(colSums(-(t(rowSums(t(+(A,B)))), t(C))), rowSelect(C, q, r)), q, r, s, t), rowSelect(B, k, l)), i, j)";
+		String expr = "colSelect(RBind(index(CBind(colSums(-(t(rowSums(t(+(A,B)))), t(C))), rowSelect(C, q, r)), q, r, s, t), rowSelect(B, k, l)), i, j)";
 		//String expr = "mean(RowPermutation(A))";
 		//String expr = "rowSums(+(A,B))";
 		//String expr = "t(%*%(colSums(t(+(rowSums(A), rowSums(C)))), t(B)))";
 		//String expr = "colSums(+(colSums(A), colSums(B)))";
 		//String expr = "colSums(+(colMeans(A), colMeans(B)))";
 		//String expr = "CBind(colSelect(A, q, r), colSelect(A, +(r, i), s))";
-		String expr = "nrows(rowSums(A))";
+		//String expr = "nrows(rowSums(A))";
 		RewriterStatement instr = RewriterUtils.parse(expr, ctx, matrixDef, intDef);
 
 		long millis = System.currentTimeMillis();
@@ -350,15 +350,15 @@ public class RewriterMain2 {
 				return true;
 			}, foundRewrites);
 
-			instr = rbindcbindPushdown.apply(instr, current -> {
+			/*instr = rbindcbindPushdown.apply(instr, current -> {
 				println(current);
 				println("<<<");
 				println();
 				return true;
-			}, foundRewrites);
+			}, foundRewrites);*/
 		}
 
-		System.out.println();
+		/*System.out.println();
 		System.out.println("> DYNAMIC RBIND/CBIND ELIMINATION <");
 		System.out.println();
 
@@ -378,7 +378,7 @@ public class RewriterMain2 {
 			println("<<<");
 			println();
 			return true;
-		});
+		});*/
 
 		System.out.println();
 		System.out.println("> SELECTION SIMPLIFICATION <");
