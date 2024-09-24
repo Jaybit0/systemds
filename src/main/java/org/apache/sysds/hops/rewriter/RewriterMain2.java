@@ -19,6 +19,7 @@ public class RewriterMain2 {
 			{
 				put("rowSums(MATRIX)", "colSums(MATRIX)");
 				put("rowMeans(MATRIX)", "colMeans(MATRIX)");
+				put("rowVars(MATRIX)", "colVars(MATRIX)");
 			}
 		};
 
@@ -404,8 +405,9 @@ public class RewriterMain2 {
 		//String expr = "CBind(colSelect(A, q, r), colSelect(A, +(r, i), s))";
 		//String expr = "nrows(rowSums(A))";
 		//String expr = "argList(+(t(A), t(B)), -(t(B), t(C)))";
-		String expr = "mean(+(A, B)))";
+		//String expr = "mean(+(A, B)))";
 		//String expr = "+(max(A, B), max(A, C))";
+		String expr = "rowVars(t(A))";
 		RewriterStatement instr = RewriterUtils.parse(expr, ctx, matrixDef, intDef);
 
 		long millis = System.currentTimeMillis();
