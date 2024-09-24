@@ -56,4 +56,9 @@ public class RewriterHeuristic implements RewriterHeuristicTransformation {
 
 		return currentStmt;
 	}
+
+	@Override
+	public String toString() {
+		return ruleSet.toString();
+	}
 }

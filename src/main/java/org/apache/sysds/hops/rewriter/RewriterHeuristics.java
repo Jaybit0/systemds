@@ -31,6 +31,21 @@ public class RewriterHeuristics implements RewriterHeuristicTransformation {
 		return stmt;
 	}
 
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+
+		for (HeuristicEntry entry : heuristics) {
+			sb.append("\n> ");
+			sb.append(entry.name);
+			sb.append(" <\n");
+
+			sb.append(entry.heuristics.toString());
+		}
+
+		return sb.toString();
+	}
+
 	class RepeatedHeuristics implements RewriterHeuristicTransformation {
 		RewriterHeuristicTransformation heuristic;
 
@@ -47,6 +62,25 @@ public class RewriterHeuristics implements RewriterHeuristicTransformation {
 			}
 
 			return stmt;
+		}
+
+		@Override
+		public String toString() {
+			StringBuilder sb = new StringBuilder();
+
+			sb.append("\n===== REPEAT =====\n");
+
+			for (HeuristicEntry entry : heuristics) {
+				sb.append("\n> ");
+				sb.append(entry.name);
+				sb.append(" <\n");
+
+				sb.append(entry.heuristics.toString());
+			}
+
+			sb.append("\n===== END REPEAT =====");
+
+			return sb.toString();
 		}
 	}
 

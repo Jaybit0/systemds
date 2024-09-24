@@ -98,24 +98,6 @@ public class RewriterMain2 {
 
 		// Function aggregation properties
 
-		/*builder.append("FullAggregationPushableInstruction(FLOAT,FLOAT)::FLOAT\n");
-		builder.append("impl FullAdditiveAggregationPushableInstruction\n");
-		builder.append("impl mean\n");
-
-		builder.append("FullAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
-		builder.append("impl FullAdditiveAggregationPushableInstruction\n");
-
-		builder.append("RowAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
-		builder.append("impl RowAdditiveAggregationPushableInstruction\n");
-
-		builder.append("ColAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
-		builder.append("impl ColAdditiveAggregationPushableInstruction\n");*/
-
-		// Additive aggregations
-
-		/*builder.append("FullAdditiveAggregationPushableInstruction(FLOAT,FLOAT)::FLOAT\n");
-		builder.append("impl ElementWiseAdditiveInstruction\n");*/
-
 		builder.append("FullAdditiveAggregationPushableInstruction(MATRIX,MATRIX)::MATRIX\n");
 		builder.append("impl ElementWiseAdditiveInstruction\n");
 
@@ -390,6 +372,8 @@ public class RewriterMain2 {
 			func.apply(stmt);
 			return stmt;
 		});*/
+
+		System.out.println(heur);
 
 		String matrixDef = "MATRIX:A,B,C";
 		String intDef = "INT:q,r,s,t,i,j,k,l";

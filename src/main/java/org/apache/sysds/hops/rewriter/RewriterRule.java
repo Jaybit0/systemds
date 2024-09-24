@@ -206,7 +206,10 @@ public class RewriterRule extends AbstractRewriterRule {
 	}
 
 	public String toString() {
-		return fromRoot.toString() + " <=> " + toRoot.toString();
+		if (isUnidirectional())
+			return fromRoot.toString() + " => " + toRoot.toString();
+		else
+			return fromRoot.toString() + " <=> " + toRoot.toString();
 	}
 
 	static class LinkObject {
