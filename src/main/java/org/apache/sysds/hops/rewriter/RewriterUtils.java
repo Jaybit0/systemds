@@ -291,4 +291,20 @@ public class RewriterUtils {
 			}
 		}
 	}
+
+	public static HashMap<String, Set<String>> mapToImplementedFunctions(final RuleContext ctx) {
+		HashMap<String, Set<String>> out = new HashMap<>();
+
+		for (Map.Entry<String, String> entry : ctx.instrTypes.entrySet()) {
+			Set<String> props = ctx.instrProperties.get(entry.getKey());
+			if (props != null && !props.isEmpty()) {
+				for (String prop : props) {
+					Set<String> impl = out.computeIfAbsent(prop, k -> new HashSet<>());
+					impl.add(typedToUntypedInstruction(entry.getKey()));
+				}
+			}
+		}
+
+		return out;
+	}
 }

@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.Set;
 
 public class RewriterMain2 {
 
@@ -318,6 +319,7 @@ public class RewriterMain2 {
 
 		System.out.println(ctx.instrTypes);
 		System.out.println(ctx.instrProperties);
+		System.out.println(RewriterUtils.mapToImplementedFunctions(ctx));
 
 		//RewriterRuleSet ruleSet = RewriterRuleSet.selectionPushdown;
 
@@ -353,6 +355,14 @@ public class RewriterMain2 {
 
 		RewriterHeuristic operatorFusion = new RewriterHeuristic(RewriterRuleSet.buildDynamicOpInstructions(ctx));
 
+		final HashMap<String, Set<String>> mset = RewriterUtils.mapToImplementedFunctions(ctx);
+
+		/*selectionPushdown.forEachRuleSet(rs -> {
+			rs.forEachRule((rule, mctx) -> {
+				rule.createNonGenericRules(mset).forEach(r -> System.out.println(r));
+			});
+		});*/
+
 		RewriterHeuristics heur = new RewriterHeuristics();
 		heur.add("UNFOLD AGGREGATIONS", new RewriterHeuristic(RewriterRuleSet.buildUnfoldAggregations(ctx)));
 		heur.add("SELECTION BREAKUP", selectionBreakup);
@@ -373,7 +383,13 @@ public class RewriterMain2 {
 			return stmt;
 		});*/
 
-		System.out.println(heur);
+		//System.out.println(heur);
+
+		heur.forEachRuleSet(rs -> {
+			rs.forEachRule((rule, mctx) -> {
+				rule.createNonGenericRules(mset).forEach(r -> System.out.println(r));
+			});
+		}, true);
 
 		String matrixDef = "MATRIX:A,B,C";
 		String intDef = "INT:q,r,s,t,i,j,k,l";

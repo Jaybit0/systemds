@@ -5,10 +5,20 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class RewriterHeuristics implements RewriterHeuristicTransformation {
 	List<HeuristicEntry> heuristics = new ArrayList<>();
+
+	public void forEachRuleSet(Consumer<RewriterRuleSet> consumer, boolean printNames) {
+		heuristics.forEach(entry -> {
+			System.out.println();
+			System.out.println("> " + entry.name + " <");
+			System.out.println();
+			entry.heuristics.forEachRuleSet(consumer, printNames);
+		});
+	}
 
 	public void add(String name, RewriterHeuristicTransformation heur) {
 		heuristics.add(new HeuristicEntry(name, heur));
@@ -62,6 +72,11 @@ public class RewriterHeuristics implements RewriterHeuristicTransformation {
 			}
 
 			return stmt;
+		}
+
+		@Override
+		public void forEachRuleSet(Consumer<RewriterRuleSet> consumer, boolean printNames) {
+			heuristic.forEachRuleSet(consumer, printNames);
 		}
 
 		@Override

@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 public class RewriterRuleSet {
@@ -58,6 +59,10 @@ public class RewriterRuleSet {
 
 	public RuleContext getContext() {
 		return ctx;
+	}
+
+	public void forEachRule(BiConsumer<RewriterRule, RuleContext> consumer) {
+		rules.forEach(r -> consumer.accept(r, ctx));
 	}
 
 	public ApplicableRule findFirstApplicableRule(RewriterInstruction instr) {

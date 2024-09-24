@@ -3,6 +3,7 @@ package org.apache.sysds.hops.rewriter;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
 import javax.annotation.Nullable;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class RewriterHeuristic implements RewriterHeuristicTransformation {
@@ -12,6 +13,10 @@ public class RewriterHeuristic implements RewriterHeuristicTransformation {
 	public RewriterHeuristic(RewriterRuleSet ruleSet/*, List<String> desiredProperties*/) {
 		this.ruleSet = ruleSet;
 		//this.desiredProperties = desiredProperties;
+	}
+
+	public void forEachRuleSet(Consumer<RewriterRuleSet> consumer, boolean printNames) {
+		consumer.accept(ruleSet);
 	}
 
 	public RewriterStatement apply(RewriterStatement current) {

@@ -1,13 +1,18 @@
 package org.apache.sysds.hops.rewriter;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+import org.apache.hadoop.yarn.webapp.hamlet2.Hamlet;
 import org.apache.spark.sql.catalyst.expressions.Exp;
+import scala.Tuple2;
+import scala.reflect.internal.Trees;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -210,6 +215,69 @@ public class RewriterRule extends AbstractRewriterRule {
 			return fromRoot.toString() + " => " + toRoot.toString();
 		else
 			return fromRoot.toString() + " <=> " + toRoot.toString();
+	}
+
+	public List<RewriterRule> createNonGenericRules(Map<String, Set<String>> funcMappings) {
+		Set<IdentityRewriterStatement> visited = new HashSet<>();
+		List<Tuple2<RewriterStatement, Set<String>>> matches = new ArrayList<>();
+
+		RewriterStatement from = fromRoot.nestedCopyOrInject(new HashMap<>(), stmt -> null);
+
+		from.forEachPostOrderWithDuplicates(stmt -> {
+			IdentityRewriterStatement identity = new IdentityRewriterStatement(stmt);
+			if (!visited.add(identity))
+				return false;
+
+			if (!(stmt instanceof RewriterInstruction))
+				return true;
+
+
+			Set<String> implementations = funcMappings.get(((RewriterInstruction)stmt).trueTypedInstruction(ctx));
+
+			if (implementations != null && !implementations.isEmpty())
+				matches.add(new Tuple2<>(stmt, implementations));
+
+			return true;
+		});
+
+		Set<List<String>> permutations = Sets.cartesianProduct(matches.stream().map(t -> t._2).collect(Collectors.toList()));
+
+		List<RewriterRule> rules = new ArrayList<>();
+
+		for (List<String> permutation : permutations) {
+			for (int i = 0; i < permutation.size(); i++) {
+				((RewriterInstruction)matches.get(i)._1).unsafeSetInstructionName(permutation.get(i));
+			}
+			RewriterStatement cpy = from.nestedCopyOrInject(new HashMap<>(), stmt -> null);
+			ArrayList<RewriterStatement.MatchingSubexpression> mmatches = new ArrayList<>();
+
+			this.matchStmt1((RewriterInstruction)cpy, mmatches, true);
+			if (mmatches.isEmpty()) {
+				System.out.println("Skipping rule: " + cpy);
+				continue;
+			}
+			rules.add(new RewriterRule(ctx, name, cpy, this.apply(mmatches.get(0), (RewriterInstruction) cpy, true, true), true, new HashMap<>(), new HashMap<>()));
+		}
+
+		return rules;
+	}
+
+	static class IdentityRewriterStatement {
+		RewriterStatement stmt;
+
+		public IdentityRewriterStatement(RewriterStatement stmt) {
+			this.stmt = stmt;
+		}
+
+		@Override
+		public int hashCode() {
+			return System.identityHashCode(stmt);
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			return (obj instanceof IdentityRewriterStatement && ((IdentityRewriterStatement)obj).stmt == stmt);
+		}
 	}
 
 	static class LinkObject {
