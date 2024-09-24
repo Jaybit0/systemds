@@ -407,7 +407,7 @@ public class RewriterMain2 {
 		//String expr = "argList(+(t(A), t(B)), -(t(B), t(C)))";
 		//String expr = "mean(+(A, B)))";
 		//String expr = "+(max(A, B), max(A, C))";
-		String expr = "rowVars(t(A))";
+		String expr = "colSelect(%*%(A, B), i, j)";
 		RewriterStatement instr = RewriterUtils.parse(expr, ctx, matrixDef, intDef);
 
 		long millis = System.currentTimeMillis();

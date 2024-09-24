@@ -1147,7 +1147,7 @@ public class RewriterRuleSet {
 				.withParsedStatement("$1:" + selectFuncOrigin + "($2:" + instrName + "(A,B),i,j)", hooks)
 				.toParsedStatement("$3:" + instrName + "($4:" + destSelectFuncL + "(A," + indexingInputL[0] + "," + indexingInputL[1] + "),$5:" + destSelectFuncR + "(B," + indexingInputR[0] + "," + indexingInputR[1] + "))", hooks)
 				.link(hooks.get(2).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
-				.linkManyUnidirectional(hooks.get(1).getId(), List.of(hooks.get(4).getId(), hooks.get(5).getId()), RewriterStatement::transferMeta, true)
+				//.linkManyUnidirectional(hooks.get(1).getId(), List.of(hooks.get(4).getId(), hooks.get(5).getId()), RewriterStatement::transferMeta, true)
 				.build();
 	}
 
