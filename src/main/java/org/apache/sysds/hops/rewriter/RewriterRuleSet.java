@@ -16,7 +16,7 @@ import java.util.function.Function;
 
 public class RewriterRuleSet {
 
-	class ApplicableRule {
+	public static class ApplicableRule {
 		public final ArrayList<RewriterStatement.MatchingSubexpression> matches;
 		public final RewriterRule rule;
 		public final boolean forward;
@@ -65,18 +65,18 @@ public class RewriterRuleSet {
 		rules.forEach(r -> consumer.accept(r, ctx));
 	}
 
-	public ApplicableRule findFirstApplicableRule(RewriterInstruction instr) {
+	public ApplicableRule findFirstApplicableRule(RewriterStatement stmt) {
 		ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
 
 		for (RewriterRule rule : rules) {
 			//if (rule.getStmt1().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, true, null, rule.getForwardLinks())) {
-			if (rule.matchStmt1(instr, matches, true)) {
+			if (rule.matchStmt1(stmt, matches, true)) {
 				return new ApplicableRule(matches, rule, true);
 			}
 
 			if (!rule.isUnidirectional()) {
 				//if (rule.getStmt2().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, true, null, rule.getBackwardLinks())) {
-				if (rule.matchStmt2(instr, matches, true)) {
+				if (rule.matchStmt2(stmt, matches, true)) {
 					return new ApplicableRule(matches, rule, false);
 				}
 			}
@@ -85,7 +85,7 @@ public class RewriterRuleSet {
 		return null;
 	}
 
-	public ArrayList<ApplicableRule> findApplicableRules(RewriterInstruction instr) {
+	public ArrayList<ApplicableRule> findApplicableRules(RewriterStatement instr) {
 		ArrayList<ApplicableRule> applicableRules = new ArrayList<>();
 		ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
 
@@ -339,8 +339,8 @@ public class RewriterRuleSet {
 
 	/**
 	 * Expects the order colSelect(rowSelect(...))
-	 * @param ctx
-	 * @return
+	 * @param ctx test
+	 * @return test
 	 */
 	public static RewriterRuleSet buildCBindElimination(final RuleContext ctx) {
 		HashMap<Integer, RewriterStatement> hooks;

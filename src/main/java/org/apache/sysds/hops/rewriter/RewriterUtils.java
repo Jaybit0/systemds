@@ -120,14 +120,19 @@ public class RewriterUtils {
 	/**
 	 * Parses an expression
 	 * @param expr the expression string. Note that all whitespaces have to already be removed
-	 * @param refmap
-	 * @return
+	 * @param refmap test
+	 * @param dataTypes data type
+	 * @param ctx context
+	 * @return test
 	 */
 	public static RewriterStatement parseExpression(String expr, HashMap<Integer, RewriterStatement> refmap, HashMap<String, RewriterStatement> dataTypes, final RuleContext ctx) {
 		RuleContext.currentContext = ctx;
 		expr = expr.replaceAll("\\s+", "");
 		MutableObject<String> mexpr = new MutableObject<>(expr);
-		return doParseExpression(mexpr, refmap, dataTypes, ctx);
+		RewriterStatement stmt = doParseExpression(mexpr, refmap, dataTypes, ctx);
+		stmt.prepareForHashing();
+		stmt.consolidate(ctx);
+		return stmt;
 	}
 
 	private static RewriterStatement doParseExpression(MutableObject<String> mexpr, HashMap<Integer, RewriterStatement> refmap, HashMap<String, RewriterStatement> dataTypes, final RuleContext ctx) {
@@ -157,13 +162,21 @@ public class RewriterUtils {
 
 	public static boolean parseDataTypes(String expr, HashMap<String, RewriterStatement> dataTypes, final RuleContext ctx) {
 		RuleContext.currentContext = ctx;
-		Pattern pattern = Pattern.compile("[A-Za-z][A-Za-z0-9]*");
+		Pattern pattern = Pattern.compile("[A-Za-z]([A-Za-z0-9]|_)*");
 		Matcher matcher = pattern.matcher(expr);
 
 		if (!matcher.find())
 			return false;
 
 		String dType = matcher.group();
+		boolean intLiteral = dType.equals("LITERAL_INT");
+		boolean boolLiteral = dType.equals("LITERAL_BOOL");
+
+		if (intLiteral) {
+			pattern = Pattern.compile("(-)?[0-9][0-9]*");
+		} else if (boolLiteral) {
+			pattern = Pattern.compile("(TRUE|FALSE)");
+		}
 
 		if (expr.charAt(matcher.end()) != ':')
 			return false;
@@ -175,9 +188,17 @@ public class RewriterUtils {
 		while (matcher.find()) {
 			String varName = matcher.group();
 
-			RewriterDataType dt = new RewriterDataType().as(varName).ofType(dType);
-			dt.consolidate(ctx);
+			RewriterDataType dt;
 
+			if (intLiteral) {
+				dt = new RewriterDataType().as(varName).ofType("INT").asLiteral(Integer.parseInt(varName));
+			} else if (boolLiteral) {
+				dt = new RewriterDataType().as(varName).ofType("BOOL").asLiteral(Boolean.parseBoolean(varName));
+			} else {
+				dt = new RewriterDataType().as(varName).ofType(dType);
+			}
+
+			dt.consolidate(ctx);
 			dataTypes.put(varName, dt);
 
 			if (expr.length() == matcher.end())
@@ -288,6 +309,22 @@ public class RewriterUtils {
 					sb.append("FLOAT\n");
 				else
 					sb.append("INT\n");
+			}
+		}
+	}
+
+	public static void buildBinaryBoolInstructions(StringBuilder sb, String instr, List<String> instructions) {
+		for (String arg1 : instructions) {
+			for (String arg2 : instructions) {
+				sb.append(instr + "(" + arg1 + "," + arg2 + ")::BOOL\n");
+			}
+		}
+	}
+
+	public static void putAsBinaryPrintable(String instr, List<String> types, HashMap<String, BiFunction<RewriterStatement, RuleContext, String>> printFunctions, BiFunction<RewriterStatement, RuleContext, String> function) {
+		for (String type1 : types) {
+			for (String type2 : types) {
+				printFunctions.put(instr + "(" + type1 + "," + type2 + ")", function);
 			}
 		}
 	}

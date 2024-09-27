@@ -49,13 +49,13 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 
 
 	public static class MatchingSubexpression {
-		private final RewriterInstruction matchRoot;
+		private final RewriterStatement matchRoot;
 		private final RewriterInstruction matchParent;
 		private final int rootIndex;
 		private final HashMap<RewriterStatement, RewriterStatement> assocs;
 		private final List<RewriterRule.ExplicitLink> links;
 
-		public MatchingSubexpression(RewriterInstruction matchRoot, RewriterInstruction matchParent, int rootIndex, HashMap<RewriterStatement, RewriterStatement> assocs, List<RewriterRule.ExplicitLink> links) {
+		public MatchingSubexpression(RewriterStatement matchRoot, RewriterInstruction matchParent, int rootIndex, HashMap<RewriterStatement, RewriterStatement> assocs, List<RewriterRule.ExplicitLink> links) {
 			this.matchRoot = matchRoot;
 			this.matchParent = matchParent;
 			this.assocs = assocs;
@@ -67,7 +67,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 			return matchParent == null || matchParent == matchRoot;
 		}
 
-		public RewriterInstruction getMatchRoot() {
+		public RewriterStatement getMatchRoot() {
 			return matchRoot;
 		}
 
@@ -114,6 +114,9 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public abstract String toString(final RuleContext ctx);
 	public abstract boolean isArgumentList();
 	public abstract List<RewriterStatement> getArgumentList();
+	public abstract boolean isInstruction();
+	public abstract String trueInstruction();
+	public abstract String trueTypedInstruction(final RuleContext ctx);
 
 	@Nullable
 	public List<RewriterStatement> getOperands() {
@@ -123,7 +126,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public int recomputeHashCodes() {
 		return recomputeHashCodes(true);
 	}
-	public boolean matchSubexpr(final RuleContext ctx, RewriterInstruction root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, boolean allowTypeHierarchy, BiFunction<MatchingSubexpression, List<RewriterRule.ExplicitLink>, Boolean> iff) {
+	public boolean matchSubexpr(final RuleContext ctx, RewriterStatement root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, boolean allowTypeHierarchy, BiFunction<MatchingSubexpression, List<RewriterRule.ExplicitLink>, Boolean> iff) {
 		if (dependencyMap == null)
 			dependencyMap = new HashMap<>();
 		else
@@ -155,9 +158,9 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 
 		int idx = 0;
 
-		for (RewriterStatement stmt : root.getOperands()) {
-			if (stmt instanceof RewriterInstruction) {
-				if (matchSubexpr(ctx, (RewriterInstruction) stmt, root, idx, matches, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, findFirst, links, ruleLinks, allowDuplicatePointers, allowPropertyScan, allowTypeHierarchy, iff)) {
+		if (root.getOperands() != null && root instanceof RewriterInstruction) {
+			for (RewriterStatement stmt : root.getOperands()) {
+				if (matchSubexpr(ctx, stmt, (RewriterInstruction) root, idx, matches, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, findFirst, links, ruleLinks, allowDuplicatePointers, allowPropertyScan, allowTypeHierarchy, iff)) {
 					dependencyMap = new HashMap<>();
 					links = new ArrayList<>();
 					foundMatch = true;
@@ -165,8 +168,8 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 					if (findFirst)
 						return true;
 				}
+				idx++;
 			}
-			idx++;
 		}
 
 		return foundMatch;
@@ -216,7 +219,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	/**
 	 * Traverses the DAG in post-order. If nodes with multiple parents exist, those are visited multiple times.
 	 * If the function returns false, the sub-DAG of the current node will not be traversed.
-	 * @param function
+	 * @param function test
 	 */
 	public void forEachPostOrderWithDuplicates(Function<RewriterStatement, Boolean> function) {
 		if (function.apply(this) && getOperands() != null)

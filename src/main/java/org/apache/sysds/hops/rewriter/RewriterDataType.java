@@ -53,6 +53,21 @@ public class RewriterDataType extends RewriterStatement {
 	}
 
 	@Override
+	public boolean isInstruction() {
+		return false;
+	}
+
+	@Override
+	public String trueInstruction() {
+		return null;
+	}
+
+	@Override
+	public String trueTypedInstruction(RuleContext ctx) {
+		return null;
+	}
+
+	@Override
 	public void consolidate(final RuleContext ctx) {
 		if (consolidated)
 			return;
@@ -198,6 +213,12 @@ public class RewriterDataType extends RewriterStatement {
 
 	@Override
 	public String toString(final RuleContext ctx) {
-		return isLiteral() ? getLiteral().toString() : getId();
+		if (!isLiteral())
+			return getId();
+
+		if (getLiteral() instanceof Boolean)
+			return getLiteral().toString().toUpperCase();
+
+		return getLiteral().toString();
 	}
 }

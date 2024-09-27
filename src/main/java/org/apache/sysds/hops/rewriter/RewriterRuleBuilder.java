@@ -83,6 +83,24 @@ public class RewriterRuleBuilder {
 		return this;
 	}
 
+	public RewriterRuleBuilder parseGlobalStatementAsVariable(String varName, String expr) {
+		return parseGlobalStatementAsVariable(varName, expr, new HashMap<>());
+	}
+
+	public RewriterRuleBuilder parseGlobalStatementAsVariable(String varName, String expr, HashMap<Integer, RewriterStatement> refMap) {
+		if (!canBeModified)
+			throw new IllegalArgumentException();
+
+		RewriterStatement parsed = RewriterUtils.parseExpression(expr, refMap, globalIds, ctx);
+		parsed.consolidate(ctx);
+		globalIds.put(varName, parsed);
+		return this;
+	}
+
+	public RewriterRuleBuilder withParsedStatement(String stmt) {
+		return withParsedStatement(stmt, new HashMap<>());
+	}
+
 	public RewriterRuleBuilder withParsedStatement(String stmt, HashMap<Integer, RewriterStatement> refMap) {
 		if (!canBeModified)
 			throw new IllegalArgumentException();
@@ -92,6 +110,10 @@ public class RewriterRuleBuilder {
 			return true;
 		});
 		return this;
+	}
+
+	public RewriterRuleBuilder toParsedStatement(String stmt) {
+		return toParsedStatement(stmt, new HashMap<>());
 	}
 
 	public RewriterRuleBuilder toParsedStatement(String stmt, HashMap<Integer, RewriterStatement> refMap) {

@@ -168,7 +168,10 @@ public class RewriterInstruction extends RewriterStatement {
 		mCopy.costFunction = costFunction;
 		mCopy.consolidated = consolidated;
 		mCopy.operands = new ArrayList<>(operands.size());
-		mCopy.meta = meta;
+		if (meta != null)
+			mCopy.meta = new HashMap<>(meta);
+		else
+			mCopy.meta = null;
 		copiedObjects.put(this, mCopy);
 		operands.forEach(op -> mCopy.operands.add(op.nestedCopyOrInject(copiedObjects, injector)));
 
@@ -183,6 +186,11 @@ public class RewriterInstruction extends RewriterStatement {
 	@Override
 	public List<RewriterStatement> getArgumentList() {
 		return isArgumentList() ? getOperands() : null;
+	}
+
+	@Override
+	public boolean isInstruction() {
+		return true;
 	}
 
 	@Override

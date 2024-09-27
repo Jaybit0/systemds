@@ -35,6 +35,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.function.BiConsumer;
 
 import org.apache.commons.cli.AlreadySelectedException;
 import org.apache.commons.cli.HelpFormatter;
@@ -407,6 +408,7 @@ public class DMLScript
 		setGlobalFlags(dmlconf);
 	}
 
+	public static BiConsumer<DMLProgram, String> programInterceptor = null;
 	/**
 	 * The running body of DMLScript execution. This method should be called after execution properties have been correctly set,
 	 * and customized parameters have been put into _argVals
@@ -420,6 +422,7 @@ public class DMLScript
 	private static void execute(String dmlScriptStr, String fnameOptConfig, Map<String,String> argVals, String[] allArgs)
 		throws IOException
 	{
+		long millis = System.currentTimeMillis();
 		// print basic time, environment info, and process id
 		printStartExecInfo(dmlScriptStr);
 
@@ -431,6 +434,9 @@ public class DMLScript
 
 		//Step 2: configure codegen
 		configureCodeGen();
+
+		System.out.println("DTime: " + (System.currentTimeMillis() - millis) + "ms");
+		millis = System.currentTimeMillis();
 
 		//Step 3: parse dml script
 		Statistics.startCompileTimer();
@@ -448,12 +454,18 @@ public class DMLScript
 	
 		//Step 5: rewrite HOP DAGs (incl IPA and memory estimates)
 		dmlt.rewriteHopsDAG(prog);
+
+		if (programInterceptor != null)
+			programInterceptor.accept(prog, "HOPRewrites");
 		
 		//Step 6: construct lops (incl exec type and op selection)
 		dmlt.constructLops(prog);
 
 		//Step 7: rewrite LOP DAGs (incl adding new LOPs s.a. prefetch, broadcast)
 		dmlt.rewriteLopDAG(prog);
+
+		if (programInterceptor != null)
+			programInterceptor.accept(prog, "LOPRewrites");
 		
 		//Step 8: generate runtime program, incl codegen
 		Program rtprog = dmlt.getRuntimeProgram(prog, ConfigurationManager.getDMLConfig());
@@ -477,6 +489,8 @@ public class DMLScript
 		try {
 			ec = ExecutionContextFactory.createContext(rtprog);
 			ScriptExecutorUtils.executeRuntimeProgram(rtprog, ec, ConfigurationManager.getDMLConfig(), STATISTICS ? STATISTICS_COUNT : 0, null);
+			System.out.println("DTime2: " + (System.currentTimeMillis() - millis) + "ms");
+			millis = System.currentTimeMillis();
 		}
 		finally {
 			//cleanup scratch_space and all working dirs
