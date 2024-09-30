@@ -6,13 +6,18 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 public abstract class RewriterStatement implements Comparable<RewriterStatement> {
+	public static final String META_VARNAME = "_varName";
+
 
 	protected int rid = 0;
 	protected int refCtr = 0;
@@ -117,6 +122,33 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public abstract boolean isInstruction();
 	public abstract String trueInstruction();
 	public abstract String trueTypedInstruction(final RuleContext ctx);
+	public void prepareDefinitions(final RuleContext ctx, final List<String> strDefs, final Set<String> varDefs) {
+		if (getMeta(META_VARNAME) != null)
+			return;
+
+		if (getOperands() != null)
+			getOperands().forEach(op -> op.prepareDefinitions(ctx, strDefs, varDefs));
+
+		// Check if it is necessary to define variables
+		if (refCtr > 1 && this instanceof RewriterInstruction) {
+			RewriterInstruction self = ((RewriterInstruction) this);
+			String varName = "var_" + self.getInstr() + "_";
+
+			int ctr = 1;
+			while (varDefs.contains(varName + ctr))
+				ctr++;
+
+			strDefs.add(varName + ctr + " = " + toString(ctx));
+			unsafePutMeta(META_VARNAME, varName + ctr);
+		}
+	}
+
+	public void eraseDefinitions() {
+		unsafeRemoveMeta(META_VARNAME);
+
+		if (getOperands() != null)
+			getOperands().forEach(RewriterStatement::eraseDefinitions);
+	}
 
 	@Nullable
 	public List<RewriterStatement> getOperands() {
@@ -249,6 +281,13 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		meta.put(key, value);
 	}
 
+	public void unsafeRemoveMeta(String key) {
+		if (meta == null)
+			return;
+
+		meta.remove(key);
+	}
+
 	public Object getMeta(String key) {
 		if (meta == null)
 			return null;
@@ -275,5 +314,14 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	@Override
 	public String toString() {
 		return toString(RuleContext.currentContext);
+	}
+
+	public List<String> toExecutableString(final RuleContext ctx) {
+		ArrayList<String> defList = new ArrayList<>();
+		prepareDefinitions(ctx, defList, new HashSet<>());
+		defList.add(toString(ctx));
+		eraseDefinitions();
+
+		return defList;
 	}
 }

@@ -17,6 +17,7 @@ import org.apache.sysds.parser.DMLProgram;
 import org.apache.sysds.parser.StatementBlock;
 import org.junit.Test;
 import scala.Tuple4;
+import scala.Tuple6;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -38,9 +39,11 @@ public class TestRewriteExecution {
 	private int currentHopCount = 0;
 	private RewriterStatement lastStatement = null;
 	private List<Hop> lastHops = null;
+	private String lastProg = null;
 	private RewriterStatement nextStatement = null;
 	private List<Hop> nextHops = null;
-	private List<Tuple4<RewriterStatement, List<Hop>, RewriterStatement, List<Hop>>> costIncreasingTransformations = new ArrayList<>();
+	private String nextProg = null;
+	private List<Tuple6<RewriterStatement, String, List<Hop>, RewriterStatement, String, List<Hop>>> costIncreasingTransformations = new ArrayList<>();
 
 	private BiConsumer<DMLProgram, String> interceptor = (prog, phase) -> {
 		if (!phase.equals("HOPRewrites"))
@@ -48,12 +51,13 @@ public class TestRewriteExecution {
 		//int hopCtr = 0;
 		for (StatementBlock sb : prog.getStatementBlocks()) {
 			int hopCount = sb.getHops() == null ? 0 : sb.getHops().stream().mapToInt(this::countHops).sum();
+			System.out.println("HopCount: " + hopCount);
 			nextHops = sb.getHops();
 
 			if (lastStatement == null) {
 				currentHopCount = hopCount;
 			} else if (hopCount > currentHopCount) {
-				costIncreasingTransformations.add(new Tuple4<>(lastStatement, lastHops, nextStatement, nextHops));
+				costIncreasingTransformations.add(new Tuple6<>(lastStatement, lastProg, lastHops, nextStatement, nextProg, nextHops));
 			}
 
 			//System.out.println(phase + "-Size: " + hopCount);
@@ -75,6 +79,12 @@ public class TestRewriteExecution {
 		return curr;
 	}
 
+	private String toDMLString(RewriterStatement stmt, final RuleContext ctx) {
+		List<String> execStr = stmt.toExecutableString(ctx);
+		execStr.set(execStr.size()-1, "print(" + execStr.get(execStr.size()-1) + ")");
+		return String.join("\n", execStr);
+	}
+
 	@Test
 	public void test() {
 		System.out.println("OptLevel:" + OptimizerUtils.getOptLevel().toString());
@@ -87,12 +97,14 @@ public class TestRewriteExecution {
 			return true;
 		});
 
-		for (Tuple4<RewriterStatement, List<Hop>, RewriterStatement, List<Hop>> incTransforms : costIncreasingTransformations) {
+		System.out.println("===== FOUND TRANSFORMATIONS =====");
+
+		for (Tuple6<RewriterStatement, String, List<Hop>, RewriterStatement, String, List<Hop>> incTransforms : costIncreasingTransformations) {
 			System.out.println("==========");
-			System.out.println(incTransforms._1());
+			System.out.println(incTransforms._2());
 			System.out.println("=>");
-			System.out.println(incTransforms._3());
-			System.out.println(countHops(incTransforms._2()) + " => " + countHops(incTransforms._4()));
+			System.out.println(incTransforms._5());
+			System.out.println(countHops(incTransforms._3()) + " => " + countHops(incTransforms._6()));
 		}
 	}
 
@@ -110,11 +122,11 @@ public class TestRewriteExecution {
 
 			long timeMillis = System.currentTimeMillis();
 
-			for (int i = 0; i < 1; i++) {
-				String str = "print(" + stmt.toString(ctx) + ")";
-				System.out.println("Executing:\n" + str);
-				DMLScript.executeScript(new String[]{"-s", str});
-			}
+			String str = toDMLString(stmt, ctx);
+			lastProg = nextProg;
+			nextProg = str;
+			System.out.println("Executing:\n" + str);
+			DMLScript.executeScript(new String[]{"-s", str});
 
 			System.err.println("Done in " + (System.currentTimeMillis() - timeMillis) + "ms");
 		} catch (IOException ex) {
@@ -189,6 +201,27 @@ public class TestRewriteExecution {
 				.build()
 		);
 
+		rules.add(new RewriterRuleBuilder(ctx)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("mean(A)")
+				.toParsedStatement("/(sum(A),*(ncol(A),nrow(A)))")
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("mean(A)")
+				.toParsedStatement("/(sum(A),length(A))")
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.parseGlobalVars("MATRIX:A")
+				.withParsedStatement("length(A)")
+				.toParsedStatement("*(ncol(A),nrow(A))")
+				.build()
+		);
+
 		/*rules.add(new RewriterRuleBuilder(ctx)
 				.parseGlobalVars("MATRIX:A")
 				.parseGlobalVars("INT:a,b")
@@ -205,17 +238,22 @@ public class TestRewriteExecution {
 		RewriterDatabase db = new RewriterDatabase();
 
 		String matrixDef = "MATRIX:A,B,C";
-		String intDef = "LITERAL_BOOL:TRUE";
-		String startStr = "TRUE";
-		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef);
-		handler.apply(RewriterUtils.parse("+(2, 2)", ctx, "LITERAL_INT:2"), ctx);
+		String intDef = "LITERAL_INT:10";
+		String floatDef = "LITERAL_FLOAT:0,1";
+		//String startStr = "TRUE";
+		String startStr = "mean(rand(10, 10, 0, 1))";
+		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef);
+		//handler.apply(RewriterUtils.parse("+(2, 2)", ctx, "LITERAL_INT:2"), ctx);
 		db.insertEntry(ctx, stmt);
 
 		//RewriterRuleSet.ApplicableRule match = ruleSet.findFirstApplicableRule(stmt);
 		ArrayList<RewriterRuleSet.ApplicableRule> applicableRules = ruleSet.findApplicableRules(stmt);
 
-		RewriterStatement orig = stmt;
 		RewriterStatement newStmt = stmt;
+
+		nextStatement = stmt;
+		if (!handler.apply(stmt, ctx))
+			return ruleSet;
 
 		for (int i = 0; i < 5 && !applicableRules.isEmpty(); i++) {
 			int ruleIndex = rd.nextInt(applicableRules.size());

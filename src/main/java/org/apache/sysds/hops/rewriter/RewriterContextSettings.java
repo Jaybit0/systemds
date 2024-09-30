@@ -122,8 +122,9 @@ public class RewriterContextSettings {
 		builder.append("impl t\n");
 
 		builder.append("SizeInstruction(MATRIX)::INT\n");
-		builder.append("impl nrows\n");
-		builder.append("impl ncols\n");
+		builder.append("impl nrow\n");
+		builder.append("impl ncol\n");
+		builder.append("impl length\n");
 
 
 
@@ -161,8 +162,9 @@ public class RewriterContextSettings {
 		builder.append("impl *\n");
 		builder.append("impl %*%\n");
 
-		builder.append("ncols(MATRIX)::INT\n");
-		builder.append("nrows(MATRIX)::INT\n");
+		builder.append("ncol(MATRIX)::INT\n");
+		builder.append("nrow(MATRIX)::INT\n");
+		builder.append("length(MATRIX)::INT\n");
 
 		RewriterUtils.buildBinaryAlgebraInstructions(builder, "+", List.of("INT", "FLOAT", "MATRIX"));
 		RewriterUtils.buildBinaryAlgebraInstructions(builder, "-", List.of("INT", "FLOAT", "MATRIX"));
@@ -273,6 +275,9 @@ public class RewriterContextSettings {
 			List<RewriterStatement> ops = stmt.getOperands();
 			return "rand(rows=(" + ops.get(0) + "), cols=(" + ops.get(1) + "), min=(" + ops.get(2) + "), max=(" + ops.get(3) + "))";
 		});
+		ctx.customStringRepr.put("rand(INT,INT,INT,INT)", ctx.customStringRepr.get("rand(INT,INT,FLOAT,FLOAT)"));
+		ctx.customStringRepr.put("rand(INT,INT,FLOAT,INT)", ctx.customStringRepr.get("rand(INT,INT,FLOAT,FLOAT)"));
+		ctx.customStringRepr.put("rand(INT,INT,INT,FLOAT)", ctx.customStringRepr.get("rand(INT,INT,FLOAT,FLOAT)"));
 
 		RewriterUtils.putAsBinaryPrintable("<", List.of("INT", "FLOAT"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" < "));
 		RewriterUtils.putAsBinaryPrintable("<=", List.of("INT", "FLOAT"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" <= "));

@@ -171,11 +171,14 @@ public class RewriterUtils {
 		String dType = matcher.group();
 		boolean intLiteral = dType.equals("LITERAL_INT");
 		boolean boolLiteral = dType.equals("LITERAL_BOOL");
+		boolean floatLiteral = dType.equals("LITERAL_FLOAT");
 
 		if (intLiteral) {
-			pattern = Pattern.compile("(-)?[0-9][0-9]*");
+			pattern = Pattern.compile("(-)?[0-9]+");
 		} else if (boolLiteral) {
 			pattern = Pattern.compile("(TRUE|FALSE)");
+		} else if (floatLiteral) {
+			pattern = Pattern.compile("(-)?[0-9]+(\\.[0-9]*)?");
 		}
 
 		if (expr.charAt(matcher.end()) != ':')
@@ -194,6 +197,8 @@ public class RewriterUtils {
 				dt = new RewriterDataType().as(varName).ofType("INT").asLiteral(Integer.parseInt(varName));
 			} else if (boolLiteral) {
 				dt = new RewriterDataType().as(varName).ofType("BOOL").asLiteral(Boolean.parseBoolean(varName));
+			} else if (floatLiteral) {
+				dt = new RewriterDataType().as(varName).ofType("FLOAT").asLiteral(Float.parseFloat(varName));
 			} else {
 				dt = new RewriterDataType().as(varName).ofType(dType);
 			}

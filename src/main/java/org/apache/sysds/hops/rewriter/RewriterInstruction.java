@@ -402,6 +402,10 @@ public class RewriterInstruction extends RewriterStatement {
 
 	@Override
 	public String toString(final RuleContext ctx) {
+		Object varName = getMeta(META_VARNAME);
+		if (varName != null)
+			return varName.toString();
+
 		Object trueInstrObj = getMeta("trueInstr");
 		String typedInstr = trueInstrObj != null ? typedInstruction((String)trueInstrObj, ctx) : typedInstruction(ctx);
 		BiFunction<RewriterStatement, RuleContext, String> customStringFunc = ctx.customStringRepr.get(typedInstr);
