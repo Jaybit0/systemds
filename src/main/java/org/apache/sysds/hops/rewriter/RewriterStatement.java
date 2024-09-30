@@ -14,6 +14,7 @@ import java.util.Stack;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 public abstract class RewriterStatement implements Comparable<RewriterStatement> {
 	public static final String META_VARNAME = "_varName";
@@ -132,13 +133,16 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		// Check if it is necessary to define variables
 		if (refCtr > 1 && this instanceof RewriterInstruction) {
 			RewriterInstruction self = ((RewriterInstruction) this);
-			String varName = "var_" + self.getInstr() + "_";
+			Pattern pattern = Pattern.compile("[a-zA-Z0-9_]+");
+			String instr = pattern.matcher(self.getInstr()).matches() ? self.getInstr() : "tmp";
+			String varName = "var_" + instr + "_";
 
 			int ctr = 1;
 			while (varDefs.contains(varName + ctr))
 				ctr++;
 
 			strDefs.add(varName + ctr + " = " + toString(ctx));
+			varDefs.add(varName + ctr);
 			unsafePutMeta(META_VARNAME, varName + ctr);
 		}
 	}

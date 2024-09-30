@@ -126,7 +126,41 @@ public class RewriterContextSettings {
 		builder.append("impl ncol\n");
 		builder.append("impl length\n");
 
+		RewriterUtils.buildBinaryPermutations(List.of("MATRIX", "INT", "FLOAT"), List.of("MATRIX", "INT", "FLOAT"), (t1, t2) -> {
+			builder.append("ElementWiseInstruction(" + t1 + "," + t2 + ")::" + RewriterUtils.defaultTypeHierarchy(t1, t2) + "\n");
+			builder.append("impl *\n");
+			builder.append("impl /\n");
+			builder.append("impl max\n");
+			builder.append("impl min\n");
+		});
 
+		/*builder.append("ElementWiseInstruction(MATRIX,FLOAT)::MATRIX\n");
+		builder.append("impl ElementWiseAdditiveInstruction\n");
+		builder.append("impl *\n");
+		builder.append("impl /\n");
+		builder.append("impl max\n");
+		builder.append("impl min\n");
+
+		builder.append("ElementWiseInstruction(MATRIX,INT)::MATRIX\n");
+		builder.append("impl ElementWiseAdditiveInstruction\n");
+		builder.append("impl *\n");
+		builder.append("impl /\n");
+		builder.append("impl max\n");
+		builder.append("impl min\n");
+
+		builder.append("ElementWiseInstruction(FLOAT,MATRIX)::MATRIX\n");
+		builder.append("impl ElementWiseAdditiveInstruction\n");
+		builder.append("impl *\n");
+		builder.append("impl /\n");
+		builder.append("impl max\n");
+		builder.append("impl min\n");
+
+		builder.append("ElementWiseInstruction(INT,MATRIX)::MATRIX\n");
+		builder.append("impl ElementWiseAdditiveInstruction\n");
+		builder.append("impl *\n");
+		builder.append("impl /\n");
+		builder.append("impl max\n");
+		builder.append("impl min\n");
 
 		// Element-wise instruction
 		builder.append("ElementWiseInstruction(MATRIX,MATRIX)::MATRIX\n");
@@ -134,10 +168,26 @@ public class RewriterContextSettings {
 		builder.append("impl *\n");
 		builder.append("impl /\n");
 		builder.append("impl max\n");
-		builder.append("impl min\n");
+		builder.append("impl min\n");*/
 
 		//
 		builder.append("ElementWiseAdditiveInstruction(MATRIX,MATRIX)::MATRIX\n");
+		builder.append("impl +\n");
+		builder.append("impl -\n");
+
+		builder.append("ElementWiseAdditiveInstruction(MATRIX,FLOAT)::MATRIX\n");
+		builder.append("impl +\n");
+		builder.append("impl -\n");
+
+		builder.append("ElementWiseAdditiveInstruction(MATRIX,INT)::MATRIX\n");
+		builder.append("impl +\n");
+		builder.append("impl -\n");
+
+		builder.append("ElementWiseAdditiveInstruction(FLOAT,MATRIX)::MATRIX\n");
+		builder.append("impl +\n");
+		builder.append("impl -\n");
+
+		builder.append("ElementWiseAdditiveInstruction(INT,MATRIX)::MATRIX\n");
 		builder.append("impl +\n");
 		builder.append("impl -\n");
 
@@ -224,12 +274,27 @@ public class RewriterContextSettings {
 		RewriterUtils.buildBinaryBoolInstructions(builder, "<=", List.of("INT", "FLOAT"));
 		RewriterUtils.buildBinaryBoolInstructions(builder, ">", List.of("INT", "FLOAT"));
 		RewriterUtils.buildBinaryBoolInstructions(builder, ">=", List.of("INT", "FLOAT"));
-		RewriterUtils.buildBinaryBoolInstructions(builder, "==", List.of("MATRIX", "FLOAT", "INT", "BOOL"));
+		RewriterUtils.buildBinaryPermutations(List.of("MATRIX", "FLOAT", "INT", "BOOL"), (t1, t2) -> {
+			String ret = t1.equals("MATRIX") ^ t2.equals("MATRIX") ? "MATRIX" : "BOOL";
+			builder.append("!=(" + t1 + "," + t2 + ")::" + ret + "\n");
+		});
+		RewriterUtils.buildBinaryPermutations(List.of("MATRIX", "FLOAT", "INT", "BOOL"), (t1, t2) -> {
+			String ret = t1.equals("MATRIX") ^ t2.equals("MATRIX") ? "MATRIX" : "BOOL";
+			builder.append("!=(" + t1 + "," + t2 + ")::" + ret + "\n");
+		});
 
 		// Meta-Instruction
 		builder.append("_lower(INT)::FLOAT\n");
 		builder.append("_lower(FLOAT)::FLOAT\n");
 		builder.append("_posInt()::INT\n");
+
+		builder.append("_map(INT,INT,FLOAT)::MATRIX\n");
+		builder.append("_matIdx(MATRIX)::IDX[MATRIX]\n");
+		builder.append("_nextRowIdx(MATRIX)::INT\n");
+		builder.append("_nextColIdx(MATRIX)::INT\n");
+		builder.append("_next(IDX[MATRIX])::FLOAT\n");
+
+		builder.append("_get(MATRIX,INT,INT)::FLOAT\n");
 
 		return builder.toString();
 	}
@@ -284,30 +349,13 @@ public class RewriterContextSettings {
 		RewriterUtils.putAsBinaryPrintable(">", List.of("INT", "FLOAT"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" > "));
 		RewriterUtils.putAsBinaryPrintable(">=", List.of("INT", "FLOAT"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" >= "));
 		RewriterUtils.putAsBinaryPrintable("==", List.of("INT", "FLOAT", "MATRIX", "BOOL"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" == "));
+		RewriterUtils.putAsBinaryPrintable("!=", List.of("INT", "FLOAT", "MATRIX", "BOOL"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" != "));
 
-		ctx.customStringRepr.put("+(INT,INT)", RewriterUtils.binaryStringRepr(" + "));
-		ctx.customStringRepr.put("+(FLOAT,FLOAT)", RewriterUtils.binaryStringRepr(" + "));
-		ctx.customStringRepr.put("+(INT,FLOAT)", RewriterUtils.binaryStringRepr(" + "));
-		ctx.customStringRepr.put("+(FLOAT,INT)", RewriterUtils.binaryStringRepr(" + "));
-		ctx.customStringRepr.put("-(INT,INT)", RewriterUtils.binaryStringRepr(" - "));
-		ctx.customStringRepr.put("-(FLOAT,INT)", RewriterUtils.binaryStringRepr(" - "));
-		ctx.customStringRepr.put("-(INT,FLOAT)", RewriterUtils.binaryStringRepr(" - "));
-		ctx.customStringRepr.put("-(FLOAT,FLOAT)", RewriterUtils.binaryStringRepr(" - "));
-		ctx.customStringRepr.put("/(INT,INT)", RewriterUtils.binaryStringRepr(" / "));
-		ctx.customStringRepr.put("/(FLOAT,FLOAT)", RewriterUtils.binaryStringRepr(" / "));
-		ctx.customStringRepr.put("/(INT,FLOAT)", RewriterUtils.binaryStringRepr(" / "));
-		ctx.customStringRepr.put("/(FLOAT,INT)", RewriterUtils.binaryStringRepr(" / "));
-		ctx.customStringRepr.put("/(MATRIX,INT)", RewriterUtils.binaryStringRepr(" / "));
-		ctx.customStringRepr.put("*(INT,INT)", RewriterUtils.binaryStringRepr(" * "));
-		ctx.customStringRepr.put("*(FLOAT,INT)", RewriterUtils.binaryStringRepr(" * "));
-		ctx.customStringRepr.put("*(INT,FLOAT)", RewriterUtils.binaryStringRepr(" * "));
-		ctx.customStringRepr.put("*(FLOAT,FLOAT)", RewriterUtils.binaryStringRepr(" * "));
+		RewriterUtils.putAsBinaryPrintable("*", List.of("INT", "FLOAT", "MATRIX", "BOOL"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" * "));
+		RewriterUtils.putAsBinaryPrintable("/", List.of("INT", "FLOAT", "MATRIX", "BOOL"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" / "));
+		RewriterUtils.putAsBinaryPrintable("-", List.of("INT", "FLOAT", "MATRIX", "BOOL"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" - "));
+		RewriterUtils.putAsBinaryPrintable("+", List.of("INT", "FLOAT", "MATRIX", "BOOL"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" + "));
 
-
-		ctx.customStringRepr.put("+(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" + "));
-		ctx.customStringRepr.put("-(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" - "));
-		ctx.customStringRepr.put("*(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" * "));
-		ctx.customStringRepr.put("/(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" / "));
 		ctx.customStringRepr.put("%*%(MATRIX,MATRIX)", RewriterUtils.binaryStringRepr(" %*% "));
 		//ctx.customStringRepr.put("<=(INT,INT)", RewriterUtils.binaryStringRepr(" <= "));
 		//ctx.customStringRepr.put("==(INT,INT)", RewriterUtils.binaryStringRepr(" == "));

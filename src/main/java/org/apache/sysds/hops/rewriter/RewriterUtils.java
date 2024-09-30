@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -324,6 +325,24 @@ public class RewriterUtils {
 				sb.append(instr + "(" + arg1 + "," + arg2 + ")::BOOL\n");
 			}
 		}
+	}
+
+	public static void buildBinaryPermutations(List<String> args, BiConsumer<String, String> func) {
+		buildBinaryPermutations(args, args, func);
+	}
+
+	public static void buildBinaryPermutations(List<String> args1, List<String> args2, BiConsumer<String, String> func) {
+		for (String arg1 : args1)
+			for (String arg2 : args2)
+				func.accept(arg1, arg2);
+	}
+
+	public static String defaultTypeHierarchy(String t1, String t2) {
+		if (t1.equals("INT") && t2.equals("INT"))
+			return "INT";
+		if (!t1.equals("MATRIX") && !t2.equals("MATRIX"))
+			return "FLOAT";
+		return "MATRIX";
 	}
 
 	public static void putAsBinaryPrintable(String instr, List<String> types, HashMap<String, BiFunction<RewriterStatement, RuleContext, String>> printFunctions, BiFunction<RewriterStatement, RuleContext, String> function) {

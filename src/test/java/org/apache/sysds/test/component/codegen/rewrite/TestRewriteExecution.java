@@ -16,13 +16,13 @@ import org.apache.sysds.hops.rewriter.RuleContext;
 import org.apache.sysds.parser.DMLProgram;
 import org.apache.sysds.parser.StatementBlock;
 import org.junit.Test;
-import scala.Tuple4;
 import scala.Tuple6;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -58,6 +58,7 @@ public class TestRewriteExecution {
 				currentHopCount = hopCount;
 			} else if (hopCount > currentHopCount) {
 				costIncreasingTransformations.add(new Tuple6<>(lastStatement, lastProg, lastHops, nextStatement, nextProg, nextHops));
+				currentHopCount = hopCount;
 			}
 
 			//System.out.println(phase + "-Size: " + hopCount);
@@ -172,6 +173,7 @@ public class TestRewriteExecution {
 		RuleContext ctx = RewriterContextSettings.getDefaultContext(new Random());
 
 		ArrayList<RewriterRule> rules = new ArrayList<>();
+		ArrayList<RewriterRule> metaRules = new ArrayList<>();
 
 		rules.add(new RewriterRuleBuilder(ctx)
 				.parseGlobalVars("LITERAL_BOOL:TRUE")
@@ -217,8 +219,37 @@ public class TestRewriteExecution {
 
 		rules.add(new RewriterRuleBuilder(ctx)
 				.parseGlobalVars("MATRIX:A")
+				.parseGlobalVars("LITERAL_INT:1")
+				.parseGlobalStatementAsVariable("DIFF", "-(A, mean(A))")
+				.withParsedStatement("var(A)")
+				.toParsedStatement("*(/(1, length(A)), sum(*(DIFF, DIFF)))")
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.parseGlobalVars("MATRIX:A")
 				.withParsedStatement("length(A)")
 				.toParsedStatement("*(ncol(A),nrow(A))")
+				.build()
+		);
+
+		/*rules.add(new RewriterRuleBuilder(ctx)
+				.parseGlobalVars("FLOAT:a")
+				.withParsedStatement("sum(!=(a, 0))")
+				.toParsedStatement("_nnz()")
+				.build()
+		);*/
+
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+
+		metaRules.add(new RewriterRuleBuilder(ctx)
+				.parseGlobalVars("MATRIX:A")
+				.parseGlobalVars("FLOAT:a")
+				.parseGlobalVars("INT:i,j")
+				.parseGlobalStatementAsVariable("IDX", "_matIdx(A)")
+				.withParsedStatement("$1:ElementWiseInstruction(A, a)", hooks)
+				.toParsedStatement("_map(i, j, $2:ElementWiseInstruction(_get(A, i, j), a))", hooks)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
 				.build()
 		);
 
@@ -241,7 +272,8 @@ public class TestRewriteExecution {
 		String intDef = "LITERAL_INT:10";
 		String floatDef = "LITERAL_FLOAT:0,1";
 		//String startStr = "TRUE";
-		String startStr = "mean(rand(10, 10, 0, 1))";
+		String startStr = "var(rand(10, 10, 0, 1))";
+		//String startStr = "sum(!=(rand(10, 10, 0, 1), 0))";
 		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef);
 		//handler.apply(RewriterUtils.parse("+(2, 2)", ctx, "LITERAL_INT:2"), ctx);
 		db.insertEntry(ctx, stmt);

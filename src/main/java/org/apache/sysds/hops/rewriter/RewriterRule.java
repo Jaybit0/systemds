@@ -316,7 +316,7 @@ public class RewriterRule extends AbstractRewriterRule {
 		}
 	}
 
-	static class ExplicitLink {
+	public static class ExplicitLink {
 		final RewriterStatement oldStmt;
 		List<RewriterStatement> newStmt;
 		final Consumer<ExplicitLink> transferFunction;
