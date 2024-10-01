@@ -8,10 +8,16 @@ import java.util.function.Function;
 
 public class RewriterHeuristic implements RewriterHeuristicTransformation {
 	private final RewriterRuleSet ruleSet;
+	private final boolean accelerated;
 	//private final List<String> desiredProperties;
 
-	public RewriterHeuristic(RewriterRuleSet ruleSet/*, List<String> desiredProperties*/) {
+	public RewriterHeuristic(RewriterRuleSet ruleSet) {
+		this(ruleSet, false);
+	}
+
+	public RewriterHeuristic(RewriterRuleSet ruleSet, boolean accelerated/*, List<String> desiredProperties*/) {
 		this.ruleSet = ruleSet;
+		this.accelerated = accelerated;
 		//this.desiredProperties = desiredProperties;
 	}
 
@@ -40,7 +46,11 @@ public class RewriterHeuristic implements RewriterHeuristicTransformation {
 
 		RewriterInstruction current = (RewriterInstruction) currentStmt;
 
-		RewriterRuleSet.ApplicableRule rule = ruleSet.findFirstApplicableRule(current);
+		RewriterRuleSet.ApplicableRule rule;
+		if (accelerated)
+			rule = ruleSet.acceleratedFindFirst(current);
+		else
+			rule = ruleSet.findFirstApplicableRule(current);
 
 		if (rule != null)
 			foundRewrite.setValue(true);
@@ -56,7 +66,10 @@ public class RewriterHeuristic implements RewriterHeuristicTransformation {
 
 			current = (RewriterInstruction)currentStmt;
 
-			rule = ruleSet.findFirstApplicableRule(current);
+			if (accelerated)
+				rule = ruleSet.acceleratedFindFirst(current);
+			else
+				rule = ruleSet.findFirstApplicableRule(current);
 		}
 
 		return currentStmt;

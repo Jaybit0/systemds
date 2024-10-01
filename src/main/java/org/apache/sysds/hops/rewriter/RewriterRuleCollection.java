@@ -263,7 +263,10 @@ public class RewriterRuleCollection {
 				.build()
 		)));
 
-		return new RewriterHeuristic(new RewriterRuleSet(ctx, preparationRules));
+		RewriterRuleSet rs = new RewriterRuleSet(ctx, preparationRules);
+		rs.accelerate();
+
+		return new RewriterHeuristic(rs, true);
 	}
 
 }

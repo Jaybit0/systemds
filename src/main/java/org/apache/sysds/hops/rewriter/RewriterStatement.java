@@ -1,6 +1,7 @@
 package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+import org.apache.commons.lang3.function.TriFunction;
 import org.jetbrains.annotations.NotNull;
 import spire.macros.CheckedRewriter;
 
@@ -265,6 +266,19 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		if (function.apply(this) && getOperands() != null)
 			for (int i = 0; i < getOperands().size(); i++)
 				getOperands().get(i).forEachPostOrderWithDuplicates(function);
+	}
+
+	public void forEachPostOrder(TriFunction<RewriterStatement, RewriterStatement, Integer, Boolean> function) {
+		forEachPostOrder(function, new HashSet<>(), null, -1);
+	}
+
+	private void forEachPostOrder(TriFunction<RewriterStatement, RewriterStatement, Integer, Boolean> function, Set<RewriterRule.IdentityRewriterStatement> visited, RewriterStatement parent, int rootIdx) {
+		if (!visited.add(new RewriterRule.IdentityRewriterStatement(this)))
+			return;
+
+		if (function.apply(this, parent, rootIdx) && getOperands() != null)
+			for (int i = 0; i < getOperands().size(); i++)
+				getOperands().get(i).forEachPostOrder(function, visited, this, i);
 	}
 
 	@Override

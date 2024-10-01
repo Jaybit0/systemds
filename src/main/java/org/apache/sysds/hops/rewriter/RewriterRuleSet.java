@@ -1,18 +1,24 @@
 package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.sysds.utils.Hash;
 import org.checkerframework.checker.units.qual.A;
 import org.jetbrains.annotations.NotNull;
+import scala.Tuple2;
+import scala.Tuple3;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class RewriterRuleSet {
 
@@ -51,6 +57,7 @@ public class RewriterRuleSet {
 
 	private RuleContext ctx;
 	private List<RewriterRule> rules;
+	private Map<String, List<Tuple2<RewriterRule, Boolean>>> accelerator;
 
 	public RewriterRuleSet(RuleContext ctx, List<RewriterRule> rules) {
 		this.ctx = ctx;
@@ -104,6 +111,137 @@ public class RewriterRuleSet {
 		}
 
 		return applicableRules;
+	}
+
+	public ApplicableRule acceleratedFindFirst(RewriterStatement root) {
+		List<ApplicableRule> match = acceleratedRecursiveMatch(root, true);
+		if (match.isEmpty())
+			return null;
+		else
+			return match.get(0);
+	}
+
+	public List<ApplicableRule> acceleratedRecursiveMatch(RewriterStatement root, boolean findFirst) {
+		List<Tuple3<RewriterRule, Boolean, RewriterStatement.MatchingSubexpression>> matches = new ArrayList<>();
+		MutableObject<HashMap<RewriterStatement, RewriterStatement>> dependencyMap = new MutableObject<>(new HashMap<>());
+		MutableObject<List<RewriterRule.ExplicitLink>> links = new MutableObject<>(new ArrayList<>());
+		MutableObject<Map<RewriterStatement, RewriterRule.LinkObject>> linkObjects = new MutableObject<>(new HashMap<>());
+
+		root.forEachPostOrder((el, parent, rootIdx) -> {
+			String typedInstr = el.trueTypedInstruction(ctx);
+			Set<String> props = el instanceof RewriterInstruction ? ((RewriterInstruction)el).getProperties(ctx) : Collections.emptySet();
+			boolean found = acceleratedMatch(el, matches, typedInstr, el.getResultingDataType(ctx), props, rootIdx, (RewriterInstruction) parent, dependencyMap, links, linkObjects, findFirst);
+			return !findFirst || !found;
+		});
+
+		Map<Tuple2<RewriterRule, Boolean>, ApplicableRule> uniqueRules = new HashMap<>();
+
+		for (Tuple3<RewriterRule, Boolean, RewriterStatement.MatchingSubexpression> match : matches) {
+			Tuple2<RewriterRule, Boolean> t = new Tuple2<>(match._1(), match._2());
+
+			if (uniqueRules.containsKey(t))
+				uniqueRules.get(t).matches.add(match._3());
+			else {
+				ArrayList<RewriterStatement.MatchingSubexpression> list = new ArrayList<>();
+				list.add(match._3());
+				uniqueRules.put(t, new ApplicableRule(list, match._1(), match._2()));
+			}
+		}
+
+		return new ArrayList<>(uniqueRules.values());
+	}
+
+	public boolean acceleratedMatch(RewriterStatement stmt, List<Tuple3<RewriterRule, Boolean, RewriterStatement.MatchingSubexpression>> appRules, String realTypedInstr, String realType, Set<String> properties, int rootIndex, RewriterInstruction parent, MutableObject<HashMap<RewriterStatement, RewriterStatement>> dependencyMap, MutableObject<List<RewriterRule.ExplicitLink>> links, MutableObject<Map<RewriterStatement, RewriterRule.LinkObject>> linkObjects, boolean findFirst) {
+		List<Tuple2<RewriterRule, Boolean>> potentialMatches;
+		boolean foundMatch = false;
+
+		if (realTypedInstr != null) {
+			potentialMatches = accelerator.get(realTypedInstr);
+			if (potentialMatches != null) {
+				foundMatch |= checkPotentialMatches(stmt, potentialMatches, appRules, rootIndex, parent, dependencyMap, links, linkObjects, findFirst);
+
+				if (foundMatch && findFirst)
+					return true;
+			}
+		}
+
+		potentialMatches = accelerator.get(realType);
+		if (potentialMatches != null) {
+			foundMatch |= checkPotentialMatches(stmt, potentialMatches, appRules, rootIndex, parent, dependencyMap, links, linkObjects, findFirst);
+
+			if (foundMatch && findFirst)
+				return true;
+		}
+
+		if (properties != null) {
+			for (String props : properties) {
+				potentialMatches = accelerator.get(props);
+				if (potentialMatches != null) {
+					foundMatch |= checkPotentialMatches(stmt, potentialMatches, appRules, rootIndex, parent, dependencyMap, links, linkObjects, findFirst);
+
+					if (foundMatch && findFirst)
+						return true;
+				}
+			}
+		}
+
+		return foundMatch;
+	}
+
+	private boolean checkPotentialMatches(RewriterStatement stmt, List<Tuple2<RewriterRule, Boolean>> potentialMatches, List<Tuple3<RewriterRule, Boolean, RewriterStatement.MatchingSubexpression>> appRules, int rootIndex, RewriterInstruction parent, MutableObject<HashMap<RewriterStatement, RewriterStatement>> dependencyMap, MutableObject<List<RewriterRule.ExplicitLink>> links, MutableObject<Map<RewriterStatement, RewriterRule.LinkObject>> linkObjects, boolean findFirst) {
+		boolean anyMatch = false;
+		for (Tuple2<RewriterRule, Boolean> m : potentialMatches) {
+			RewriterStatement.MatchingSubexpression match;
+
+			if (m._2()) {
+				match = m._1().matchSingleStmt1(parent, rootIndex, stmt, dependencyMap.getValue(), links.getValue(), linkObjects.getValue());
+			} else {
+				match = m._1().matchSingleStmt2(parent, rootIndex, stmt, dependencyMap.getValue(), links.getValue(), linkObjects.getValue());
+			}
+
+			if (match != null) {
+				appRules.add(new Tuple3<>(m._1(), m._2(), match));
+				dependencyMap.setValue(new HashMap<>());
+				links.setValue(new ArrayList<>());
+				linkObjects.setValue(new HashMap<>());
+
+				if (findFirst)
+					return true;
+
+				anyMatch = true;
+			} else {
+				dependencyMap.getValue().clear();
+				links.getValue().clear();
+				linkObjects.getValue().clear();
+			}
+		}
+
+		return anyMatch;
+	}
+
+	// Look for intersecting roots and try to find them once
+	public void accelerate() {
+		accelerator = new HashMap<>();
+		for (RewriterRule rule : rules) {
+			accelerate(rule, true);
+			if (!rule.isUnidirectional())
+				accelerate(rule, false);
+		}
+
+		System.out.println(accelerator);
+	}
+
+	private void accelerate(RewriterRule rule, boolean forward) {
+		RewriterStatement stmt = forward ? rule.getStmt1() : rule.getStmt2();
+		String t = stmt.isInstruction() ? stmt.trueTypedInstruction(ctx) : stmt.getResultingDataType(ctx);
+		List<Tuple2<RewriterRule, Boolean>> l = accelerator.get(t);
+
+		if (l == null) {
+			l = new ArrayList<>();
+			accelerator.put(t, l);
+		}
+
+		l.add(new Tuple2<>(rule, forward));
 	}
 
 	@Override

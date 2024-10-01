@@ -120,9 +120,13 @@ public class TestRewriteExecution {
 		}
 	}
 
+	private static RewriterHeuristic mHeur;
+
 	private void testDMLStmt(RewriterStatement stmt, final RuleContext ctx) {
+		if (mHeur == null)
+			mHeur = RewriterRuleCollection.getHeur(ctx);
 		try {
-			RewriterHeuristic heur = RewriterRuleCollection.getHeur(ctx);
+			RewriterHeuristic heur = mHeur;
 			stmt = heur.apply(stmt);
 
 			DMLScript.programInterceptor = interceptor;
@@ -251,25 +255,28 @@ public class TestRewriteExecution {
 
 		Random rd = new Random();
 		RewriterRuleSet ruleSet = new RewriterRuleSet(ctx, rules);
+		ruleSet.accelerate();
 		RewriterDatabase db = new RewriterDatabase();
 
 		String matrixDef = "MATRIX:A,B,C";
 		String intDef = "LITERAL_INT:10";
 		String floatDef = "LITERAL_FLOAT:0,1,-0.0001,0.0001,-1";
 		String boolDef = "LITERAL_BOOL:TRUE,FALSE";
-		String startStr = "TRUE";
+		//String startStr = "TRUE";
 		//String startStr = "var(rand(10, 10, 0, 1))";
 		//String startStr = "sum(!=(rand(10, 10, -0.0001, 0.0001), 0))";
 		//String startStr = "<(*($1:rand(10, 10, -1, 1), $1), 0)";
 		//String startStr = "rand(10, 10, $1:_rdFloat(), $1)";
 		//String startStr = "sum(==(rand(10, 10, 0, 1), 1))";
+		String startStr = "|(|(TRUE, FALSE), FALSE)";
 		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef, boolDef);
 		//handler.apply(RewriterUtils.parse("+(2, 2)", ctx, "LITERAL_INT:2"), ctx);
 		db.insertEntry(ctx, stmt);
 
 		//RewriterRuleSet.ApplicableRule match = ruleSet.findFirstApplicableRule(stmt);
 		long millis = System.currentTimeMillis();
-		ArrayList<RewriterRuleSet.ApplicableRule> applicableRules = ruleSet.findApplicableRules(stmt);
+		//ArrayList<RewriterRuleSet.ApplicableRule> applicableRules = ruleSet.findApplicableRules(stmt);
+		List<RewriterRuleSet.ApplicableRule> applicableRules = ruleSet.acceleratedRecursiveMatch(stmt, false);
 
 		RewriterStatement newStmt = stmt;
 
@@ -277,7 +284,7 @@ public class TestRewriteExecution {
 		if (!handler.apply(stmt, ctx))
 			return ruleSet;
 
-		for (int i = 0; i < 1000 && !applicableRules.isEmpty(); i++) {
+		for (int i = 0; i < 10 && !applicableRules.isEmpty(); i++) {
 			int ruleIndex = rd.nextInt(applicableRules.size());
 			RewriterRuleSet.ApplicableRule next = applicableRules.get(ruleIndex);
 
@@ -299,7 +306,7 @@ public class TestRewriteExecution {
 
 				millis = System.currentTimeMillis();
 
-				applicableRules = ruleSet.findApplicableRules(stmt);
+				applicableRules = ruleSet.acceleratedRecursiveMatch(stmt, false);
 			} else {
 				System.out.println("Duplicate entry found: " + newStmt.toString(ctx));
 				System.out.println("Rule: " + next.rule);

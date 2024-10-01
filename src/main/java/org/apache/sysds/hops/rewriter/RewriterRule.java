@@ -84,12 +84,38 @@ public class RewriterRule extends AbstractRewriterRule {
 
 	@Override
 	public boolean matchStmt1(RewriterStatement stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr, boolean findFirst) {
-		return getStmt1().matchSubexpr(ctx, stmt, null, -1, arr, new HashMap<>(), true, false, findFirst, null, linksStmt1ToStmt2, true, true, true, iff1to2);
+		return getStmt1().matchSubexpr(ctx, stmt, null, -1, arr, new HashMap<>(), true, false, findFirst, null, linksStmt1ToStmt2, true, true, false, iff1to2);
+	}
+
+	public RewriterStatement.MatchingSubexpression matchSingleStmt1(RewriterInstruction parent, int rootIndex, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, List<ExplicitLink> links, Map<RewriterStatement, LinkObject> ruleLinks) {
+		boolean match = getStmt1().match(ctx, stmt, dependencyMap, true, false, links, ruleLinks, true, true, false);
+
+		if (match) {
+			RewriterStatement.MatchingSubexpression matchExpr = new RewriterStatement.MatchingSubexpression(stmt, parent, rootIndex, dependencyMap, links);
+
+			if (iff1to2 == null || iff1to2.apply(matchExpr, links))
+				return matchExpr;
+		}
+
+		return null;
 	}
 
 	@Override
 	public boolean matchStmt2(RewriterStatement stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr, boolean findFirst) {
-		return getStmt2().matchSubexpr(ctx, stmt, null, -1, arr, new HashMap<>(), true, false, findFirst, null, linksStmt2ToStmt1, true, true, true, iff2to1);
+		return getStmt2().matchSubexpr(ctx, stmt, null, -1, arr, new HashMap<>(), true, false, findFirst, null, linksStmt2ToStmt1, true, true, false, iff2to1);
+	}
+
+	public RewriterStatement.MatchingSubexpression matchSingleStmt2(RewriterInstruction parent, int rootIndex, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, List<ExplicitLink> links, Map<RewriterStatement, LinkObject> ruleLinks) {
+		boolean match = getStmt2().match(ctx, stmt, dependencyMap, true, false, links, ruleLinks, true, true, false);
+
+		if (match) {
+			RewriterStatement.MatchingSubexpression matchExpr = new RewriterStatement.MatchingSubexpression(stmt, parent, rootIndex, dependencyMap, links);
+
+			if (iff2to1 == null || iff2to1.apply(matchExpr, links))
+				return matchExpr;
+		}
+
+		return null;
 	}
 
 	private RewriterStatement apply(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest) {
