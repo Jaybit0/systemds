@@ -7,8 +7,9 @@ import org.apache.sysds.hops.LiteralOp;
 import org.apache.sysds.hops.OptimizerUtils;
 import org.apache.sysds.hops.rewriter.RewriterContextSettings;
 import org.apache.sysds.hops.rewriter.RewriterDatabase;
+import org.apache.sysds.hops.rewriter.RewriterHeuristic;
 import org.apache.sysds.hops.rewriter.RewriterRule;
-import org.apache.sysds.hops.rewriter.RewriterRuleBuilder;
+import org.apache.sysds.hops.rewriter.RewriterRuleCollection;
 import org.apache.sysds.hops.rewriter.RewriterRuleSet;
 import org.apache.sysds.hops.rewriter.RewriterStatement;
 import org.apache.sysds.hops.rewriter.RewriterUtils;
@@ -22,7 +23,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -82,7 +82,13 @@ public class TestRewriteExecution {
 
 	private String toDMLString(RewriterStatement stmt, final RuleContext ctx) {
 		List<String> execStr = stmt.toExecutableString(ctx);
-		execStr.set(execStr.size()-1, "print(" + execStr.get(execStr.size()-1) + ")");
+		boolean isMatrix = stmt.getResultingDataType(ctx).equals("MATRIX");
+		String resString;
+		if (isMatrix)
+			resString = "print(toString(" + execStr.get(execStr.size()-1) + "))";
+		else
+			resString = "print(" + execStr.get(execStr.size()-1) + ")";
+		execStr.set(execStr.size()-1, resString);
 		return String.join("\n", execStr);
 	}
 
@@ -94,8 +100,13 @@ public class TestRewriteExecution {
 		System.out.println("AllowConstantFolding: " + OptimizerUtils.ALLOW_CONSTANT_FOLDING);
 
 		createRules((stmt, ctx) -> {
-			testDMLStmt(stmt, ctx);
-			return true;
+			try {
+				testDMLStmt(stmt, ctx);
+				return true;
+			} catch (Exception e) {
+				e.printStackTrace();
+				return false;
+			}
 		});
 
 		System.out.println("===== FOUND TRANSFORMATIONS =====");
@@ -111,6 +122,9 @@ public class TestRewriteExecution {
 
 	private void testDMLStmt(RewriterStatement stmt, final RuleContext ctx) {
 		try {
+			RewriterHeuristic heur = RewriterRuleCollection.getHeur(ctx);
+			stmt = heur.apply(stmt);
+
 			DMLScript.programInterceptor = interceptor;
 			//System.setOut(new PrintStream(new CustomOutputStream(System.out, line -> System.err.println("INTERCEPT: " + line))));
 
@@ -173,9 +187,11 @@ public class TestRewriteExecution {
 		RuleContext ctx = RewriterContextSettings.getDefaultContext(new Random());
 
 		ArrayList<RewriterRule> rules = new ArrayList<>();
-		ArrayList<RewriterRule> metaRules = new ArrayList<>();
 
-		rules.add(new RewriterRuleBuilder(ctx)
+		RewriterRuleCollection.addEqualitySubstitutions(rules, ctx);
+		RewriterRuleCollection.addBooleAxioms(rules, ctx);
+
+		/*rules.add(new RewriterRuleBuilder(ctx)
 				.parseGlobalVars("LITERAL_BOOL:TRUE")
 				.parseGlobalVars("LITERAL_INT:1")
 				.withParsedStatement("TRUE")
@@ -231,37 +247,6 @@ public class TestRewriteExecution {
 				.withParsedStatement("length(A)")
 				.toParsedStatement("*(ncol(A),nrow(A))")
 				.build()
-		);
-
-		/*rules.add(new RewriterRuleBuilder(ctx)
-				.parseGlobalVars("FLOAT:a")
-				.withParsedStatement("sum(!=(a, 0))")
-				.toParsedStatement("_nnz()")
-				.build()
-		);*/
-
-		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
-
-		metaRules.add(new RewriterRuleBuilder(ctx)
-				.parseGlobalVars("MATRIX:A")
-				.parseGlobalVars("FLOAT:a")
-				.parseGlobalVars("INT:i,j")
-				.parseGlobalStatementAsVariable("IDX", "_matIdx(A)")
-				.withParsedStatement("$1:ElementWiseInstruction(A, a)", hooks)
-				.toParsedStatement("_map(i, j, $2:ElementWiseInstruction(_get(A, i, j), a))", hooks)
-				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
-				.build()
-		);
-
-		/*rules.add(new RewriterRuleBuilder(ctx)
-				.parseGlobalVars("MATRIX:A")
-				.parseGlobalVars("INT:a,b")
-				.parseGlobalVars("FLOAT:c,d")
-				.parseGlobalVars("LITERAL_INT:1,0")
-				.parseGlobalStatementAsVariable("LOWER", "_lower(a)")
-				.withParsedStatement("<(_opt[min,max,mean](rand(a, b, c, d)), d)")
-				.toParsedStatement("as.scalar(rand(1, 1, +(LOWER, _lower(0)), LOWER))")
-				.build()
 		);*/
 
 		Random rd = new Random();
@@ -270,15 +255,20 @@ public class TestRewriteExecution {
 
 		String matrixDef = "MATRIX:A,B,C";
 		String intDef = "LITERAL_INT:10";
-		String floatDef = "LITERAL_FLOAT:0,1";
-		//String startStr = "TRUE";
-		String startStr = "var(rand(10, 10, 0, 1))";
-		//String startStr = "sum(!=(rand(10, 10, 0, 1), 0))";
-		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef);
+		String floatDef = "LITERAL_FLOAT:0,1,-0.0001,0.0001,-1";
+		String boolDef = "LITERAL_BOOL:TRUE,FALSE";
+		String startStr = "TRUE";
+		//String startStr = "var(rand(10, 10, 0, 1))";
+		//String startStr = "sum(!=(rand(10, 10, -0.0001, 0.0001), 0))";
+		//String startStr = "<(*($1:rand(10, 10, -1, 1), $1), 0)";
+		//String startStr = "rand(10, 10, $1:_rdFloat(), $1)";
+		//String startStr = "sum(==(rand(10, 10, 0, 1), 1))";
+		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef, boolDef);
 		//handler.apply(RewriterUtils.parse("+(2, 2)", ctx, "LITERAL_INT:2"), ctx);
 		db.insertEntry(ctx, stmt);
 
 		//RewriterRuleSet.ApplicableRule match = ruleSet.findFirstApplicableRule(stmt);
+		long millis = System.currentTimeMillis();
 		ArrayList<RewriterRuleSet.ApplicableRule> applicableRules = ruleSet.findApplicableRules(stmt);
 
 		RewriterStatement newStmt = stmt;
@@ -287,7 +277,7 @@ public class TestRewriteExecution {
 		if (!handler.apply(stmt, ctx))
 			return ruleSet;
 
-		for (int i = 0; i < 5 && !applicableRules.isEmpty(); i++) {
+		for (int i = 0; i < 1000 && !applicableRules.isEmpty(); i++) {
 			int ruleIndex = rd.nextInt(applicableRules.size());
 			RewriterRuleSet.ApplicableRule next = applicableRules.get(ruleIndex);
 
@@ -295,6 +285,8 @@ public class TestRewriteExecution {
 				newStmt = next.rule.applyForward(next.matches.get(rd.nextInt(next.matches.size())), stmt, false);
 			else
 				newStmt = next.rule.applyBackward(next.matches.get(rd.nextInt(next.matches.size())), stmt, false);
+
+			System.out.println("Rewrite took " + (System.currentTimeMillis() - millis) + "ms");
 
 			if (db.insertEntry(ctx, newStmt)) {
 				stmt = newStmt;
@@ -304,6 +296,8 @@ public class TestRewriteExecution {
 
 				if (!handler.apply(stmt, ctx))
 					return ruleSet;
+
+				millis = System.currentTimeMillis();
 
 				applicableRules = ruleSet.findApplicableRules(stmt);
 			} else {

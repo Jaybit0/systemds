@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -146,8 +147,13 @@ public class RewriterUtils {
 			if (matcher.find()) {
 				String number = matcher.group();
 				int n = Integer.parseInt(number);
-				if (expr.charAt(matcher.end()) != ':')
-					throw new IllegalArgumentException("Expected the token ':'");
+				if (expr.charAt(matcher.end()) != ':') {
+					// Then we inject the common subexpression
+					String remainder = expr.substring(matcher.end());
+					mexpr.setValue(remainder);
+					return refmap.get(n);
+					//throw new IllegalArgumentException("Expected the token ':'");
+				}
 				String remainder = expr.substring(matcher.end() + 1);
 				mexpr.setValue(remainder);
 				RewriterStatement stmt = parseRawExpression(mexpr, refmap, dataTypes, ctx);
@@ -346,11 +352,14 @@ public class RewriterUtils {
 	}
 
 	public static void putAsBinaryPrintable(String instr, List<String> types, HashMap<String, BiFunction<RewriterStatement, RuleContext, String>> printFunctions, BiFunction<RewriterStatement, RuleContext, String> function) {
-		for (String type1 : types) {
-			for (String type2 : types) {
+		for (String type1 : types)
+			for (String type2 : types)
 				printFunctions.put(instr + "(" + type1 + "," + type2 + ")", function);
-			}
-		}
+	}
+
+	public static void putAsDefaultBinaryPrintable(List<String> instrs, List<String> types, HashMap<String, BiFunction<RewriterStatement, RuleContext, String>> funcs) {
+		for (String instr : instrs)
+			putAsBinaryPrintable(instr, types, funcs, binaryStringRepr(" " + instr + " "));
 	}
 
 	public static HashMap<String, Set<String>> mapToImplementedFunctions(final RuleContext ctx) {

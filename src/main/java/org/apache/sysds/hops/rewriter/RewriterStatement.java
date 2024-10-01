@@ -2,6 +2,7 @@ package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.jetbrains.annotations.NotNull;
+import spire.macros.CheckedRewriter;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -130,20 +131,23 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		if (getOperands() != null)
 			getOperands().forEach(op -> op.prepareDefinitions(ctx, strDefs, varDefs));
 
-		// Check if it is necessary to define variables
-		if (refCtr > 1 && this instanceof RewriterInstruction) {
+		if (this instanceof RewriterInstruction) {
 			RewriterInstruction self = ((RewriterInstruction) this);
-			Pattern pattern = Pattern.compile("[a-zA-Z0-9_]+");
-			String instr = pattern.matcher(self.getInstr()).matches() ? self.getInstr() : "tmp";
-			String varName = "var_" + instr + "_";
+			// Check if it is necessary to define variables
+			if (refCtr > 1 || self.trueInstruction().equals("_asVar")) {
+				Pattern pattern = Pattern.compile("[a-zA-Z0-9_]+");
+				String instr = pattern.matcher(self.getInstr()).matches() ? self.getInstr() : "tmp";
+				instr = instr.replace("_", "");
+				String varName = "var_" + instr + "_";
 
-			int ctr = 1;
-			while (varDefs.contains(varName + ctr))
-				ctr++;
+				int ctr = 1;
+				while (varDefs.contains(varName + ctr))
+					ctr++;
 
-			strDefs.add(varName + ctr + " = " + toString(ctx));
-			varDefs.add(varName + ctr);
-			unsafePutMeta(META_VARNAME, varName + ctr);
+				strDefs.add(varName + ctr + " = " + toString(ctx));
+				varDefs.add(varName + ctr);
+				unsafePutMeta(META_VARNAME, varName + ctr);
+			}
 		}
 	}
 

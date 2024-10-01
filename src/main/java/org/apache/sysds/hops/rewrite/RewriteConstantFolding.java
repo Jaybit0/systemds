@@ -101,9 +101,7 @@ public class RewriteConstantFolding extends HopRewriteRule
 			&& ( isApplicableUnaryOp(root) || isApplicableBinaryOp(root)
 				|| isApplicableTernaryOp(root) || isApplicableNaryOp(root) ) )
 		{
-			System.out.println("EVAL SCALAR: " + root);
 			literal = evalScalarOperation(root);
-			System.out.println("Literal: " + literal);
 		}
 		//fold conjunctive predicate if at least one input is literal 'false'
 		else if( isApplicableFalseConjunctivePredicate(root) ) {

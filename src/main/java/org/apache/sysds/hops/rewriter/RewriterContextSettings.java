@@ -5,6 +5,8 @@ import java.util.Random;
 
 public class RewriterContextSettings {
 
+	public static final List<String> ALL_TYPES = List.of("FLOAT", "INT", "BOOL", "MATRIX");
+
 	public static String getDefaultContextString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("argList(MATRIX)::MATRIX...\n"); // This is a meta function that can take any number of MATRIX arguments
@@ -216,10 +218,10 @@ public class RewriterContextSettings {
 		builder.append("nrow(MATRIX)::INT\n");
 		builder.append("length(MATRIX)::INT\n");
 
-		RewriterUtils.buildBinaryAlgebraInstructions(builder, "+", List.of("INT", "FLOAT", "MATRIX"));
-		RewriterUtils.buildBinaryAlgebraInstructions(builder, "-", List.of("INT", "FLOAT", "MATRIX"));
-		RewriterUtils.buildBinaryAlgebraInstructions(builder, "*", List.of("INT", "FLOAT", "MATRIX"));
-		RewriterUtils.buildBinaryAlgebraInstructions(builder, "/", List.of("INT", "FLOAT", "MATRIX"));
+		RewriterUtils.buildBinaryAlgebraInstructions(builder, "+", List.of("INT", "FLOAT", "BOOL", "MATRIX"));
+		RewriterUtils.buildBinaryAlgebraInstructions(builder, "-", List.of("INT", "FLOAT", "BOOL", "MATRIX"));
+		RewriterUtils.buildBinaryAlgebraInstructions(builder, "*", List.of("INT", "FLOAT", "BOOL", "MATRIX"));
+		RewriterUtils.buildBinaryAlgebraInstructions(builder, "/", List.of("INT", "FLOAT", "BOOL", "MATRIX"));
 
 		/*builder.append("-(INT,INT)::INT\n");
 		builder.append("+(INT,INT)::INT\n");
@@ -270,23 +272,33 @@ public class RewriterContextSettings {
 		builder.append("rand(INT,INT,FLOAT,FLOAT)::MATRIX\n"); // Args: min, max, rows, cols
 
 		// Boole algebra
-		RewriterUtils.buildBinaryBoolInstructions(builder, "<", List.of("INT", "FLOAT"));
-		RewriterUtils.buildBinaryBoolInstructions(builder, "<=", List.of("INT", "FLOAT"));
-		RewriterUtils.buildBinaryBoolInstructions(builder, ">", List.of("INT", "FLOAT"));
-		RewriterUtils.buildBinaryBoolInstructions(builder, ">=", List.of("INT", "FLOAT"));
+
 		RewriterUtils.buildBinaryPermutations(List.of("MATRIX", "FLOAT", "INT", "BOOL"), (t1, t2) -> {
 			String ret = t1.equals("MATRIX") ^ t2.equals("MATRIX") ? "MATRIX" : "BOOL";
+			builder.append("==(" + t1 + "," + t2 + ")::" + ret + "\n");
 			builder.append("!=(" + t1 + "," + t2 + ")::" + ret + "\n");
+			builder.append("<(" + t1 + "," + t2 + ")::" + ret + "\n");
+			builder.append("<=(" + t1 + "," + t2 + ")::" + ret + "\n");
+			builder.append(">(" + t1 + "," + t2 + ")::" + ret + "\n");
+			builder.append(">=(" + t1 + "," + t2 + ")::" + ret + "\n");
+			builder.append("&(" + t1 + "," + t2 + ")::" + ret + "\n");
+			builder.append("|(" + t1 + "," + t2 + ")::" + ret + "\n");
 		});
-		RewriterUtils.buildBinaryPermutations(List.of("MATRIX", "FLOAT", "INT", "BOOL"), (t1, t2) -> {
-			String ret = t1.equals("MATRIX") ^ t2.equals("MATRIX") ? "MATRIX" : "BOOL";
-			builder.append("!=(" + t1 + "," + t2 + ")::" + ret + "\n");
+
+		List.of("MATRIX", "FLOAT", "INT", "BOOL").forEach(t -> {
+			builder.append("!(" + t + ")::" + (t.equals("MATRIX") ? "MATRIX" : "BOOL") + "\n");
 		});
+
 
 		// Meta-Instruction
 		builder.append("_lower(INT)::FLOAT\n");
 		builder.append("_lower(FLOAT)::FLOAT\n");
 		builder.append("_posInt()::INT\n");
+		builder.append("_rdFloat()::FLOAT\n");
+		builder.append("_rdBool()::BOOL\n");
+		builder.append("_anyBool()::BOOL\n");
+
+		List.of("INT", "FLOAT", "BOOL", "MATRIX").forEach(t -> builder.append("_asVar(" + t + ")::" + t + "\n"));
 
 		builder.append("_map(INT,INT,FLOAT)::MATRIX\n");
 		builder.append("_matIdx(MATRIX)::IDX[MATRIX]\n");
@@ -336,6 +348,29 @@ public class RewriterContextSettings {
 			return String.valueOf(i);
 		});
 
+		ctx.customStringRepr.put("_rdFloat()", (stmt, mctx) -> {
+			float f = (rd.nextFloat() - 0.5f) * (rd.nextInt(100000) + 1);
+			if (stmt.getMeta("MetaInstrRdFloatValue") != null)
+				f = (float)stmt.getMeta("MetaInstrRdFloatValue");
+			else
+				stmt.unsafePutMeta("MetaInstrRdFloatValue", f);
+			return String.valueOf(f);
+		});
+
+		ctx.customStringRepr.put("_rdBool()", (stmt, mctx) -> {
+			boolean b = rd.nextBoolean();
+			if (stmt.getMeta("MetaInstrRdBoolValue") != null)
+				b = (boolean)stmt.getMeta("MetaInstrRdBoolValue");
+			else
+				stmt.unsafePutMeta("MetaInstrRdBoolValue", b);
+			return String.valueOf(b).toUpperCase();
+		});
+
+		// TODO: This should later also be able to inject references to existing bool values
+		ctx.customStringRepr.put("_anyBool()", ctx.customStringRepr.get("_rdBool()"));
+
+		ALL_TYPES.forEach(t -> ctx.customStringRepr.put("_asVar(" + t + ")", (stmt, mctx) -> ((RewriterInstruction)stmt).getOperands().get(0).toString(ctx)));
+
 		ctx.customStringRepr.put("rand(INT,INT,FLOAT,FLOAT)", (stmt, mctx) -> {
 			List<RewriterStatement> ops = stmt.getOperands();
 			return "rand(rows=(" + ops.get(0) + "), cols=(" + ops.get(1) + "), min=(" + ops.get(2) + "), max=(" + ops.get(3) + "))";
@@ -344,12 +379,14 @@ public class RewriterContextSettings {
 		ctx.customStringRepr.put("rand(INT,INT,FLOAT,INT)", ctx.customStringRepr.get("rand(INT,INT,FLOAT,FLOAT)"));
 		ctx.customStringRepr.put("rand(INT,INT,INT,FLOAT)", ctx.customStringRepr.get("rand(INT,INT,FLOAT,FLOAT)"));
 
-		RewriterUtils.putAsBinaryPrintable("<", List.of("INT", "FLOAT"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" < "));
-		RewriterUtils.putAsBinaryPrintable("<=", List.of("INT", "FLOAT"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" <= "));
-		RewriterUtils.putAsBinaryPrintable(">", List.of("INT", "FLOAT"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" > "));
-		RewriterUtils.putAsBinaryPrintable(">=", List.of("INT", "FLOAT"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" >= "));
+		RewriterUtils.putAsDefaultBinaryPrintable(List.of("<", "<=", ">", ">=", "==", "!=", "&", "|"), List.of("INT", "FLOAT", "BOOL", "MATRIX"), ctx.customStringRepr);
+
+		/*RewriterUtils.putAsBinaryPrintable("<", List.of("INT", "FLOAT", "BOOL", "MATRIX"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" < "));
+		RewriterUtils.putAsBinaryPrintable("<=", List.of("INT", "FLOAT", "BOOL", "MATRIX"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" <= "));
+		RewriterUtils.putAsBinaryPrintable(">", List.of("INT", "FLOAT", "BOOL", "MATRIX"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" > "));
+		RewriterUtils.putAsBinaryPrintable(">=", List.of("INT", "FLOAT", "BOOL", "MATRIX"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" >= "));
 		RewriterUtils.putAsBinaryPrintable("==", List.of("INT", "FLOAT", "MATRIX", "BOOL"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" == "));
-		RewriterUtils.putAsBinaryPrintable("!=", List.of("INT", "FLOAT", "MATRIX", "BOOL"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" != "));
+		RewriterUtils.putAsBinaryPrintable("!=", List.of("INT", "FLOAT", "MATRIX", "BOOL"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" != "));*/
 
 		RewriterUtils.putAsBinaryPrintable("*", List.of("INT", "FLOAT", "MATRIX", "BOOL"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" * "));
 		RewriterUtils.putAsBinaryPrintable("/", List.of("INT", "FLOAT", "MATRIX", "BOOL"), ctx.customStringRepr, RewriterUtils.binaryStringRepr(" / "));
