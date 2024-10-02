@@ -219,6 +219,40 @@ public class RewriterRuleCollection {
 		});*/
 	}
 
+	public static void addImplicitBoolLiterals(final List<RewriterRule> rules, final RuleContext ctx) {
+		rules.add(new RewriterRuleBuilder(ctx)
+				.parseGlobalVars("LITERAL_BOOL:TRUE")
+				.parseGlobalVars("LITERAL_INT:1")
+				.withParsedStatement("TRUE")
+				.toParsedStatement("<(_lower(1), 1)")
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.parseGlobalVars("LITERAL_BOOL:TRUE")
+				.parseGlobalVars("LITERAL_INT:1")
+				.withParsedStatement("TRUE")
+				.toParsedStatement(">(_higher(1), 1)")
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.parseGlobalVars("LITERAL_BOOL:FALSE")
+				.parseGlobalVars("LITERAL_INT:1")
+				.withParsedStatement("FALSE")
+				.toParsedStatement("<(_higher(1), 1)")
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.parseGlobalVars("LITERAL_BOOL:FALSE")
+				.parseGlobalVars("LITERAL_INT:1")
+				.withParsedStatement("FALSE")
+				.toParsedStatement(">(_lower(1), 1)")
+				.build()
+		);
+	}
+
 	public static RewriterHeuristic getHeur(final RuleContext ctx) {
 		ArrayList<RewriterRule> preparationRules = new ArrayList<>();
 

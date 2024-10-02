@@ -29,6 +29,7 @@ import java.util.Random;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class TestRewriteExecution {
 
@@ -36,14 +37,16 @@ public class TestRewriteExecution {
 		FLOAT, INT, MATRIX
 	};
 
-	private int currentHopCount = 0;
+	private ExecutedRule currentExecution;
+
+	/*private int currentHopCount = 0;
 	private RewriterStatement lastStatement = null;
 	private List<Hop> lastHops = null;
 	private String lastProg = null;
 	private RewriterStatement nextStatement = null;
 	private List<Hop> nextHops = null;
-	private String nextProg = null;
-	private List<Tuple6<RewriterStatement, String, List<Hop>, RewriterStatement, String, List<Hop>>> costIncreasingTransformations = new ArrayList<>();
+	private String nextProg = null;*/
+	private List<ExecutedRule> costIncreasingTransformations = new ArrayList<>();
 
 	private BiConsumer<DMLProgram, String> interceptor = (prog, phase) -> {
 		if (!phase.equals("HOPRewrites"))
@@ -52,14 +55,18 @@ public class TestRewriteExecution {
 		for (StatementBlock sb : prog.getStatementBlocks()) {
 			int hopCount = sb.getHops() == null ? 0 : sb.getHops().stream().mapToInt(this::countHops).sum();
 			System.out.println("HopCount: " + hopCount);
-			nextHops = sb.getHops();
+			currentExecution.to.hops = sb.getHops();
+			currentExecution.to.hopCount = hopCount;
 
-			if (lastStatement == null) {
+			if (currentExecution.from.hopCount < currentExecution.to.hopCount)
+				costIncreasingTransformations.add(currentExecution);
+
+			/*if (lastStatement == null) {
 				currentHopCount = hopCount;
 			} else if (hopCount > currentHopCount) {
 				costIncreasingTransformations.add(new Tuple6<>(lastStatement, lastProg, lastHops, nextStatement, nextProg, nextHops));
 				currentHopCount = hopCount;
-			}
+			}*/
 
 			//System.out.println(phase + "-Size: " + hopCount);
 			//System.out.println("==> " + sb);
@@ -99,9 +106,9 @@ public class TestRewriteExecution {
 		System.out.println("AllowSumProductRewrites: " + OptimizerUtils.ALLOW_SUM_PRODUCT_REWRITES);
 		System.out.println("AllowConstantFolding: " + OptimizerUtils.ALLOW_CONSTANT_FOLDING);
 
-		createRules((stmt, ctx) -> {
+		createRules((ex) -> {
 			try {
-				testDMLStmt(stmt, ctx);
+				testDMLStmt(ex);
 				return true;
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -111,18 +118,25 @@ public class TestRewriteExecution {
 
 		System.out.println("===== FOUND TRANSFORMATIONS =====");
 
-		for (Tuple6<RewriterStatement, String, List<Hop>, RewriterStatement, String, List<Hop>> incTransforms : costIncreasingTransformations) {
+		for (ExecutedRule incTransforms : costIncreasingTransformations) {
 			System.out.println("==========");
-			System.out.println(incTransforms._2());
+			System.out.println("Rule: " + incTransforms.appliedRule.rule);
+			System.out.println("Dir: " + incTransforms.appliedRule.forward);
+			System.out.println("MatchRoot: " + incTransforms.match.getMatchRoot().toString(incTransforms.ctx));
+			System.out.println(incTransforms.from.executableString);
 			System.out.println("=>");
-			System.out.println(incTransforms._5());
-			System.out.println(countHops(incTransforms._3()) + " => " + countHops(incTransforms._6()));
+			System.out.println(incTransforms.to.executableString);
+			System.out.println("HopCount: " + incTransforms.from.hopCount + " => " + incTransforms.to.hopCount);
 		}
 	}
 
 	private static RewriterHeuristic mHeur;
 
-	private void testDMLStmt(RewriterStatement stmt, final RuleContext ctx) {
+	private void testDMLStmt(ExecutedRule ex) {
+		final RuleContext ctx = ex.ctx;
+		RewriterStatement stmt = ex.to.stmt;
+		currentExecution = ex;
+
 		if (mHeur == null)
 			mHeur = RewriterRuleCollection.getHeur(ctx);
 		try {
@@ -142,14 +156,13 @@ public class TestRewriteExecution {
 			long timeMillis = System.currentTimeMillis();
 
 			String str = toDMLString(stmt, ctx);
-			lastProg = nextProg;
-			nextProg = str;
+			ex.to.executableString = str;
 			System.out.println("Executing:\n" + str);
 			DMLScript.executeScript(new String[]{"-s", str});
 
 			System.err.println("Done in " + (System.currentTimeMillis() - timeMillis) + "ms");
-		} catch (IOException ex) {
-			ex.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -187,13 +200,14 @@ public class TestRewriteExecution {
 
 
 
-	private RewriterRuleSet createRules(BiFunction<RewriterStatement, RuleContext, Boolean> handler) {
+	private RewriterRuleSet createRules(Function<ExecutedRule, Boolean> handler) {
 		RuleContext ctx = RewriterContextSettings.getDefaultContext(new Random());
 
 		ArrayList<RewriterRule> rules = new ArrayList<>();
 
 		RewriterRuleCollection.addEqualitySubstitutions(rules, ctx);
 		RewriterRuleCollection.addBooleAxioms(rules, ctx);
+		//RewriterRuleCollection.addImplicitBoolLiterals(rules, ctx);
 
 		/*rules.add(new RewriterRuleBuilder(ctx)
 				.parseGlobalVars("LITERAL_BOOL:TRUE")
@@ -268,7 +282,7 @@ public class TestRewriteExecution {
 		//String startStr = "<(*($1:rand(10, 10, -1, 1), $1), 0)";
 		//String startStr = "rand(10, 10, $1:_rdFloat(), $1)";
 		//String startStr = "sum(==(rand(10, 10, 0, 1), 1))";
-		String startStr = "|(|(TRUE, FALSE), FALSE)";
+		String startStr = "TRUE";
 		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef, boolDef);
 		//handler.apply(RewriterUtils.parse("+(2, 2)", ctx, "LITERAL_INT:2"), ctx);
 		db.insertEntry(ctx, stmt);
@@ -280,28 +294,49 @@ public class TestRewriteExecution {
 
 		RewriterStatement newStmt = stmt;
 
-		nextStatement = stmt;
-		if (!handler.apply(stmt, ctx))
+		ExecutionRecord initialRecord = new ExecutionRecord(stmt);
+		ExecutedRule ex = ExecutedRule.create(ctx, null, null, initialRecord, initialRecord);
+
+		if (!handler.apply(ex))
 			return ruleSet;
 
-		for (int i = 0; i < 10 && !applicableRules.isEmpty(); i++) {
+		for (int i = 0; i < 100 && !applicableRules.isEmpty() && costIncreasingTransformations.size() < 10; i++) {
 			int ruleIndex = rd.nextInt(applicableRules.size());
 			RewriterRuleSet.ApplicableRule next = applicableRules.get(ruleIndex);
 
+			int matchIdx = rd.nextInt(next.matches.size());
+			RewriterStatement.MatchingSubexpression match = next.matches.remove(matchIdx);
+
 			if (next.forward)
-				newStmt = next.rule.applyForward(next.matches.get(rd.nextInt(next.matches.size())), stmt, false);
+				newStmt = next.rule.applyForward(match, stmt, false);
 			else
-				newStmt = next.rule.applyBackward(next.matches.get(rd.nextInt(next.matches.size())), stmt, false);
+				newStmt = next.rule.applyBackward(match, stmt, false);
 
 			System.out.println("Rewrite took " + (System.currentTimeMillis() - millis) + "ms");
 
-			if (db.insertEntry(ctx, newStmt)) {
+			db.insertEntry(ctx, newStmt);
+
+			ExecutionRecord newRcrd = new ExecutionRecord(newStmt);
+			ex = ExecutedRule.create(ctx, next, match, initialRecord, newRcrd);
+
+			if (!handler.apply(ex))
+				return ruleSet;
+
+			if (next.matches.isEmpty())
+				applicableRules.remove(ruleIndex);
+
+			millis = System.currentTimeMillis();
+
+
+			/*if (db.insertEntry(ctx, newStmt)) {
+				ExecutionRecord newRcrd = new ExecutionRecord(newStmt, null, null);
+				ex = ExecutedRule.create(ctx, next, match, initialRecord, newRcrd);
 				stmt = newStmt;
 				lastStatement = nextStatement;
 				lastHops = nextHops;
 				nextStatement = newStmt;
 
-				if (!handler.apply(stmt, ctx))
+				if (!handler.apply(ex))
 					return ruleSet;
 
 				millis = System.currentTimeMillis();
@@ -311,7 +346,7 @@ public class TestRewriteExecution {
 				System.out.println("Duplicate entry found: " + newStmt.toString(ctx));
 				System.out.println("Rule: " + next.rule);
 				applicableRules.remove(ruleIndex);
-			}
+			}*/
 		}
 
 
@@ -354,6 +389,42 @@ public class TestRewriteExecution {
 			for (int i = off; i < off + len; i++) {
 				write(b[i]);
 			}
+		}
+	}
+
+	private static class ExecutedRule {
+		RuleContext ctx;
+		RewriterRuleSet.ApplicableRule appliedRule;
+		RewriterStatement.MatchingSubexpression match;
+		ExecutionRecord from;
+		ExecutionRecord to;
+
+		static ExecutedRule create(RuleContext ctx, RewriterRuleSet.ApplicableRule appliedRule, RewriterStatement.MatchingSubexpression match, ExecutionRecord from, ExecutionRecord to) {
+			ExecutedRule r = new ExecutedRule();
+			r.ctx = ctx;
+			r.appliedRule = appliedRule;
+			r.match = match;
+			r.from = from;
+			r.to = to;
+			return r;
+		}
+	}
+
+	private static class ExecutionRecord {
+		RewriterStatement stmt;
+		String executableString;
+		List<Hop> hops;
+		int hopCount;
+
+		public ExecutionRecord(RewriterStatement stmt) {
+			this(stmt, null, null, -1);
+		}
+
+		public ExecutionRecord(RewriterStatement stmt, String executableString, List<Hop> hops, int hopCount) {
+			this.stmt = stmt;
+			this.executableString = executableString;
+			this.hops = hops;
+			this.hopCount = hopCount;
 		}
 	}
 }

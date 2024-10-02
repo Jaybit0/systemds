@@ -293,6 +293,8 @@ public class RewriterContextSettings {
 		// Meta-Instruction
 		builder.append("_lower(INT)::FLOAT\n");
 		builder.append("_lower(FLOAT)::FLOAT\n");
+		builder.append("_higher(INT)::FLOAT\n");
+		builder.append("_higher(FLOAT)::FLOAT\n");
 		builder.append("_posInt()::INT\n");
 		builder.append("_rdFloat()::FLOAT\n");
 		builder.append("_rdBool()::BOOL\n");
@@ -338,6 +340,28 @@ public class RewriterContextSettings {
 			else
 				return stmt.getOperands().get(0).toString(ctx) + " - " + mrd;
 		});
+		ctx.customStringRepr.put("_higher(INT)", (stmt, mctx) -> {
+			float mrd = rd.nextFloat();
+			if (stmt.getMeta("MetaInstrRdFloatValue") != null)
+				mrd = (float)stmt.getMeta("MetaInstrRdFloatValue");
+			else
+				stmt.unsafePutMeta("MetaInstrRdFloatValue", mrd);
+			if (stmt.getOperands().get(0).isLiteral())
+				return "(" + (((int) stmt.getOperands().get(0).getLiteral()) + mrd) + ")";
+			else
+				return stmt.getOperands().get(0).toString(ctx) + " + " + mrd;
+		});
+		ctx.customStringRepr.put("_higher(FLOAT)", (stmt, mctx) -> {
+			float mrd = rd.nextFloat();
+			if (stmt.getMeta("MetaInstrRdFloatValue") != null)
+				mrd = (float)stmt.getMeta("MetaInstrRdFloatValue");
+			else
+				stmt.unsafePutMeta("MetaInstrRdFloatValue", mrd);
+			if (stmt.getOperands().get(0).isLiteral())
+				return "(" + (((float) stmt.getOperands().get(0).getLiteral()) + mrd) + ")";
+			else
+				return stmt.getOperands().get(0).toString(ctx) + " + " + mrd;
+		});
 
 		ctx.customStringRepr.put("_posInt()", (stmt, mctx) -> {
 			int i = 1 + rd.nextInt(100);
@@ -358,12 +382,13 @@ public class RewriterContextSettings {
 		});
 
 		ctx.customStringRepr.put("_rdBool()", (stmt, mctx) -> {
-			boolean b = rd.nextBoolean();
+			/*boolean b = rd.nextBoolean();
 			if (stmt.getMeta("MetaInstrRdBoolValue") != null)
 				b = (boolean)stmt.getMeta("MetaInstrRdBoolValue");
 			else
 				stmt.unsafePutMeta("MetaInstrRdBoolValue", b);
-			return String.valueOf(b).toUpperCase();
+			return String.valueOf(b).toUpperCase();*/
+			return "as.scalar(rand() < 0.5)";
 		});
 
 		// TODO: This should later also be able to inject references to existing bool values
