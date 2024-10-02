@@ -1,6 +1,7 @@
 package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+import org.apache.commons.lang3.function.TriFunction;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -150,11 +151,11 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	@Override
-	public RewriterStatement nestedCopyOrInject(Map<RewriterStatement, RewriterStatement> copiedObjects, Function<RewriterStatement, RewriterStatement> injector) {
+	public RewriterStatement nestedCopyOrInject(Map<RewriterStatement, RewriterStatement> copiedObjects, TriFunction<RewriterStatement, RewriterStatement, Integer, RewriterStatement> injector, RewriterStatement parent, int pIdx) {
 		RewriterStatement mCpy = copiedObjects.get(this);
 		if (mCpy != null)
 			return mCpy;
-		mCpy = injector.apply(this);
+		mCpy = injector.apply(this, parent, pIdx);
 		if (mCpy != null) {
 			// Then change the reference to the injected object
 			copiedObjects.put(this, mCpy);
@@ -173,7 +174,10 @@ public class RewriterInstruction extends RewriterStatement {
 		else
 			mCopy.meta = null;
 		copiedObjects.put(this, mCopy);
-		operands.forEach(op -> mCopy.operands.add(op.nestedCopyOrInject(copiedObjects, injector)));
+
+		for (int i = 0; i < operands.size(); i++)
+			mCopy.operands.add(operands.get(i).nestedCopyOrInject(copiedObjects, injector, mCopy, i));
+		//operands.forEach(op -> mCopy.operands.add(op.nestedCopyOrInject(copiedObjects, injector)));
 
 		return mCopy;
 	}

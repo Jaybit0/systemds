@@ -2,9 +2,11 @@ package org.apache.sysds.hops.rewriter;
 
 import com.google.common.collect.Sets;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.hadoop.yarn.webapp.hamlet2.Hamlet;
 import org.apache.spark.sql.catalyst.expressions.Exp;
 import scala.Tuple2;
+import scala.Tuple3;
 import scala.reflect.internal.Trees;
 
 import java.util.ArrayList;
@@ -75,11 +77,19 @@ public class RewriterRule extends AbstractRewriterRule {
 	}
 
 	public RewriterStatement applyForward(RewriterStatement.MatchingSubexpression match, RewriterStatement rootNode, boolean inplace) {
-		return inplace ? applyInplace(match, rootNode, toRoot) : apply(match, rootNode, toRoot);
+		return applyForward(match, rootNode, inplace, new MutableObject<>(null));
+	}
+
+	public RewriterStatement applyForward(RewriterStatement.MatchingSubexpression match, RewriterStatement rootNode, boolean inplace, MutableObject<Tuple3<RewriterStatement, RewriterStatement, Integer>> modificationHandle) {
+		return inplace ? applyInplace(match, rootNode, toRoot) : apply(match, rootNode, toRoot, modificationHandle);
 	}
 
 	public RewriterStatement applyBackward(RewriterStatement.MatchingSubexpression match, RewriterStatement rootNode, boolean inplace) {
-		return inplace ? applyInplace(match, rootNode, fromRoot) : apply(match, rootNode, fromRoot);
+		return applyBackward(match, rootNode, inplace, new MutableObject<>(null));
+	}
+
+	public RewriterStatement applyBackward(RewriterStatement.MatchingSubexpression match, RewriterStatement rootNode, boolean inplace, MutableObject<Tuple3<RewriterStatement, RewriterStatement, Integer>> modificationHandle) {
+		return inplace ? applyInplace(match, rootNode, fromRoot) : apply(match, rootNode, fromRoot, modificationHandle);
 	}
 
 	@Override
@@ -118,7 +128,8 @@ public class RewriterRule extends AbstractRewriterRule {
 		return null;
 	}
 
-	private RewriterStatement apply(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest) {
+	// TODO: Give the possibility to get a handle to the parent and root of the replaced sub-DAG
+	private RewriterStatement apply(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest, MutableObject<Tuple3<RewriterStatement, RewriterStatement, Integer>> modificationHandle) {
 		if (match.getMatchParent() == null || match.getMatchParent() == match.getMatchRoot()) {
 			final Map<RewriterStatement, RewriterStatement> createdObjects = new HashMap<>();
 			RewriterStatement cpy = dest.nestedCopyOrInject(createdObjects, obj -> {
@@ -143,11 +154,13 @@ public class RewriterRule extends AbstractRewriterRule {
 			cpy.prepareForHashing();
 			cpy.recomputeHashCodes();
 
+			modificationHandle.setValue(new Tuple3<>(cpy, null, -1));
+
 			return cpy;
 		}
 
 		final Map<RewriterStatement, RewriterStatement> createdObjects = new HashMap<>();
-		RewriterStatement cpy2 = rootInstruction.nestedCopyOrInject(createdObjects, obj2 -> {
+		RewriterStatement cpy2 = rootInstruction.nestedCopyOrInject(createdObjects, (obj2, parent, pIdx) -> {
 			if (obj2 == match.getMatchRoot()) {
 				RewriterStatement cpy = dest.nestedCopyOrInject(createdObjects, obj -> {
 					RewriterStatement assoc = match.getAssocs().get(obj);
@@ -165,6 +178,7 @@ public class RewriterRule extends AbstractRewriterRule {
 					return null;
 				});
 				createdObjects.put(obj2, cpy);
+				modificationHandle.setValue(new Tuple3<>(cpy, parent, pIdx));
 				return cpy;
 			}
 			//System.out.println("Obj: " + obj2);

@@ -44,6 +44,45 @@ public class RewriterRuleCollection {
 					.build()
 			);
 		});
+
+		ALL_TYPES.forEach(t -> {
+			if (t.equals("MATRIX")) {
+				rules.add(new RewriterRuleBuilder(ctx)
+						.setUnidirectional(true)
+						.parseGlobalVars(t + ":A")
+						.parseGlobalVars("LITERAL_INT:1")
+						.withParsedStatement("==(A,A)")
+						.toParsedStatement("matrix(1, nrow(A), ncol(A))")
+						.build()
+				);
+
+				rules.add(new RewriterRuleBuilder(ctx)
+						.setUnidirectional(true)
+						.parseGlobalVars("INT:r,c")
+						.parseGlobalVars("LITERAL_INT:1")
+						.withParsedStatement("matrix(1, r, c)")
+						.toParsedStatement("==($1:_rdMATRIX(r, c),$1)")
+						.build()
+				);
+			} else {
+				rules.add(new RewriterRuleBuilder(ctx)
+						.setUnidirectional(true)
+						.parseGlobalVars(t + ":A")
+						.parseGlobalVars("LITERAL_BOOL:TRUE")
+						.withParsedStatement("==(A,A)")
+						.toParsedStatement("TRUE")
+						.build()
+				);
+
+				rules.add(new RewriterRuleBuilder(ctx)
+						.setUnidirectional(true)
+						.parseGlobalVars("LITERAL_BOOL:TRUE")
+						.withParsedStatement("TRUE")
+						.toParsedStatement("==($1:_rd" + t + "(),$1)")
+						.build()
+				);
+			}
+		});
 	}
 
 	public static void addBooleAxioms(final List<RewriterRule> rules, final RuleContext ctx) {

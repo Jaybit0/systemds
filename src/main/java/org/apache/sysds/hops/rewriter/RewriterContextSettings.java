@@ -270,6 +270,7 @@ public class RewriterContextSettings {
 		builder.append("min(MATRIX)::FLOAT\n");
 
 		builder.append("rand(INT,INT,FLOAT,FLOAT)::MATRIX\n"); // Args: min, max, rows, cols
+		builder.append("matrix(INT,INT,INT)::MATRIX\n");
 
 		// Boole algebra
 
@@ -296,9 +297,16 @@ public class RewriterContextSettings {
 		builder.append("_higher(INT)::FLOAT\n");
 		builder.append("_higher(FLOAT)::FLOAT\n");
 		builder.append("_posInt()::INT\n");
+
 		builder.append("_rdFloat()::FLOAT\n");
 		builder.append("_rdBool()::BOOL\n");
 		builder.append("_anyBool()::BOOL\n");
+
+		builder.append("_rdFLOAT()::FLOAT\n");
+		builder.append("_rdBOOL()::BOOL\n");
+		builder.append("_rdINT()::INT\n");
+		builder.append("_rdMATRIX()::MATRIX\n");
+		builder.append("_rdMATRIX(INT,INT)::MATRIX\n");
 
 		List.of("INT", "FLOAT", "BOOL", "MATRIX").forEach(t -> builder.append("_asVar(" + t + ")::" + t + "\n"));
 
@@ -390,6 +398,14 @@ public class RewriterContextSettings {
 			return String.valueOf(b).toUpperCase();*/
 			return "as.scalar(rand() < 0.5)";
 		});
+
+		ctx.customStringRepr.put("_rdFLOAT()", ctx.customStringRepr.get("_rdFloat()"));
+		ctx.customStringRepr.put("_rdBOOL()", ctx.customStringRepr.get("_rdBool()"));
+
+		ctx.customStringRepr.put("_rdMATRIX()", (stmt, mctx) -> "rand(cols=100, rows=100, min=-1000, max=1000)");
+		ctx.customStringRepr.put("_rdMATRIX(INT,INT)", (stmt, mctx) -> "rand(rows=" + stmt.getOperands().get(0).toString(mctx) + ", cols=" + stmt.getOperands().get(1).toString(mctx) + ", min=-1000, max=1000)");
+
+		ctx.customStringRepr.put("_rdINT()", (stmt, mctx) -> "as.scalar(floor(rand(min=-1000, max=1000)))");
 
 		// TODO: This should later also be able to inject references to existing bool values
 		ctx.customStringRepr.put("_anyBool()", ctx.customStringRepr.get("_rdBool()"));

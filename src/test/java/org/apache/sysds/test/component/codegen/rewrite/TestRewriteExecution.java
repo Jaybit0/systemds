@@ -1,6 +1,7 @@
 package org.apache.sysds.test.component.codegen.rewrite;
 
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.sysds.api.DMLScript;
 import org.apache.sysds.hops.Hop;
 import org.apache.sysds.hops.LiteralOp;
@@ -18,6 +19,7 @@ import org.apache.sysds.parser.DMLProgram;
 import org.apache.sysds.parser.StatementBlock;
 import org.junit.Test;
 import scala.Tuple2;
+import scala.Tuple3;
 import scala.Tuple6;
 
 import java.io.IOException;
@@ -211,7 +213,7 @@ public class TestRewriteExecution {
 
 		RewriterRuleCollection.addEqualitySubstitutions(rules, ctx);
 		RewriterRuleCollection.addBooleAxioms(rules, ctx);
-		//RewriterRuleCollection.addImplicitBoolLiterals(rules, ctx);
+		RewriterRuleCollection.addImplicitBoolLiterals(rules, ctx);
 
 		/*rules.add(new RewriterRuleBuilder(ctx)
 				.parseGlobalVars("LITERAL_BOOL:TRUE")
@@ -280,13 +282,14 @@ public class TestRewriteExecution {
 		String intDef = "LITERAL_INT:10";
 		String floatDef = "LITERAL_FLOAT:0,1,-0.0001,0.0001,-1";
 		String boolDef = "LITERAL_BOOL:TRUE,FALSE";
-		//String startStr = "TRUE";
+		String startStr = "TRUE";
 		//String startStr = "var(rand(10, 10, 0, 1))";
 		//String startStr = "sum(!=(rand(10, 10, -0.0001, 0.0001), 0))";
 		//String startStr = "<(*($1:rand(10, 10, -1, 1), $1), 0)";
 		//String startStr = "rand(10, 10, $1:_rdFloat(), $1)";
 		//String startStr = "sum(==(rand(10, 10, 0, 1), 1))";
-		String startStr = "TRUE";
+		//String startStr = "TRUE";
+		//String startStr = "|($1:_rdBOOL(), FALSE)";
 		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef, boolDef);
 		//handler.apply(RewriterUtils.parse("+(2, 2)", ctx, "LITERAL_INT:2"), ctx);
 		db.insertEntry(ctx, stmt);
@@ -302,17 +305,28 @@ public class TestRewriteExecution {
 		ExecutedRule ex = ExecutedRule.create(ctx, null, null, initialRecord, initialRecord);
 
 		PriorityQueue<ExecutionRecord> queue = new PriorityQueue<>(Comparator.comparingInt(r -> r.statementSize));
-		int MAX_PARALLEL_INVESTIGATIONS = 20;
+		int MAX_PARALLEL_INVESTIGATIONS = 1;
 		List<Tuple2<ExecutionRecord, List<RewriterRuleSet.ApplicableRule>>> investigatedStatements = new ArrayList<>(List.of(new Tuple2<>(initialRecord, applicableRules)));
 
 		if (!handler.apply(ex))
 			return ruleSet;
 
-		for (int i = 0; i < 10000 && !investigatedStatements.isEmpty() && costIncreasingTransformations.size() < 10; i++) {
+		MutableObject<Tuple3<RewriterStatement, RewriterStatement, Integer>> modificationHandle = new MutableObject<>(null);
+
+		for (int i = 0; i < 10000 && !investigatedStatements.isEmpty() && costIncreasingTransformations.size() < 100; i++) {
+			MAX_PARALLEL_INVESTIGATIONS = i / 100 + 1;
 			// Choose investigated statement
 			int rdInvestigation = rd.nextInt(investigatedStatements.size());
 			initialRecord = investigatedStatements.get(rdInvestigation)._1;
 			applicableRules = investigatedStatements.get(rdInvestigation)._2;
+
+			if (applicableRules == null) {
+				applicableRules = ruleSet.acceleratedRecursiveMatch(initialRecord.stmt, false);
+				if (applicableRules.isEmpty()) {
+					replaceInvestigationList(investigatedStatements, queue, rdInvestigation);
+					continue;
+				}
+			}
 
 			int ruleIndex = rd.nextInt(applicableRules.size());
 			RewriterRuleSet.ApplicableRule next = applicableRules.get(ruleIndex);
@@ -321,26 +335,55 @@ public class TestRewriteExecution {
 			RewriterStatement.MatchingSubexpression match = next.matches.remove(matchIdx);
 
 			if (next.forward)
-				newStmt = next.rule.applyForward(match, stmt, false);
+				newStmt = next.rule.applyForward(match, stmt, false, modificationHandle);
 			else
-				newStmt = next.rule.applyBackward(match, stmt, false);
-
-			boolean inserted = db.insertEntry(ctx, newStmt);
+				newStmt = next.rule.applyBackward(match, stmt, false, modificationHandle);
 
 			ExecutionRecord newRcrd = new ExecutionRecord(newStmt);
 
-			if (inserted)
-				queue.add(newRcrd);
-
 			ex = ExecutedRule.create(ctx, next, match, initialRecord, newRcrd);
 
-			if (inserted) {
-				System.out.println("Rewrite took " + (System.currentTimeMillis() - millis) + "ms");
-				System.out.println("DB-size: " + db.size());
-			}
 
-			if (inserted && !handler.apply(ex))
-				return ruleSet;
+			if (ex.from.hopCount < ex.to.hopCount) {
+				// Then we erase knowledge from the modified state as the compiler would not track it from there
+				// This eliminates repetitive patterns
+				// We assume that the compiler loses track of any property (this is too strong but works for now)
+				RewriterStatement cpy = ex.to.stmt.nestedCopyOrInject(new HashMap<>(), x -> null);
+				if (db.insertEntry(ctx, cpy)) {
+					RewriterStatement newRoot = ex.to.stmt;
+					ex.to.stmt = cpy;
+
+					System.out.println("Rewrite took " + (System.currentTimeMillis() - millis) + "ms");
+					System.out.println("DB-size: " + db.size());
+
+					if (!handler.apply(ex))
+						return ruleSet;
+
+					RewriterStatement root = modificationHandle.getValue()._1();
+					RewriterStatement parent = modificationHandle.getValue()._2();
+					Integer pIdx = modificationHandle.getValue()._3();
+
+					RewriterStatement replacement = RewriterUtils.parse("_rd" + root.getResultingDataType(ctx), ctx);
+
+					if (parent != null) {
+						parent.getOperands().set(pIdx, replacement);
+					}
+
+					newRcrd = new ExecutionRecord(newRoot);
+
+					queue.add(newRcrd);
+				}
+			} else {
+				if (db.insertEntry(ctx, newStmt)) {
+					System.out.println("Rewrite took " + (System.currentTimeMillis() - millis) + "ms");
+					System.out.println("DB-size: " + db.size());
+
+					if (!handler.apply(ex))
+						return ruleSet;
+
+					queue.add(newRcrd);
+				}
+			}
 
 			millis = System.currentTimeMillis();
 
@@ -350,39 +393,11 @@ public class TestRewriteExecution {
 
 			while (investigatedStatements.size() < MAX_PARALLEL_INVESTIGATIONS && !queue.isEmpty()) {
 				ExecutionRecord nextRec = queue.poll();
-				investigatedStatements.add(new Tuple2<>(nextRec, ruleSet.acceleratedRecursiveMatch(nextRec.stmt, false)));
+				investigatedStatements.add(new Tuple2<>(nextRec, null));
 			}
 
-			if (applicableRules.isEmpty()) {
-				if (!queue.isEmpty()) {
-					ExecutionRecord nextRec = queue.poll();
-					investigatedStatements.set(rdInvestigation, new Tuple2<>(nextRec, ruleSet.acceleratedRecursiveMatch(nextRec.stmt, false)));
-				} else {
-					investigatedStatements.remove(rdInvestigation);
-				}
-			}
-
-
-
-			/*if (db.insertEntry(ctx, newStmt)) {
-				ExecutionRecord newRcrd = new ExecutionRecord(newStmt, null, null);
-				ex = ExecutedRule.create(ctx, next, match, initialRecord, newRcrd);
-				stmt = newStmt;
-				lastStatement = nextStatement;
-				lastHops = nextHops;
-				nextStatement = newStmt;
-
-				if (!handler.apply(ex))
-					return ruleSet;
-
-				millis = System.currentTimeMillis();
-
-				applicableRules = ruleSet.acceleratedRecursiveMatch(stmt, false);
-			} else {
-				System.out.println("Duplicate entry found: " + newStmt.toString(ctx));
-				System.out.println("Rule: " + next.rule);
-				applicableRules.remove(ruleIndex);
-			}*/
+			if (applicableRules.isEmpty())
+				replaceInvestigationList(investigatedStatements, queue, rdInvestigation);
 		}
 
 
@@ -391,6 +406,15 @@ public class TestRewriteExecution {
 		System.out.println(next.rule.applyForward(next.matches.get(0), stmt, true));*/
 
 		return ruleSet;
+	}
+
+	private void replaceInvestigationList(List<Tuple2<ExecutionRecord, List<RewriterRuleSet.ApplicableRule>>> investigatedStatements, PriorityQueue<ExecutionRecord> q, int idx) {
+		if (!q.isEmpty()) {
+			ExecutionRecord nextRec = q.poll();
+			investigatedStatements.set(idx, new Tuple2<>(nextRec, null));
+		} else {
+			investigatedStatements.remove(idx);
+		}
 	}
 
 
