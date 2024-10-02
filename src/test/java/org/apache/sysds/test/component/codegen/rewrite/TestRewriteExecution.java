@@ -17,14 +17,18 @@ import org.apache.sysds.hops.rewriter.RuleContext;
 import org.apache.sysds.parser.DMLProgram;
 import org.apache.sysds.parser.StatementBlock;
 import org.junit.Test;
+import scala.Tuple2;
 import scala.Tuple6;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -297,10 +301,19 @@ public class TestRewriteExecution {
 		ExecutionRecord initialRecord = new ExecutionRecord(stmt);
 		ExecutedRule ex = ExecutedRule.create(ctx, null, null, initialRecord, initialRecord);
 
+		PriorityQueue<ExecutionRecord> queue = new PriorityQueue<>(Comparator.comparingInt(r -> r.statementSize));
+		int MAX_PARALLEL_INVESTIGATIONS = 20;
+		List<Tuple2<ExecutionRecord, List<RewriterRuleSet.ApplicableRule>>> investigatedStatements = new ArrayList<>(List.of(new Tuple2<>(initialRecord, applicableRules)));
+
 		if (!handler.apply(ex))
 			return ruleSet;
 
-		for (int i = 0; i < 100 && !applicableRules.isEmpty() && costIncreasingTransformations.size() < 10; i++) {
+		for (int i = 0; i < 10000 && !investigatedStatements.isEmpty() && costIncreasingTransformations.size() < 10; i++) {
+			// Choose investigated statement
+			int rdInvestigation = rd.nextInt(investigatedStatements.size());
+			initialRecord = investigatedStatements.get(rdInvestigation)._1;
+			applicableRules = investigatedStatements.get(rdInvestigation)._2;
+
 			int ruleIndex = rd.nextInt(applicableRules.size());
 			RewriterRuleSet.ApplicableRule next = applicableRules.get(ruleIndex);
 
@@ -312,20 +325,43 @@ public class TestRewriteExecution {
 			else
 				newStmt = next.rule.applyBackward(match, stmt, false);
 
-			System.out.println("Rewrite took " + (System.currentTimeMillis() - millis) + "ms");
-
-			db.insertEntry(ctx, newStmt);
+			boolean inserted = db.insertEntry(ctx, newStmt);
 
 			ExecutionRecord newRcrd = new ExecutionRecord(newStmt);
+
+			if (inserted)
+				queue.add(newRcrd);
+
 			ex = ExecutedRule.create(ctx, next, match, initialRecord, newRcrd);
 
-			if (!handler.apply(ex))
+			if (inserted) {
+				System.out.println("Rewrite took " + (System.currentTimeMillis() - millis) + "ms");
+				System.out.println("DB-size: " + db.size());
+			}
+
+			if (inserted && !handler.apply(ex))
 				return ruleSet;
+
+			millis = System.currentTimeMillis();
 
 			if (next.matches.isEmpty())
 				applicableRules.remove(ruleIndex);
 
-			millis = System.currentTimeMillis();
+
+			while (investigatedStatements.size() < MAX_PARALLEL_INVESTIGATIONS && !queue.isEmpty()) {
+				ExecutionRecord nextRec = queue.poll();
+				investigatedStatements.add(new Tuple2<>(nextRec, ruleSet.acceleratedRecursiveMatch(nextRec.stmt, false)));
+			}
+
+			if (applicableRules.isEmpty()) {
+				if (!queue.isEmpty()) {
+					ExecutionRecord nextRec = queue.poll();
+					investigatedStatements.set(rdInvestigation, new Tuple2<>(nextRec, ruleSet.acceleratedRecursiveMatch(nextRec.stmt, false)));
+				} else {
+					investigatedStatements.remove(rdInvestigation);
+				}
+			}
+
 
 
 			/*if (db.insertEntry(ctx, newStmt)) {
@@ -415,6 +451,7 @@ public class TestRewriteExecution {
 		String executableString;
 		List<Hop> hops;
 		int hopCount;
+		int statementSize;
 
 		public ExecutionRecord(RewriterStatement stmt) {
 			this(stmt, null, null, -1);
@@ -422,6 +459,13 @@ public class TestRewriteExecution {
 
 		public ExecutionRecord(RewriterStatement stmt, String executableString, List<Hop> hops, int hopCount) {
 			this.stmt = stmt;
+			this.statementSize = 0;
+
+			this.stmt.forEachPostOrder((el, parent, pIdx) -> {
+				this.statementSize++;
+				return true;
+			});
+
 			this.executableString = executableString;
 			this.hops = hops;
 			this.hopCount = hopCount;
