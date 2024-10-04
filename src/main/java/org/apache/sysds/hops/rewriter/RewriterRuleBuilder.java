@@ -2,6 +2,7 @@ package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.lang3.mutable.MutableObject;
+import scala.Tuple2;
 
 import javax.ws.rs.core.Link;
 import java.util.ArrayList;
@@ -22,7 +23,9 @@ public class RewriterRuleBuilder {
 	private HashMap<String, RewriterStatement> instrSeqIds = new HashMap<>();
 	private HashMap<String, RewriterStatement> mappingSeqIds = new HashMap<>();
 	private HashMap<RewriterStatement, RewriterRule.LinkObject> linksStmt1ToStmt2 = new HashMap<>();
+	private ArrayList<Tuple2<RewriterStatement, Consumer<RewriterStatement>>> applyStmt1ToStmt2 = new ArrayList<>();
 	private HashMap<RewriterStatement, RewriterRule.LinkObject> linksStmt2ToStmt1 = new HashMap<>();
+	private ArrayList<Tuple2<RewriterStatement, Consumer<RewriterStatement>>> applyStmt2ToStmt1 = new ArrayList<>();
 	private RewriterStatement fromRoot = null;
 	private RewriterStatement toRoot = null;
 	private BiFunction<RewriterStatement.MatchingSubexpression, List<RewriterRule.ExplicitLink>, Boolean> iff1to2 = null;
@@ -105,7 +108,7 @@ public class RewriterRuleBuilder {
 		if (!canBeModified)
 			throw new IllegalArgumentException();
 		fromRoot = RewriterUtils.parseExpression(stmt, refMap, globalIds, ctx);
-		fromRoot.forEachPostOrderWithDuplicates(el -> {
+		fromRoot.forEachInOrderWithDuplicates(el -> {
 			instrSeqIds.put(el.getId(), el);
 			return true;
 		});
@@ -121,7 +124,7 @@ public class RewriterRuleBuilder {
 			throw new IllegalArgumentException();
 		mappingState = true;
 		toRoot = RewriterUtils.parseExpression(stmt, refMap, globalIds, ctx);
-		toRoot.forEachPostOrderWithDuplicates(el -> {
+		toRoot.forEachInOrderWithDuplicates(el -> {
 			mappingSeqIds.put(el.getId(), el);
 			return true;
 		});
@@ -161,7 +164,7 @@ public class RewriterRuleBuilder {
 		if (getCurrentInstruction() != null)
 			getCurrentInstruction().consolidate(ctx);
 		prepare();
-		return new RewriterRule(ctx, ruleName, fromRoot, toRoot, isUnidirectional, linksStmt1ToStmt2, linksStmt2ToStmt1, iff1to2, iff2to1);
+		return new RewriterRule(ctx, ruleName, fromRoot, toRoot, isUnidirectional, linksStmt1ToStmt2, linksStmt2ToStmt1, iff1to2, iff2to1, applyStmt1ToStmt2, applyStmt2ToStmt1);
 	}
 
 	public RewriterStatement buildDAG() {
@@ -405,6 +408,24 @@ public class RewriterRuleBuilder {
 	public RewriterRuleBuilder link(String id, String id2, Consumer<RewriterRule.ExplicitLink> transferFunction) {
 		linkUnidirectional(id, id2, transferFunction, true);
 		linkUnidirectional(id2, id, transferFunction, false);
+		return this;
+	}
+
+	public RewriterRuleBuilder apply(String id, Consumer<RewriterStatement> applicationFunction, boolean forward) {
+		prepare();
+		RewriterStatement stmt1 = forward ?  mappingSeqIds.get(id) : instrSeqIds.get(id);
+		if (stmt1 == null)
+			stmt1 = globalIds.get(id);
+		if (stmt1 == null)
+			throw new IllegalArgumentException("Could not find instruction id: " + id);
+		if (!stmt1.isConsolidated())
+			stmt1.consolidate(ctx);
+
+		if (forward)
+			applyStmt1ToStmt2.add(new Tuple2<>(stmt1, applicationFunction));
+		else
+			applyStmt2ToStmt1.add(new Tuple2<>(stmt1, applicationFunction));
+
 		return this;
 	}
 

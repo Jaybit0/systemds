@@ -117,10 +117,6 @@ public class RewriterInstruction extends RewriterStatement {
 				}
 			}*/
 			if (ruleLink != null) {
-				//System.out.println("HERE: " + ruleLink.stmt);
-				//System.out.println("HERE");
-				//System.out.println("RW: " + this);
-				//System.out.println("RW2: " + inst);
 				links.add(new RewriterRule.ExplicitLink(inst, ruleLink.stmt, ruleLink.transferFunction));
 			}
 

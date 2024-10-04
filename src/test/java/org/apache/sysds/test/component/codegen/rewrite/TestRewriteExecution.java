@@ -9,6 +9,7 @@ import org.apache.sysds.hops.OptimizerUtils;
 import org.apache.sysds.hops.rewriter.RewriterContextSettings;
 import org.apache.sysds.hops.rewriter.RewriterDatabase;
 import org.apache.sysds.hops.rewriter.RewriterHeuristic;
+import org.apache.sysds.hops.rewriter.RewriterHeuristics;
 import org.apache.sysds.hops.rewriter.RewriterRule;
 import org.apache.sysds.hops.rewriter.RewriterRuleCollection;
 import org.apache.sysds.hops.rewriter.RewriterRuleSet;
@@ -215,6 +216,14 @@ public class TestRewriteExecution {
 		RewriterRuleCollection.addBooleAxioms(rules, ctx);
 		RewriterRuleCollection.addImplicitBoolLiterals(rules, ctx);
 
+		ArrayList<RewriterRule> expRules = new ArrayList<>();
+		RewriterRuleCollection.expandStreamingExpressions(expRules, ctx);
+		RewriterHeuristic streamExpansion = new RewriterHeuristic(new RewriterRuleSet(ctx, expRules));
+
+		ArrayList<RewriterRule> pd = new ArrayList<>();
+		RewriterRuleCollection.pushdownStreamSelections(pd, ctx);
+		RewriterHeuristic streamSelectPushdown = new RewriterHeuristic(new RewriterRuleSet(ctx, pd));
+
 		/*rules.add(new RewriterRuleBuilder(ctx)
 				.parseGlobalVars("LITERAL_BOOL:TRUE")
 				.parseGlobalVars("LITERAL_INT:1")
@@ -282,7 +291,7 @@ public class TestRewriteExecution {
 		String intDef = "LITERAL_INT:10";
 		String floatDef = "LITERAL_FLOAT:0,1,-0.0001,0.0001,-1";
 		String boolDef = "LITERAL_BOOL:TRUE,FALSE";
-		String startStr = "TRUE";
+		//String startStr = "TRUE";
 		//String startStr = "var(rand(10, 10, 0, 1))";
 		//String startStr = "sum(!=(rand(10, 10, -0.0001, 0.0001), 0))";
 		//String startStr = "<(*($1:rand(10, 10, -1, 1), $1), 0)";
@@ -290,7 +299,17 @@ public class TestRewriteExecution {
 		//String startStr = "sum(==(rand(10, 10, 0, 1), 1))";
 		//String startStr = "TRUE";
 		//String startStr = "|($1:_rdBOOL(), FALSE)";
+		String startStr = "[](*(rand(10, 10, 0, 1), rand(10, 10, 0, 1)), 10, 10)";
 		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef, boolDef);
+
+		stmt = streamExpansion.apply(stmt);
+		System.out.println(stmt);
+		stmt = streamSelectPushdown.apply(stmt);
+		System.out.println(stmt.toString(ctx));
+
+		if (true)
+			return null;
+
 		//handler.apply(RewriterUtils.parse("+(2, 2)", ctx, "LITERAL_INT:2"), ctx);
 		db.insertEntry(ctx, stmt);
 
@@ -485,7 +504,7 @@ public class TestRewriteExecution {
 			this.stmt = stmt;
 			this.statementSize = 0;
 
-			this.stmt.forEachPostOrder((el, parent, pIdx) -> {
+			this.stmt.forEachInOrder((el, parent, pIdx) -> {
 				this.statementSize++;
 				return true;
 			});

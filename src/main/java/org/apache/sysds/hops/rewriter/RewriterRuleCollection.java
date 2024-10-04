@@ -1,7 +1,10 @@
 package org.apache.sysds.hops.rewriter;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.apache.sysds.hops.rewriter.RewriterContextSettings.ALL_TYPES;
@@ -340,6 +343,82 @@ public class RewriterRuleCollection {
 		rs.accelerate();
 
 		return new RewriterHeuristic(rs, true);
+	}
+
+	// E.g. expand A * B -> _m($1:_idx(), 1, nrow(A), _m($2:_idx(), 1, nrow(B), A[$1, $2] * B[$1, $2]))
+	public static void expandStreamingExpressions(final List<RewriterRule> rules, final RuleContext ctx) {
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("LITERAL_INT:1")
+				.withParsedStatement("$1:ElementWiseInstruction(A,B)", hooks)
+				.toParsedStatement("_m($2:_idx(1, nrow(A)), $3:_idx(1, ncol(A)), $4:ElementWiseInstruction([](A, $2, $3), [](B, $2, $3)))", hooks)
+				.link(hooks.get(1).getId(), hooks.get(4).getId(), RewriterStatement::transferMeta)
+				.apply(hooks.get(2).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
+				.apply(hooks.get(3).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
+				.build()
+		);
+	}
+
+	public static void pushdownStreamSelections(final List<RewriterRule> rules, final RuleContext ctx) {
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:h,i,j,k,l,m")
+				.parseGlobalVars("FLOAT:v")
+				.parseGlobalVars("LITERAL_INT:1")
+				.withParsedStatement("[]($1:_m(h, i, v), l, m)", hooks)
+				.toParsedStatement("$2:_m(l, m, v)", hooks)
+				.iff((match, lnk) -> {
+					List<RewriterStatement> ops = match.getMatchRoot().getOperands().get(0).getOperands();
+					return ops.get(0).isInstruction()
+							&& ops.get(1).isInstruction()
+							&& ops.get(0).trueTypedInstruction(ctx).equals("_idx(INT,INT)")
+							&& ops.get(1).trueTypedInstruction(ctx).equals("_idx(INT,INT)");
+				}, true)
+				.linkUnidirectional(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
+					for (int idx = 0; idx < 2; idx++) {
+						RewriterStatement oldRef = lnk.oldStmt.getOperands().get(idx);
+						RewriterStatement newRef = lnk.newStmt.get(0).getOperands().get(idx);
+
+						// Replace all references to h with
+						lnk.newStmt.get(0).getOperands().get(2).forEachInOrder((el, parent, pIdx) -> {
+							if (el.getOperands() != null) {
+								for (int i = 0; i < el.getOperands().size(); i++) {
+									RewriterStatement child = el.getOperands().get(i);
+									Object meta = child.getMeta("idxId");
+
+									if (meta instanceof UUID && meta.equals(oldRef.getMeta("idxId")))
+										el.getOperands().set(i, newRef);
+								}
+							}
+							return true;
+						});
+
+					}
+				}, true)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:i,j")
+				.parseGlobalVars("FLOAT:v")
+				.withParsedStatement("_m(i, j, v)", hooks)
+				.toParsedStatement("v", hooks)
+				.iff((match, lnk) -> {
+					List<RewriterStatement> ops = match.getMatchRoot().getOperands();
+
+					return (!ops.get(0).isInstruction() || !ops.get(0).trueInstruction().equals("_idx"))
+							&& (!ops.get(1).isInstruction() || !ops.get(1).trueInstruction().equals("_idx"));
+				}, true)
+				.build()
+		);
 	}
 
 }

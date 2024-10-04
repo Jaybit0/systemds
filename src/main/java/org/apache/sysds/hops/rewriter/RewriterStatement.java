@@ -266,27 +266,27 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	}
 
 	/**
-	 * Traverses the DAG in post-order. If nodes with multiple parents exist, those are visited multiple times.
+	 * Traverses the DAG in-order. If nodes with multiple parents exist, those are visited multiple times.
 	 * If the function returns false, the sub-DAG of the current node will not be traversed.
 	 * @param function test
 	 */
-	public void forEachPostOrderWithDuplicates(Function<RewriterStatement, Boolean> function) {
+	public void forEachInOrderWithDuplicates(Function<RewriterStatement, Boolean> function) {
 		if (function.apply(this) && getOperands() != null)
 			for (int i = 0; i < getOperands().size(); i++)
-				getOperands().get(i).forEachPostOrderWithDuplicates(function);
+				getOperands().get(i).forEachInOrderWithDuplicates(function);
 	}
 
-	public void forEachPostOrder(TriFunction<RewriterStatement, RewriterStatement, Integer, Boolean> function) {
-		forEachPostOrder(function, new HashSet<>(), null, -1);
+	public void forEachInOrder(TriFunction<RewriterStatement, RewriterStatement, Integer, Boolean> function) {
+		forEachInOrder(function, new HashSet<>(), null, -1);
 	}
 
-	private void forEachPostOrder(TriFunction<RewriterStatement, RewriterStatement, Integer, Boolean> function, Set<RewriterRule.IdentityRewriterStatement> visited, RewriterStatement parent, int rootIdx) {
+	private void forEachInOrder(TriFunction<RewriterStatement, RewriterStatement, Integer, Boolean> function, Set<RewriterRule.IdentityRewriterStatement> visited, RewriterStatement parent, int rootIdx) {
 		if (!visited.add(new RewriterRule.IdentityRewriterStatement(this)))
 			return;
 
 		if (function.apply(this, parent, rootIdx) && getOperands() != null)
 			for (int i = 0; i < getOperands().size(); i++)
-				getOperands().get(i).forEachPostOrder(function, visited, this, i);
+				getOperands().get(i).forEachInOrder(function, visited, this, i);
 	}
 
 	@Override
