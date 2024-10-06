@@ -2,6 +2,7 @@ package org.apache.sysds.test.component.codegen.rewrite;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.apache.spark.internal.config.R;
 import org.apache.sysds.api.DMLScript;
 import org.apache.sysds.hops.Hop;
 import org.apache.sysds.hops.LiteralOp;
@@ -10,7 +11,9 @@ import org.apache.sysds.hops.rewriter.RewriterContextSettings;
 import org.apache.sysds.hops.rewriter.RewriterDatabase;
 import org.apache.sysds.hops.rewriter.RewriterHeuristic;
 import org.apache.sysds.hops.rewriter.RewriterHeuristics;
+import org.apache.sysds.hops.rewriter.RewriterInstruction;
 import org.apache.sysds.hops.rewriter.RewriterRule;
+import org.apache.sysds.hops.rewriter.RewriterRuleBuilder;
 import org.apache.sysds.hops.rewriter.RewriterRuleCollection;
 import org.apache.sysds.hops.rewriter.RewriterRuleSet;
 import org.apache.sysds.hops.rewriter.RewriterStatement;
@@ -288,7 +291,7 @@ public class TestRewriteExecution {
 		RewriterDatabase db = new RewriterDatabase();
 
 		String matrixDef = "MATRIX:A,B,C";
-		String intDef = "LITERAL_INT:10";
+		String intDef = "LITERAL_INT:10,20";
 		String floatDef = "LITERAL_FLOAT:0,1,-0.0001,0.0001,-1";
 		String boolDef = "LITERAL_BOOL:TRUE,FALSE";
 		//String startStr = "TRUE";
@@ -299,13 +302,58 @@ public class TestRewriteExecution {
 		//String startStr = "sum(==(rand(10, 10, 0, 1), 1))";
 		//String startStr = "TRUE";
 		//String startStr = "|($1:_rdBOOL(), FALSE)";
-		String startStr = "[](*(rand(10, 10, 0, 1), rand(10, 10, 0, 1)), 10, 10)";
+
+		RewriterStatement stmt2 = new RewriterRuleBuilder(ctx)
+				.asDAGBuilder()
+				.parseGlobalVars("LITERAL_INT:1,10")
+				.parseGlobalVars("LITERAL_FLOAT:2,4")
+				.parseGlobalStatementAsVariable("rand", "rand(10, 10, 2, 4)")
+				.parseGlobalStatementAsVariable("var_m1", "_m($2:_idx(1, nrow(rand)), $3:_idx(1, ncol(rand)), [](rand, $2, $3))")
+				.withParsedStatement("_m($1:_idx(1, nrow(var_m1)), 1, [](var_m1, $1, 1))")
+				.buildDAG();
+
+		//System.out.println(stmt2);
+
+		/*ArrayList<RewriterRule> mrules = new ArrayList<>();
+		mrules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("FLOAT:a,b")
+				.parseGlobalVars("LITERAL_INT:0")
+				.withParsedStatement("*(a, b)")
+				.toParsedStatement("*(+(a, 0), b)")
+				.build()
+		);
+
+		RewriterRuleSet rs = new RewriterRuleSet(ctx, mrules);
+		rs.accelerate();
+		RewriterRuleSet.ApplicableRule ar = rs.acceleratedFindFirst(stmt2);
+		System.out.println(ar.matches.size());
+		stmt2 = ar.rule.apply(ar.matches.get(0), (RewriterInstruction) stmt2, true, true);*/
+		/*stmt2 = streamSelectPushdown.apply(stmt2);
+		System.out.println(stmt2);
+
+		if (true)
+			return null;*/
+
+		String startStr = "trace(*(rand(10, 10, 0, 1), rand(10, 10, 0, 1)))";
 		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef, boolDef);
 
-		stmt = streamExpansion.apply(stmt);
-		System.out.println(stmt);
-		stmt = streamSelectPushdown.apply(stmt);
-		System.out.println(stmt.toString(ctx));
+		stmt = streamExpansion.apply(stmt, (t, r) -> {
+			System.out.println("Apply");
+			System.out.println(t);
+			return true;
+		});
+		//stmt = stmt.getOperands().get(0).getOperands().get(2);
+		System.out.println("=== HHH ===");
+		System.out.println(String.join("\n", stmt.toExecutableString(ctx)));
+		System.out.println("=== HHH ===");
+		// TODO: Here is an error when pushing down a stream
+		stmt = streamSelectPushdown.apply(stmt, (t, r) -> {
+			System.out.println(String.join("\n", t.toExecutableString(ctx)));
+			System.out.println("=====");
+			return true;
+		});
+		System.out.println(String.join("\n", stmt.toExecutableString(ctx)));
 
 		if (true)
 			return null;
@@ -504,7 +552,7 @@ public class TestRewriteExecution {
 			this.stmt = stmt;
 			this.statementSize = 0;
 
-			this.stmt.forEachInOrder((el, parent, pIdx) -> {
+			this.stmt.forEachPreOrder((el, parent, pIdx) -> {
 				this.statementSize++;
 				return true;
 			});

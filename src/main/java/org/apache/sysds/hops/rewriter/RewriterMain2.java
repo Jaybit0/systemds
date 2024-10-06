@@ -407,7 +407,7 @@ public class RewriterMain2 {
 
 		long millis = System.currentTimeMillis();
 
-		heur.apply(instr, current -> {
+		heur.apply(instr, (current, r) -> {
 			println(current);
 			println("<<<");
 			println();

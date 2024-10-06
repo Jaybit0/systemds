@@ -272,6 +272,8 @@ public class RewriterContextSettings {
 		builder.append("rand(INT,INT,FLOAT,FLOAT)::MATRIX\n"); // Args: min, max, rows, cols
 		builder.append("matrix(INT,INT,INT)::MATRIX\n");
 
+		builder.append("trace(MATRIX)::FLOAT\n");
+
 		// Boole algebra
 
 		RewriterUtils.buildBinaryPermutations(List.of("MATRIX", "FLOAT", "INT", "BOOL"), (t1, t2) -> {
@@ -311,8 +313,11 @@ public class RewriterContextSettings {
 		List.of("INT", "FLOAT", "BOOL", "MATRIX").forEach(t -> builder.append("_asVar(" + t + ")::" + t + "\n"));
 
 		builder.append("[](MATRIX,INT,INT)::FLOAT\n");
+		builder.append("[](MATRIX,INT,INT,INT,INT)::FLOAT\n");
 		builder.append("_m(INT,INT,FLOAT)::MATRIX\n");
 		builder.append("_idx(INT,INT)::INT\n");
+		builder.append("_nrow()::INT\n");
+		builder.append("_ncol()::INT\n");
 
 		/*builder.append("_map(INT,INT,FLOAT)::MATRIX\n");
 		builder.append("_matIdx(MATRIX)::IDX[MATRIX]\n");

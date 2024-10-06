@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -29,7 +30,7 @@ public class RewriterHeuristics implements RewriterHeuristicTransformation {
 	}
 
 	@Override
-	public RewriterStatement apply(RewriterStatement stmt, @Nullable Function<RewriterStatement, Boolean> func, MutableBoolean bool) {
+	public RewriterStatement apply(RewriterStatement stmt, @Nullable BiFunction<RewriterStatement, RewriterRule, Boolean> func, MutableBoolean bool) {
 		for (HeuristicEntry entry : heuristics) {
 			System.out.println();
 			System.out.println("> " + entry.name + " <");
@@ -64,7 +65,7 @@ public class RewriterHeuristics implements RewriterHeuristicTransformation {
 		}
 
 		@Override
-		public RewriterStatement apply(RewriterStatement stmt, @Nullable Function<RewriterStatement, Boolean> func, MutableBoolean bool) {
+		public RewriterStatement apply(RewriterStatement stmt, @Nullable BiFunction<RewriterStatement, RewriterRule, Boolean> func, MutableBoolean bool) {
 			bool.setValue(true);
 			while (bool.getValue()) {
 				bool.setValue(false);
