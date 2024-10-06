@@ -439,7 +439,6 @@ public class RewriterRuleCollection {
 							&& ops.get(1).trueTypedInstruction(ctx).equals("_idx(INT,INT)");
 				}, true)
 				.linkUnidirectional(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
-					System.out.println("HERE2");
 					for (int idx = 0; idx < 2; idx++) {
 						RewriterStatement oldRef = lnk.oldStmt.getOperands().get(idx);
 						RewriterStatement newRef = lnk.newStmt.get(0).getOperands().get(idx);

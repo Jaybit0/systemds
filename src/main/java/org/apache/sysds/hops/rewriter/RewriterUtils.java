@@ -77,9 +77,9 @@ public class RewriterUtils {
 			}
 		}
 
-		stmt.forEachInOrderWithDuplicates(RewriterUtils.propertyExtractor(new ArrayList<>(ops), ctx));
+		stmt.forEachPreOrderWithDuplicates(RewriterUtils.propertyExtractor(new ArrayList<>(ops), ctx));
 
-		stmt.forEachInOrderWithDuplicates(el -> {
+		stmt.forEachPreOrderWithDuplicates(el -> {
 			if (!(el instanceof RewriterInstruction))
 				return true;
 			RewriterInstruction e = (RewriterInstruction) el;
@@ -292,7 +292,7 @@ public class RewriterUtils {
 
 	public static HashMap<String, List<RewriterStatement>> createIndex(RewriterStatement stmt, final RuleContext ctx) {
 		HashMap<String, List<RewriterStatement>> index = new HashMap<>();
-		stmt.forEachInOrderWithDuplicates(mstmt -> {
+		stmt.forEachPreOrderWithDuplicates(mstmt -> {
 			if (mstmt instanceof RewriterInstruction) {
 				RewriterInstruction instr = (RewriterInstruction)mstmt;
 				index.compute(instr.trueTypedInstruction(ctx), (k, v) -> {

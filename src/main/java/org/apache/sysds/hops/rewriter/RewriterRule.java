@@ -274,7 +274,7 @@ public class RewriterRule extends AbstractRewriterRule {
 
 		RewriterStatement from = fromRoot.nestedCopyOrInject(new HashMap<>(), stmt -> null);
 
-		from.forEachInOrderWithDuplicates(stmt -> {
+		from.forEachPreOrderWithDuplicates(stmt -> {
 			IdentityRewriterStatement identity = new IdentityRewriterStatement(stmt);
 			if (!visited.add(identity))
 				return false;

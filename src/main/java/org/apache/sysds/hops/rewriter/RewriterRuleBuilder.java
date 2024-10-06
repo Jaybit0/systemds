@@ -108,7 +108,7 @@ public class RewriterRuleBuilder {
 		if (!canBeModified)
 			throw new IllegalArgumentException();
 		fromRoot = RewriterUtils.parseExpression(stmt, refMap, globalIds, ctx);
-		fromRoot.forEachInOrderWithDuplicates(el -> {
+		fromRoot.forEachPreOrderWithDuplicates(el -> {
 			instrSeqIds.put(el.getId(), el);
 			return true;
 		});
@@ -124,7 +124,7 @@ public class RewriterRuleBuilder {
 			throw new IllegalArgumentException();
 		mappingState = true;
 		toRoot = RewriterUtils.parseExpression(stmt, refMap, globalIds, ctx);
-		toRoot.forEachInOrderWithDuplicates(el -> {
+		toRoot.forEachPreOrderWithDuplicates(el -> {
 			mappingSeqIds.put(el.getId(), el);
 			return true;
 		});
