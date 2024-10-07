@@ -339,7 +339,8 @@ public class TestRewriteExecution {
 		if (true)
 			return null;*/
 
-		String startStr = "trace(*(rand(10, 10, 0, 1), rand(10, 10, 0, 1)))";
+		//String startStr = "trace(*(rand(10, 10, 0, 1), rand(10, 10, 0, 1)))";
+		String startStr = "t(t(rand(10, 10, 0, 1)))";
 		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef, boolDef);
 
 		System.out.println("===== STREAM EXPANSION =====");

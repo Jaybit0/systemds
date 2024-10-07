@@ -374,6 +374,7 @@ public class RewriterRuleCollection {
 				.build()
 		);
 
+		// Trace(A)
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
@@ -382,6 +383,24 @@ public class RewriterRuleCollection {
 				.toParsedStatement("sum($3:_m($1:_idx(1, $2:nrow(A)), 1, [](A, $1, $1)))", hooks)
 				.apply(hooks.get(1).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
 				.apply(hooks.get(2).getId(), stmt -> stmt.unsafePutMeta("dontExpand", true), true)
+				.apply(hooks.get(3).getId(), stmt -> {
+					UUID id = UUID.randomUUID();
+					stmt.unsafePutMeta("ownerId", id);
+					stmt.getOperands().get(0).unsafePutMeta("ownerId", id);
+					stmt.getOperands().get(1).unsafePutMeta("ownerId", id);
+				}, true)
+				.build()
+		);
+
+		// t(A)
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("LITERAL_INT:1")
+				.withParsedStatement("t(A)", hooks)
+				.toParsedStatement("$3:_m($1:_idx(1, ncol(A)), $2:_idx(1, nrow(A)), [](A, $2, $1))", hooks)
+				.apply(hooks.get(1).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
+				.apply(hooks.get(2).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true)
 				.apply(hooks.get(3).getId(), stmt -> {
 					UUID id = UUID.randomUUID();
 					stmt.unsafePutMeta("ownerId", id);
@@ -558,11 +577,11 @@ public class RewriterRuleCollection {
 				.withParsedStatement("_m($1:_idx(a, b), $2:_idx(c, d), [](A, $1, $2))", hooks)
 				.toParsedStatement("A", hooks)
 				.iff(match -> {
-					RewriterStatement A = match.getMatchRoot().getOperands().get(0);
-					RewriterStatement a = match.getMatchRoot().getOperands().get(1);
-					RewriterStatement b = match.getMatchRoot().getOperands().get(2);
-					RewriterStatement c = match.getMatchRoot().getOperands().get(3);
-					RewriterStatement d = match.getMatchRoot().getOperands().get(4);
+					RewriterStatement A = match.getMatchRoot().getOperands().get(2);
+					RewriterStatement a = match.getMatchRoot().getOperands().get(0).getOperands().get(0);
+					RewriterStatement b = match.getMatchRoot().getOperands().get(0).getOperands().get(1);
+					RewriterStatement c = match.getMatchRoot().getOperands().get(1).getOperands().get(0);
+					RewriterStatement d = match.getMatchRoot().getOperands().get(1).getOperands().get(1);
 
 					if (a.isLiteral() && ((int)a.getLiteral()) == 1
 						&& b == A.getMeta("nrow")

@@ -2,6 +2,7 @@ package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.lang3.NotImplementedException;
 
+import java.util.UUID;
 import java.util.function.Consumer;
 
 public class MetaPropagator implements Consumer<RewriterStatement> {
@@ -38,8 +39,8 @@ public class MetaPropagator implements Consumer<RewriterStatement> {
 		Object rowAccess;
 
 		if (root.getOperands() == null || root.getOperands().isEmpty()) {
-			root.unsafePutMeta("ncol", new RewriterInstruction().withInstruction("ncol").withOps(root).consolidate(ctx));
-			root.unsafePutMeta("nrow", new RewriterInstruction().withInstruction("nrow").withOps(root).consolidate(ctx));
+			root.unsafePutMeta("ncol", new RewriterInstruction().withInstruction("ncol").withOps(root).as(UUID.randomUUID().toString()).consolidate(ctx));
+			root.unsafePutMeta("nrow", new RewriterInstruction().withInstruction("nrow").withOps(root).as(UUID.randomUUID().toString()).consolidate(ctx));
 			return;
 		}
 
@@ -91,6 +92,27 @@ public class MetaPropagator implements Consumer<RewriterStatement> {
 				case "diag(MATRIX)":
 					root.unsafePutMeta("nrow", root.getOperands().get(0).getMeta("nrow"));
 					root.unsafePutMeta("ncol", new RewriterDataType().ofType(root.getResultingDataType(ctx)).as("1").asLiteral(1));
+					return;
+				case "[](MATRIX,INT,INT,INT,INT)":
+					Integer[] ints = new Integer[4];
+
+					for (int i = 0; i < 4; i++)
+						if (root.getOperands().get(1).isLiteral())
+							ints[i] = (Integer)root.getOperands().get(1).getLiteral();
+
+					if (ints[0] != null && ints[1] != null) {
+						root.unsafePutMeta("nrow", ints[1] - ints[0] + 1);
+					} else {
+						throw new NotImplementedException();
+						// TODO:
+					}
+
+					if (ints[2] != null && ints[3] != null) {
+						root.unsafePutMeta("ncol", ints[3] - ints[2] + 1);
+					} else {
+						throw new NotImplementedException();
+					}
+
 					return;
 			}
 

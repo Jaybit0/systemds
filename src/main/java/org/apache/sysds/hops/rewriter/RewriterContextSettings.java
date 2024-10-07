@@ -2,6 +2,7 @@ package org.apache.sysds.hops.rewriter;
 
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 public class RewriterContextSettings {
 
@@ -339,6 +340,10 @@ public class RewriterContextSettings {
 		String ctxString = getDefaultContextString();
 
 		RuleContext ctx = RuleContext.createContext(ctxString);
+
+		ctx.customStringRepr.put("_idx(INT,INT)", (stmt, mctx) -> {
+			return stmt.trueInstruction() + "(" + String.join(", ", stmt.getOperands().stream().map(el -> el.toString(mctx)).collect(Collectors.toList())) + ") [" + stmt.getMeta("idxId") + "]";
+		});
 
 		// Meta instruction resolver
 		ctx.customStringRepr.put("_lower(INT)", (stmt, mctx) -> {
