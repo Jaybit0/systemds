@@ -69,9 +69,9 @@ public class RewriterDataType extends RewriterStatement {
 	}
 
 	@Override
-	public void consolidate(final RuleContext ctx) {
+	public RewriterStatement consolidate(final RuleContext ctx) {
 		if (consolidated)
-			return;
+			return this;
 
 		if (id == null || id.isEmpty())
 			throw new IllegalArgumentException("The id of a data type cannot be empty");
@@ -79,6 +79,7 @@ public class RewriterDataType extends RewriterStatement {
 			throw new IllegalArgumentException("The type of a data type cannot be empty");
 
 		hashCode = Objects.hash(rid, refCtr, type);
+		return this;
 	}
 
 	@Override

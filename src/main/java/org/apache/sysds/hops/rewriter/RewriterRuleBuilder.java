@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -23,13 +24,13 @@ public class RewriterRuleBuilder {
 	private HashMap<String, RewriterStatement> instrSeqIds = new HashMap<>();
 	private HashMap<String, RewriterStatement> mappingSeqIds = new HashMap<>();
 	private HashMap<RewriterStatement, RewriterRule.LinkObject> linksStmt1ToStmt2 = new HashMap<>();
-	private ArrayList<Tuple2<RewriterStatement, Consumer<RewriterStatement>>> applyStmt1ToStmt2 = new ArrayList<>();
+	private ArrayList<Tuple2<RewriterStatement, BiConsumer<RewriterStatement, RewriterStatement.MatchingSubexpression>>> applyStmt1ToStmt2 = new ArrayList<>();
 	private HashMap<RewriterStatement, RewriterRule.LinkObject> linksStmt2ToStmt1 = new HashMap<>();
-	private ArrayList<Tuple2<RewriterStatement, Consumer<RewriterStatement>>> applyStmt2ToStmt1 = new ArrayList<>();
+	private ArrayList<Tuple2<RewriterStatement, BiConsumer<RewriterStatement, RewriterStatement.MatchingSubexpression>>> applyStmt2ToStmt1 = new ArrayList<>();
 	private RewriterStatement fromRoot = null;
 	private RewriterStatement toRoot = null;
-	private BiFunction<RewriterStatement.MatchingSubexpression, List<RewriterRule.ExplicitLink>, Boolean> iff1to2 = null;
-	private BiFunction<RewriterStatement.MatchingSubexpression, List<RewriterRule.ExplicitLink>, Boolean> iff2to1 = null;
+	private Function<RewriterStatement.MatchingSubexpression, Boolean> iff1to2 = null;
+	private Function<RewriterStatement.MatchingSubexpression, Boolean> iff2to1 = null;
 	private boolean isUnidirectional = false;
 	private boolean buildSingleDAG = false;
 
@@ -47,7 +48,7 @@ public class RewriterRuleBuilder {
 		this.ruleName = ruleName;
 	}
 
-	public RewriterRuleBuilder iff(BiFunction<RewriterStatement.MatchingSubexpression, List<RewriterRule.ExplicitLink>, Boolean> iff, boolean forward) {
+	public RewriterRuleBuilder iff(Function<RewriterStatement.MatchingSubexpression, Boolean> iff, boolean forward) {
 		if (buildSingleDAG)
 			throw new IllegalArgumentException();
 
@@ -164,7 +165,7 @@ public class RewriterRuleBuilder {
 		if (getCurrentInstruction() != null)
 			getCurrentInstruction().consolidate(ctx);
 		prepare();
-		return new RewriterRule(ctx, ruleName, fromRoot, toRoot, isUnidirectional, linksStmt1ToStmt2, linksStmt2ToStmt1, iff1to2, iff2to1, applyStmt1ToStmt2, applyStmt2ToStmt1);
+		return new RewriterRule(ctx, ruleName, fromRoot, toRoot, isUnidirectional, linksStmt1ToStmt2, linksStmt2ToStmt1, iff1to2, iff2to1, applyStmt1ToStmt2, applyStmt2ToStmt1, new MetaPropagator(ctx));
 	}
 
 	public RewriterStatement buildDAG() {
@@ -412,6 +413,10 @@ public class RewriterRuleBuilder {
 	}
 
 	public RewriterRuleBuilder apply(String id, Consumer<RewriterStatement> applicationFunction, boolean forward) {
+		return apply(id, (stmt, match) -> applicationFunction.accept(stmt), forward);
+	}
+
+	public RewriterRuleBuilder apply(String id, BiConsumer<RewriterStatement, RewriterStatement.MatchingSubexpression> applicationFunction, boolean forward) {
 		prepare();
 		RewriterStatement stmt1 = forward ?  mappingSeqIds.get(id) : instrSeqIds.get(id);
 		if (stmt1 == null)

@@ -48,7 +48,7 @@ public class RewriterContextSettings {
 		// Aggregation functions
 
 		builder.append("FullAggregationInstruction(MATRIX)::FLOAT\n");
-		builder.append("impl FullAdditiveAggregationInstruction\n");
+		builder.append("impl FullAdditiveAggregationInstruction\n"); // TODO
 		builder.append("impl mean\n");
 		builder.append("impl var\n");
 
@@ -64,7 +64,7 @@ public class RewriterContextSettings {
 
 
 
-		builder.append("FullAdditiveAggregationInstruction(MATRIX)::MATRIX\n");
+		builder.append("FullAdditiveAggregationInstruction(MATRIX)::FLOAT\n");
 		builder.append("impl sum\n");
 
 		builder.append("RowAdditiveAggregationInstruction(MATRIX)::MATRIX\n");
@@ -127,6 +127,11 @@ public class RewriterContextSettings {
 		builder.append("impl nrow\n");
 		builder.append("impl ncol\n");
 		builder.append("impl length\n");
+
+		RewriterUtils.buildBinaryPermutations(List.of("INT", "FLOAT", "BOOL"), (t1, t2) -> {
+			builder.append("BinaryScalarInstruction(" + t1 + ","  + t2 + ")::" + RewriterUtils.defaultTypeHierarchy(t1, t2) + "\n");
+			builder.append("impl ElementWiseInstruction\n");
+		});
 
 		RewriterUtils.buildBinaryPermutations(List.of("MATRIX", "INT", "FLOAT"), List.of("MATRIX", "INT", "FLOAT"), (t1, t2) -> {
 			builder.append("ElementWiseInstruction(" + t1 + "," + t2 + ")::" + RewriterUtils.defaultTypeHierarchy(t1, t2) + "\n");
@@ -313,7 +318,8 @@ public class RewriterContextSettings {
 		List.of("INT", "FLOAT", "BOOL", "MATRIX").forEach(t -> builder.append("_asVar(" + t + ")::" + t + "\n"));
 
 		builder.append("[](MATRIX,INT,INT)::FLOAT\n");
-		builder.append("[](MATRIX,INT,INT,INT,INT)::FLOAT\n");
+		builder.append("[](MATRIX,INT,INT,INT,INT)::MATRIX\n");
+		builder.append("diag(MATRIX)::MATRIX\n");
 		builder.append("_m(INT,INT,FLOAT)::MATRIX\n");
 		builder.append("_idx(INT,INT)::INT\n");
 		builder.append("_nrow()::INT\n");

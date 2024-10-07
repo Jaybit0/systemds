@@ -227,6 +227,10 @@ public class TestRewriteExecution {
 		RewriterRuleCollection.pushdownStreamSelections(pd, ctx);
 		RewriterHeuristic streamSelectPushdown = new RewriterHeuristic(new RewriterRuleSet(ctx, pd));
 
+		ArrayList<RewriterRule> colRules = new ArrayList<>();
+		RewriterRuleCollection.collapseStreamingExpressions(colRules, ctx);
+		RewriterHeuristic streamCollapse = new RewriterHeuristic(new RewriterRuleSet(ctx, colRules));
+
 		/*rules.add(new RewriterRuleBuilder(ctx)
 				.parseGlobalVars("LITERAL_BOOL:TRUE")
 				.parseGlobalVars("LITERAL_INT:1")
@@ -338,22 +342,25 @@ public class TestRewriteExecution {
 		String startStr = "trace(*(rand(10, 10, 0, 1), rand(10, 10, 0, 1)))";
 		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef, boolDef);
 
+		System.out.println("===== STREAM EXPANSION =====");
 		stmt = streamExpansion.apply(stmt, (t, r) -> {
 			System.out.println("Apply");
 			System.out.println(t);
 			return true;
 		});
-		//stmt = stmt.getOperands().get(0).getOperands().get(2);
-		System.out.println("=== HHH ===");
-		System.out.println(String.join("\n", stmt.toExecutableString(ctx)));
-		System.out.println("=== HHH ===");
-		// TODO: Here is an error when pushing down a stream
+
+		System.out.println("===== STREAM-SELECT PUSHDOWN =====");
 		stmt = streamSelectPushdown.apply(stmt, (t, r) -> {
 			System.out.println(String.join("\n", t.toExecutableString(ctx)));
 			System.out.println("=====");
 			return true;
 		});
-		System.out.println(String.join("\n", stmt.toExecutableString(ctx)));
+
+		stmt = streamCollapse.apply(stmt, (t, r) -> {
+			System.out.println(String.join("\n", t.toExecutableString(ctx)));
+			System.out.println("=====");
+			return true;
+		});
 
 		if (true)
 			return null;

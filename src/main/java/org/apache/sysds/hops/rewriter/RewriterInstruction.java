@@ -5,6 +5,7 @@ import org.apache.commons.lang3.function.TriFunction;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -47,9 +48,9 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	@Override
-	public void consolidate(final RuleContext ctx) {
+	public RewriterStatement consolidate(final RuleContext ctx) {
 		if (consolidated)
-			return;
+			return this;
 
 		if (instr == null || instr.isEmpty())
 			throw new IllegalArgumentException("Instruction type cannot be empty");
@@ -67,6 +68,8 @@ public class RewriterInstruction extends RewriterStatement {
 		else
 			hashCode = Objects.hash(rid, refCtr, instr, result, operands);
 		consolidated = true;
+
+		return this;
 	}
 	@Override
 	public int recomputeHashCodes(boolean recursively) {
@@ -139,10 +142,13 @@ public class RewriterInstruction extends RewriterStatement {
 		RewriterInstruction mCopy = new RewriterInstruction();
 		mCopy.instr = instr;
 		mCopy.result = (RewriterDataType)result.copyNode();
-		mCopy.operands = new ArrayList<>(operands);
 		mCopy.costFunction = costFunction;
 		mCopy.consolidated = consolidated;
-		mCopy.meta = meta;
+		mCopy.operands = new ArrayList<>(operands);
+		if (meta != null)
+			mCopy.meta = new HashMap<>(meta);
+		else
+			mCopy.meta = null;
 		return mCopy;
 	}
 
@@ -476,7 +482,10 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	public Set<String> getProperties(final RuleContext ctx) {
-		return ctx.instrProperties.get(trueTypedInstruction(ctx));
+		Set<String> ret = ctx.instrProperties.get(trueTypedInstruction(ctx));
+		if (ret == null)
+			return Collections.emptySet();
+		return ret;
 	}
 
 	void unsafeSetInstructionName(String str) {

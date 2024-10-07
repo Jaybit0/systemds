@@ -2,6 +2,8 @@ package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.lang3.function.TriFunction;
+import org.apache.commons.lang3.mutable.MutableObject;
+import org.apache.logging.log4j.util.TriConsumer;
 import org.jetbrains.annotations.NotNull;
 import spire.macros.CheckedRewriter;
 
@@ -62,6 +64,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		private final int rootIndex;
 		private final HashMap<RewriterStatement, RewriterStatement> assocs;
 		private final List<RewriterRule.ExplicitLink> links;
+		public Object shared_data = null;
 
 		public MatchingSubexpression(RewriterStatement matchRoot, RewriterInstruction matchParent, int rootIndex, HashMap<RewriterStatement, RewriterStatement> assocs, List<RewriterRule.ExplicitLink> links) {
 			this.matchRoot = matchRoot;
@@ -104,7 +107,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public void setLiteral(Object literal) {
 		throw new IllegalArgumentException("This class does not support setting literals");
 	}
-	public abstract void consolidate(final RuleContext ctx);
+	public abstract RewriterStatement consolidate(final RuleContext ctx);
 	public abstract boolean isConsolidated();
 	@Deprecated
 	public abstract RewriterStatement clone();
@@ -175,7 +178,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public int recomputeHashCodes() {
 		return recomputeHashCodes(true);
 	}
-	public boolean matchSubexpr(final RuleContext ctx, RewriterStatement root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, boolean allowTypeHierarchy, BiFunction<MatchingSubexpression, List<RewriterRule.ExplicitLink>, Boolean> iff) {
+	public boolean matchSubexpr(final RuleContext ctx, RewriterStatement root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, boolean allowTypeHierarchy, Function<MatchingSubexpression, Boolean> iff) {
 		if (dependencyMap == null)
 			dependencyMap = new HashMap<>();
 		else
@@ -190,7 +193,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 
 		if (foundMatch) {
 			MatchingSubexpression match = new MatchingSubexpression(root, parent, rootIndex, dependencyMap, links);
-			if (iff == null || iff.apply(match, links)) {
+			if (iff == null || iff.apply(match)) {
 				matches.add(match);
 
 				if (findFirst)
@@ -287,6 +290,21 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		if (function.apply(this, parent, rootIdx) && getOperands() != null)
 			for (int i = 0; i < getOperands().size(); i++)
 				getOperands().get(i).forEachPreOrder(function, visited, this, i);
+	}
+
+	public void forEachPostOrder(TriConsumer<RewriterStatement, RewriterStatement, Integer> consumer) {
+		forEachPostOrder(consumer, new HashSet<>(), null, -1);
+	}
+
+	private void forEachPostOrder(TriConsumer<RewriterStatement, RewriterStatement, Integer> consumer, Set<RewriterRule.IdentityRewriterStatement> visited, RewriterStatement parent, int rootIdx) {
+		if (!visited.add(new RewriterRule.IdentityRewriterStatement(this)))
+			return;
+
+		if (getOperands() != null)
+			for (int i = 0; i < getOperands().size(); i++)
+				getOperands().get(i).forEachPostOrder(consumer, visited, this, i);
+
+		consumer.accept(this, parent, rootIdx);
 	}
 
 	@Override

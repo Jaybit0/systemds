@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -29,17 +30,22 @@ public class RewriterRule extends AbstractRewriterRule {
 	private final RewriterStatement toRoot;
 	private final HashMap<RewriterStatement, LinkObject> linksStmt1ToStmt2; // Contains the explicit links a transformation has (like instructions, (a+b)-c = a+(b-c), but '+' and '-' are the same instruction still [important if instructions have metadata])
 	private final HashMap<RewriterStatement, LinkObject> linksStmt2ToStmt1;
-	private final List<Tuple2<RewriterStatement, Consumer<RewriterStatement>>> applyStmt1ToStmt2;
-	private final List<Tuple2<RewriterStatement, Consumer<RewriterStatement>>> applyStmt2ToStmt1;
-	private final BiFunction<RewriterStatement.MatchingSubexpression, List<ExplicitLink>, Boolean> iff1to2;
-	private final BiFunction<RewriterStatement.MatchingSubexpression, List<ExplicitLink>, Boolean> iff2to1;
+	private final List<Tuple2<RewriterStatement, BiConsumer<RewriterStatement, RewriterStatement.MatchingSubexpression>>> applyStmt1ToStmt2;
+	private final List<Tuple2<RewriterStatement, BiConsumer<RewriterStatement, RewriterStatement.MatchingSubexpression>>> applyStmt2ToStmt1;
+	private final Function<RewriterStatement.MatchingSubexpression, Boolean> iff1to2;
+	private final Function<RewriterStatement.MatchingSubexpression, Boolean> iff2to1;
 	private final boolean unidirectional;
+	private final Consumer<RewriterStatement> postProcessor;
 
 	public RewriterRule(final RuleContext ctx, String name, RewriterStatement fromRoot, RewriterStatement toRoot, boolean unidirectional, HashMap<RewriterStatement, LinkObject> linksStmt1ToStmt2, HashMap<RewriterStatement, LinkObject> linksStmt2ToStmt1) {
-		this(ctx, name, fromRoot, toRoot, unidirectional, linksStmt1ToStmt2, linksStmt2ToStmt1, null, null, null, null);
+		this(ctx, name, fromRoot, toRoot, unidirectional, linksStmt1ToStmt2, linksStmt2ToStmt1, null, null, null, null, null);
 	}
 
-	public RewriterRule(final RuleContext ctx, String name, RewriterStatement fromRoot, RewriterStatement toRoot, boolean unidirectional, HashMap<RewriterStatement, LinkObject> linksStmt1ToStmt2, HashMap<RewriterStatement, LinkObject> linksStmt2ToStmt1, BiFunction<RewriterStatement.MatchingSubexpression, List<ExplicitLink>, Boolean> iff1to2, BiFunction<RewriterStatement.MatchingSubexpression, List<ExplicitLink>, Boolean> iff2to1, List<Tuple2<RewriterStatement, Consumer<RewriterStatement>>> apply1To2, List<Tuple2<RewriterStatement, Consumer<RewriterStatement>>> apply2To1) {
+	public RewriterRule(final RuleContext ctx, String name, RewriterStatement fromRoot, RewriterStatement toRoot, boolean unidirectional, HashMap<RewriterStatement, LinkObject> linksStmt1ToStmt2, HashMap<RewriterStatement, LinkObject> linksStmt2ToStmt1, Function<RewriterStatement.MatchingSubexpression, Boolean> iff1to2, Function<RewriterStatement.MatchingSubexpression, Boolean> iff2to1, List<Tuple2<RewriterStatement, BiConsumer<RewriterStatement, RewriterStatement.MatchingSubexpression>>> apply1To2, List<Tuple2<RewriterStatement, BiConsumer<RewriterStatement, RewriterStatement.MatchingSubexpression>>> apply2To1) {
+		this(ctx, name, fromRoot, toRoot, unidirectional, linksStmt1ToStmt2, linksStmt2ToStmt1, iff1to2, iff2to1, apply1To2, apply2To1, null);
+	}
+
+	public RewriterRule(final RuleContext ctx, String name, RewriterStatement fromRoot, RewriterStatement toRoot, boolean unidirectional, HashMap<RewriterStatement, LinkObject> linksStmt1ToStmt2, HashMap<RewriterStatement, LinkObject> linksStmt2ToStmt1, Function<RewriterStatement.MatchingSubexpression, Boolean> iff1to2, Function<RewriterStatement.MatchingSubexpression, Boolean> iff2to1, List<Tuple2<RewriterStatement, BiConsumer<RewriterStatement, RewriterStatement.MatchingSubexpression>>> apply1To2, List<Tuple2<RewriterStatement, BiConsumer<RewriterStatement, RewriterStatement.MatchingSubexpression>>> apply2To1, Consumer<RewriterStatement> postProcessor) {
 		this.ctx = ctx;
 		this.name = name;
 		this.fromRoot = fromRoot;
@@ -51,6 +57,7 @@ public class RewriterRule extends AbstractRewriterRule {
 		this.iff2to1 = iff2to1;
 		this.applyStmt1ToStmt2 = apply1To2;
 		this.applyStmt2ToStmt1 = apply2To1;
+		this.postProcessor = postProcessor;
 	}
 
 	public String getName() {
@@ -108,7 +115,7 @@ public class RewriterRule extends AbstractRewriterRule {
 		if (match) {
 			RewriterStatement.MatchingSubexpression matchExpr = new RewriterStatement.MatchingSubexpression(stmt, parent, rootIndex, dependencyMap, links);
 
-			if (iff1to2 == null || iff1to2.apply(matchExpr, links))
+			if (iff1to2 == null || iff1to2.apply(matchExpr))
 				return matchExpr;
 		}
 
@@ -126,7 +133,7 @@ public class RewriterRule extends AbstractRewriterRule {
 		if (match) {
 			RewriterStatement.MatchingSubexpression matchExpr = new RewriterStatement.MatchingSubexpression(stmt, parent, rootIndex, dependencyMap, links);
 
-			if (iff2to1 == null || iff2to1.apply(matchExpr, links))
+			if (iff2to1 == null || iff2to1.apply(matchExpr))
 				return matchExpr;
 		}
 
@@ -134,7 +141,7 @@ public class RewriterRule extends AbstractRewriterRule {
 	}
 
 	// TODO: Give the possibility to get a handle to the parent and root of the replaced sub-DAG
-	private RewriterStatement apply(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest, MutableObject<Tuple3<RewriterStatement, RewriterStatement, Integer>> modificationHandle, List<Tuple2<RewriterStatement, Consumer<RewriterStatement>>> applyFunction) {
+	private RewriterStatement apply(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest, MutableObject<Tuple3<RewriterStatement, RewriterStatement, Integer>> modificationHandle, List<Tuple2<RewriterStatement, BiConsumer<RewriterStatement, RewriterStatement.MatchingSubexpression>>> applyFunction) {
 		if (match.getMatchParent() == null || match.getMatchParent() == match.getMatchRoot()) {
 			final Map<RewriterStatement, RewriterStatement> createdObjects = new HashMap<>();
 			RewriterStatement cpy = dest.nestedCopyOrInject(createdObjects, obj -> {
@@ -155,7 +162,8 @@ public class RewriterRule extends AbstractRewriterRule {
 
 			match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 			match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
-			applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1)));
+			applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1), match));
+			postProcessor.accept(cpy);
 
 			cpy.prepareForHashing();
 			cpy.recomputeHashCodes();
@@ -196,7 +204,8 @@ public class RewriterRule extends AbstractRewriterRule {
 
 		match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 		match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
-		applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1)));
+		applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1), match));
+		postProcessor.accept(cpy2);
 
 		cpy2.prepareForHashing();
 		cpy2.recomputeHashCodes();
@@ -204,7 +213,7 @@ public class RewriterRule extends AbstractRewriterRule {
 	}
 
 	// TODO: Not working right now
-	private RewriterStatement applyInplace(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest, List<Tuple2<RewriterStatement, Consumer<RewriterStatement>>> applyFunction) {
+	private RewriterStatement applyInplace(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest, List<Tuple2<RewriterStatement, BiConsumer<RewriterStatement, RewriterStatement.MatchingSubexpression>>> applyFunction) {
 		if (match.getMatchParent() == null || match.getMatchParent() == match.getMatchRoot()) {
 			final Map<RewriterStatement, RewriterStatement> createdObjects = new HashMap<>();
 			RewriterStatement cpy = dest.nestedCopyOrInject(createdObjects, obj -> match.getAssocs().get(obj));
@@ -215,7 +224,8 @@ public class RewriterRule extends AbstractRewriterRule {
 			match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 			match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
 			System.out.println("Links size: " + match.getLinks().size());
-			applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1)));
+			applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1), match));
+			postProcessor.accept(cpy);
 
 			cpy.prepareForHashing();
 			cpy.recomputeHashCodes();
@@ -237,7 +247,8 @@ public class RewriterRule extends AbstractRewriterRule {
 		match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 		match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
 		System.out.println("Links size: " + match.getLinks().size());
-		applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1)));
+		applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1), match));
+		postProcessor.accept(rootInstruction);
 
 		rootInstruction.prepareForHashing();
 		rootInstruction.recomputeHashCodes();

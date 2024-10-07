@@ -509,7 +509,7 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("$1:CBind(colSelect(A, h, i), colSelect(B, l, m))", hooks)
 				.toParsedStatement(mappingString1, hooks)
-				.iff((match, links) -> {
+				.iff(match -> {
 					Object meta = match.getMatchRoot().getMeta("bindChecked");
 					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
 				}, true)
@@ -626,7 +626,7 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("$1:RBind(rowSelect(A, h, i), rowSelect(B, l, m))", hooks)
 				.toParsedStatement(mappingString1, hooks)
-				.iff((match, links) -> {
+				.iff(match -> {
 					Object meta = match.getMatchRoot().getMeta("bindChecked");
 					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
 				}, true)
@@ -647,7 +647,7 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("$1:RBind(rowSelect(A, h, i), rowSelect(A, l, m))", hooks)
 				.toParsedStatement(mappingString1A, hooks)
-				.iff((match, links) -> {
+				.iff(match -> {
 					Object meta = match.getMatchRoot().getMeta("bindChecked");
 					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
 				}, true)
@@ -667,7 +667,7 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("$1:RBind(index(A, h, i, j, k), index(B, l, m, n, o))", hooks)
 				.toParsedStatement(mappingString2, hooks)
-				.iff((match, links) -> {
+				.iff(match -> {
 					Object meta = match.getMatchRoot().getMeta("bindChecked");
 					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
 				}, true)
@@ -688,7 +688,7 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("$1:RBind(index(A, h, i, j, k), index(A, l, m, n, o))", hooks)
 				.toParsedStatement(mappingString2A, hooks)
-				.iff((match, links) -> {
+				.iff(match -> {
 					Object meta = match.getMatchRoot().getMeta("bindChecked");
 					return meta == null || (meta instanceof Boolean && !((Boolean)meta));
 				}, true)
@@ -865,7 +865,7 @@ public class RewriterRuleSet {
 				.parseGlobalVars("MATRIX:A")
 				.withParsedStatement("$1:ColAggregationInstruction(t(A))", hooks)
 				.toParsedStatement("t($2:RowAggregationInstruction(A))", hooks)
-				.iff((match, links) -> equivalendRowColAggregations.containsValue(match.getMatchRoot().trueTypedInstruction(ctx)), true)
+				.iff(match -> equivalendRowColAggregations.containsValue(match.getMatchRoot().trueTypedInstruction(ctx)), true)
 				.link(hooks.get(1).getId(), hooks.get(2).getId(), link -> {
 					((RewriterInstruction)link.newStmt.get(0)).unsafeSetInstructionName(RewriterUtils.typedToUntypedInstruction(equivalendRowColAggregations.getKey(((RewriterInstruction)link.oldStmt).trueTypedInstruction(ctx))));
 				})
@@ -878,7 +878,7 @@ public class RewriterRuleSet {
 				.parseGlobalVars("MATRIX:A")
 				.withParsedStatement("$1:RowAggregationInstruction(t(A))", hooks)
 				.toParsedStatement("t($2:ColAggregationInstruction(A))", hooks)
-				.iff((match, links) -> equivalendRowColAggregations.containsKey(match.getMatchRoot().trueTypedInstruction(ctx)), true)
+				.iff(match -> equivalendRowColAggregations.containsKey(match.getMatchRoot().trueTypedInstruction(ctx)), true)
 				.link(hooks.get(1).getId(), hooks.get(2).getId(), link -> {
 					((RewriterInstruction)link.newStmt.get(0)).unsafeSetInstructionName(RewriterUtils.typedToUntypedInstruction(equivalendRowColAggregations.get(((RewriterInstruction)link.oldStmt).trueTypedInstruction(ctx))));
 				})
@@ -1081,7 +1081,7 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("_compileTimeIsEqual($1:a, $2:b)", hooks)
 				.toParsedStatement("1", hooks)
-				.iff((match, links) -> {
+				.iff(match -> {
 					List<RewriterStatement> ops = match.getMatchRoot().getOperands();
 					return ops.get(0).isLiteral() && ops.get(1).isLiteral() && ops.get(0).getLiteral().equals(ops.get(1).getLiteral());
 				}, true)
@@ -1198,7 +1198,7 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("_compileTimeSelectLeastExpensive(A, B)", hooks)
 				.toParsedStatement("A", hooks)
-				.iff((match, lnk) -> {
+				.iff(match -> {
 					List<RewriterStatement> ops = match.getMatchRoot().getOperands();
 					return ops.get(0).getCost() >= ops.get(1).getCost();
 				}, true)
@@ -1213,7 +1213,7 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("_compileTimeSelectLeastExpensive(A, B)", hooks)
 				.toParsedStatement("A", hooks)
-				.iff((match, lnk) -> {
+				.iff(match -> {
 					List<RewriterStatement> ops = match.getMatchRoot().getOperands();
 					return ops.get(0).getCost() < ops.get(1).getCost();
 				}, true)
@@ -1228,7 +1228,7 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("_compileTimeSelectLeastExpensive(A, B)", hooks)
 				.toParsedStatement("A", hooks)
-				.iff((match, lnk) -> {
+				.iff(match -> {
 					List<RewriterStatement> ops = match.getMatchRoot().getOperands();
 					return ops.get(0).getCost() >= ops.get(1).getCost();
 				}, true)
@@ -1243,7 +1243,7 @@ public class RewriterRuleSet {
 				.intLiteral("1", 1)
 				.withParsedStatement("_compileTimeSelectLeastExpensive(A, B)", hooks)
 				.toParsedStatement("A", hooks)
-				.iff((match, lnk) -> {
+				.iff(match -> {
 					List<RewriterStatement> ops = match.getMatchRoot().getOperands();
 					return ops.get(0).getCost() < ops.get(1).getCost();
 				}, true)

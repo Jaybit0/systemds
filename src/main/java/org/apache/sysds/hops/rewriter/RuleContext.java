@@ -94,11 +94,14 @@ public class RuleContext {
 
 				final String propertyFunction = fName + fArgTypes;
 
-				if (instrProps.containsKey(newFName + fArgTypes))
-					instrProps.get(newFName + fArgTypes).add(propertyFunction);
-				else {
+				if (instrProps.containsKey(newFName + fArgTypes)) {
+					HashSet<String> props = instrProps.get(newFName + fArgTypes);
+					props.add(propertyFunction);
+					props.add(fName);
+				} else {
 					HashSet<String> mset = new HashSet<>();
 					mset.add(propertyFunction);
+					mset.add(fName);
 					instrProps.put(newFName + fArgTypes, mset);
 				}
 

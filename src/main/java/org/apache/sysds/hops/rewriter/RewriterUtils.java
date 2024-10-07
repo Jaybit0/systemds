@@ -382,4 +382,38 @@ public class RewriterUtils {
 
 		return out;
 	}
+
+	public static RewriterStatement replaceReferenceAware(RewriterStatement root, Function<RewriterStatement, RewriterStatement> comparer) {
+		return replaceReferenceAware(root, false, comparer, new HashMap<>());
+	}
+
+	public static RewriterStatement replaceReferenceAware(RewriterStatement root, boolean duplicateReferences, Function<RewriterStatement, RewriterStatement> comparer, HashMap<RewriterRule.IdentityRewriterStatement, RewriterStatement> visited) {
+		RewriterRule.IdentityRewriterStatement is = new RewriterRule.IdentityRewriterStatement(root);
+		if (visited.containsKey(is)) {
+			return visited.get(is);
+		}
+
+		RewriterStatement oldRef = root;
+		RewriterStatement newOne = comparer.apply(root);
+		root = newOne != null ? newOne : root;
+
+		if (newOne == null)
+			duplicateReferences |= root.refCtr > 1;
+
+		if (root.getOperands() != null) {
+			for (int i = 0; i < root.getOperands().size(); i++) {
+				RewriterStatement newSub = replaceReferenceAware(root.getOperands().get(i), duplicateReferences, comparer, visited);
+
+				if (newSub != null) {
+					if (duplicateReferences && newOne == null) {
+						root = root.copyNode();
+					}
+
+					root.getOperands().set(i, newSub);
+				}
+			}
+		}
+
+		return newOne;
+	}
 }
