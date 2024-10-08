@@ -1,6 +1,7 @@
 package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.function.TriFunction;
 
 import java.util.ArrayList;
@@ -123,9 +124,9 @@ public class RewriterDataType extends RewriterStatement {
 				return false;
 		}
 
-
 		RewriterStatement assoc = dependencyMap.get(this);
 		if (assoc == null) {
+			// TODO: This is very inefficient
 			if (!allowDuplicatePointers && dependencyMap.containsValue(stmt))
 				return false; // Then the statement variable is already associated with another variable
 			dependencyMap.put(this, stmt);

@@ -165,7 +165,7 @@ public class RewriterRuleBuilder {
 		if (getCurrentInstruction() != null)
 			getCurrentInstruction().consolidate(ctx);
 		prepare();
-		return new RewriterRule(ctx, ruleName, fromRoot, toRoot, isUnidirectional, linksStmt1ToStmt2, linksStmt2ToStmt1, iff1to2, iff2to1, applyStmt1ToStmt2, applyStmt2ToStmt1, new MetaPropagator(ctx));
+		return new RewriterRule(ctx, ruleName, fromRoot, toRoot, isUnidirectional, linksStmt1ToStmt2, linksStmt2ToStmt1, iff1to2, iff2to1, applyStmt1ToStmt2, applyStmt2ToStmt1);
 	}
 
 	public RewriterStatement buildDAG() {

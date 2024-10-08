@@ -163,7 +163,12 @@ public class RewriterRule extends AbstractRewriterRule {
 			match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 			match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
 			applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1), match));
-			postProcessor.accept(cpy);
+
+			if (postProcessor != null)
+				postProcessor.accept(cpy);
+
+			if (ctx.metaPropagator != null)
+				cpy = ctx.metaPropagator.apply(cpy);
 
 			cpy.prepareForHashing();
 			cpy.recomputeHashCodes();
@@ -205,14 +210,18 @@ public class RewriterRule extends AbstractRewriterRule {
 		match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 		match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
 		applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1), match));
-		postProcessor.accept(cpy2);
+
+		if (postProcessor != null)
+			postProcessor.accept(cpy2);
+
+		if (ctx.metaPropagator != null)
+			cpy2 = ctx.metaPropagator.apply(cpy2);
 
 		cpy2.prepareForHashing();
 		cpy2.recomputeHashCodes();
 		return cpy2;
 	}
 
-	// TODO: Not working right now
 	private RewriterStatement applyInplace(RewriterStatement.MatchingSubexpression match, RewriterStatement rootInstruction, RewriterStatement dest, List<Tuple2<RewriterStatement, BiConsumer<RewriterStatement, RewriterStatement.MatchingSubexpression>>> applyFunction) {
 		if (match.getMatchParent() == null || match.getMatchParent() == match.getMatchRoot()) {
 			final Map<RewriterStatement, RewriterStatement> createdObjects = new HashMap<>();
@@ -223,21 +232,19 @@ public class RewriterRule extends AbstractRewriterRule {
 
 			match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 			match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
-			System.out.println("Links size: " + match.getLinks().size());
 			applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1), match));
-			postProcessor.accept(cpy);
+
+			if (postProcessor != null)
+				postProcessor.accept(cpy);
+
+			if (ctx.metaPropagator != null)
+				cpy = ctx.metaPropagator.apply(cpy);
 
 			cpy.prepareForHashing();
 			cpy.recomputeHashCodes();
 			return cpy;
 		}
 
-		/*int parentSize = match.getMatchParent().getOperands().size();
-
-		ArrayList<RewriterStatement> operands = match.getMatchParent().getOperands();
-		for (int i = 0; i < operands.size(); i++) {
-			if (operands.get(i) == )
-		}*/
 		final Map<RewriterStatement, RewriterStatement> createdObjects = new HashMap<>();
 		match.getMatchParent().getOperands().set(match.getRootIndex(), dest.nestedCopyOrInject(createdObjects, obj -> match.getAssocs().get(obj)));
 		RewriterStatement out = rootInstruction.simplify(ctx);
@@ -246,30 +253,17 @@ public class RewriterRule extends AbstractRewriterRule {
 
 		match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 		match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
-		System.out.println("Links size: " + match.getLinks().size());
 		applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1), match));
-		postProcessor.accept(rootInstruction);
+
+		if (postProcessor != null)
+			postProcessor.accept(rootInstruction);
+
+		if (ctx.metaPropagator != null)
+			rootInstruction = ctx.metaPropagator.apply(rootInstruction);
 
 		rootInstruction.prepareForHashing();
 		rootInstruction.recomputeHashCodes();
 		return rootInstruction;
-		/*if (rootNode != null && mRoot != rootNode) {
-			if (rootNode.getLinks() == null)
-				rootNode.withLinks(new DualHashBidiMap<>(assoc));
-			else
-				RewriterStatement.insertLinks(rootNode.getLinks(), assoc);
-
-			RewriterStatement.insertLink(rootNode.getLinks(), mRoot, dest);
-		} else {
-			mRoot.injectData(dest);
-
-			if (mRoot.getLinks() == null)
-				mRoot.withLinks(new DualHashBidiMap<>(assoc));
-			else
-				RewriterStatement.insertLinks(mRoot.getLinks(), assoc);
-		}*/
-
-		//return rootNode;
 	}
 
 	public String toString() {

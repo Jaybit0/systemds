@@ -24,6 +24,8 @@ public class RuleContext {
 
 	public HashMap<String, BiFunction<RewriterStatement, RuleContext, String>> customStringRepr = new HashMap<>();
 
+	public Function<RewriterStatement, RewriterStatement> metaPropagator = null;
+
 	public static RuleContext floatArithmetic = new RuleContext();
 	public static RuleContext selectionPushdownContext = new RuleContext();
 

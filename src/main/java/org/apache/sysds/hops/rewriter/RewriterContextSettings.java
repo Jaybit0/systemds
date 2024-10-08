@@ -341,9 +341,13 @@ public class RewriterContextSettings {
 
 		RuleContext ctx = RuleContext.createContext(ctxString);
 
-		ctx.customStringRepr.put("_idx(INT,INT)", (stmt, mctx) -> {
-			return stmt.trueInstruction() + "(" + String.join(", ", stmt.getOperands().stream().map(el -> el.toString(mctx)).collect(Collectors.toList())) + ") [" + stmt.getMeta("idxId") + "]";
+		/*ctx.customStringRepr.put("_idx(INT,INT)", (stmt, mctx) -> {
+			return stmt.trueInstruction() + "["  + stmt.getMeta("ownerId") + "](" + String.join(", ", stmt.getOperands().stream().map(el -> el.toString(mctx)).collect(Collectors.toList())) + ") [" + stmt.getMeta("idxId") + "]";
 		});
+
+		ctx.customStringRepr.put("_m(INT,INT,FLOAT)", (stmt, mctx) -> {
+			return stmt.trueInstruction() + "["  + stmt.getMeta("ownerId") + "](" + String.join(", ", stmt.getOperands().stream().map(el -> el.toString(mctx)).collect(Collectors.toList())) + ")";
+		});*/
 
 		// Meta instruction resolver
 		ctx.customStringRepr.put("_lower(INT)", (stmt, mctx) -> {

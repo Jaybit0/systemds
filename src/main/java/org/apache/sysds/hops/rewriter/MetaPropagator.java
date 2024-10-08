@@ -1,11 +1,13 @@
 package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.mutable.MutableObject;
 
+import java.util.HashMap;
 import java.util.UUID;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
-public class MetaPropagator implements Consumer<RewriterStatement> {
+public class MetaPropagator implements Function<RewriterStatement, RewriterStatement> {
 	private final RuleContext ctx;
 
 	public MetaPropagator(RuleContext ctx) {
@@ -13,26 +15,58 @@ public class MetaPropagator implements Consumer<RewriterStatement> {
 	}
 
 	// TODO: This must actually return the top element
-	public void accept(RewriterStatement root) {
+	public RewriterStatement apply(RewriterStatement root) {
+		MutableObject<RewriterStatement> out = new MutableObject<>(root);
+		HashMap<Object, RewriterStatement> literalMap = new HashMap<>();
 		root.forEachPostOrder((el, parent, pIdx) -> {
-			propagateDims(el, parent, pIdx);
+			RewriterStatement toSet = propagateDims(el, parent, pIdx);
+
+			if (toSet != null) {
+				el = toSet;
+				if (parent == null)
+					out.setValue(toSet);
+				else
+					parent.getOperands().set(pIdx, toSet);
+			}
+
+			// Assert
+			if (el.getResultingDataType(ctx).startsWith("MATRIX")
+				&& (el.getMeta("ncol") == null || el.getMeta("nrow") == null))
+				throw new IllegalArgumentException("Some properties have not been set by the meta propagator: " + el.toString(ctx));
+
+
+			// Eliminate common literals
+			if (el.isLiteral()) {
+				RewriterStatement existingLiteral = literalMap.get(el.getLiteral());
+
+				if (existingLiteral != null) {
+					if (parent == null)
+						out.setValue(existingLiteral);
+					else
+						parent.getOperands().set(pIdx, existingLiteral);
+				} else {
+					literalMap.put(el.getLiteral(), el);
+				}
+			}
+
+			validate(el);
 		});
+
+		return out.getValue();
 	}
 
-	private void propagateDims(RewriterStatement root, RewriterStatement parent, int pIdx) {
+	private RewriterStatement propagateDims(RewriterStatement root, RewriterStatement parent, int pIdx) {
 		if (!root.getResultingDataType(ctx).startsWith("MATRIX")) {
 			if (root.isInstruction()) {
 				String ti = root.trueTypedInstruction(ctx);
 				switch (ti) {
 					case "ncol(MATRIX)":
-						parent.getOperands().set(pIdx, (RewriterStatement)root.getOperands().get(0).getMeta("ncol"));
-						break;
+						return (RewriterStatement)root.getOperands().get(0).getMeta("ncol");
 					case "nrow(MATRIX)":
-						parent.getOperands().set(pIdx, (RewriterStatement)root.getOperands().get(0).getMeta("nrow"));
-						break;
+						return (RewriterStatement)root.getOperands().get(0).getMeta("nrow");
 				}
 			}
-			return;
+			return null;
 		}
 
 		Object colAccess;
@@ -41,7 +75,7 @@ public class MetaPropagator implements Consumer<RewriterStatement> {
 		if (root.getOperands() == null || root.getOperands().isEmpty()) {
 			root.unsafePutMeta("ncol", new RewriterInstruction().withInstruction("ncol").withOps(root).as(UUID.randomUUID().toString()).consolidate(ctx));
 			root.unsafePutMeta("nrow", new RewriterInstruction().withInstruction("nrow").withOps(root).as(UUID.randomUUID().toString()).consolidate(ctx));
-			return;
+			return null;
 		}
 
 		if (root.isInstruction()) {
@@ -50,11 +84,11 @@ public class MetaPropagator implements Consumer<RewriterStatement> {
 				case "rand":
 					root.unsafePutMeta("nrow", root.getOperands().get(0));
 					root.unsafePutMeta("ncol", root.getOperands().get(1));
-					return;
+					return null;
 				case "as.matrix":
-					root.unsafePutMeta("ncol", new RewriterDataType().ofType(root.getResultingDataType(ctx)).as("1").asLiteral(1));
-					root.unsafePutMeta("nrow", new RewriterDataType().ofType(root.getResultingDataType(ctx)).as("1").asLiteral(1));
-					return;
+					root.unsafePutMeta("ncol", new RewriterDataType().ofType("INT").as("1").asLiteral(1));
+					root.unsafePutMeta("nrow", new RewriterDataType().ofType("INT").as("1").asLiteral(1));
+					return null;
 			}
 
 			switch(root.trueTypedInstruction(ctx)) {
@@ -63,36 +97,32 @@ public class MetaPropagator implements Consumer<RewriterStatement> {
 					rowAccess = root.getOperands().get(0).getMeta("nrow");
 					root.unsafePutMeta("ncol", rowAccess);
 					root.unsafePutMeta("nrow", colAccess);
-					return;
+					return null;
 				case "_m(INT,INT,FLOAT)":
 					if (root.getOperands().get(0).isInstruction()
 							&& root.getOperands().get(0).trueTypedInstruction(ctx).equals("_idx(INT,INT)")) {
 						root.unsafePutMeta("nrow", root.getOperands().get(0).getOperands().get(1));
 					} else {
-						root.unsafePutMeta("nrow", new RewriterDataType().ofType(root.getResultingDataType(ctx)).as("1").asLiteral(1).consolidate(ctx));
+						root.unsafePutMeta("nrow", new RewriterDataType().ofType("INT").as("1").asLiteral(1).consolidate(ctx));
 					}
 
 					if (root.getOperands().get(1).isInstruction()
 							&& root.getOperands().get(1).trueTypedInstruction(ctx).equals("_idx(INT,INT)")) {
-						root.unsafePutMeta("nrow", root.getOperands().get(1).getOperands().get(1));
+						root.unsafePutMeta("ncol", root.getOperands().get(1).getOperands().get(1));
 					} else {
-						root.unsafePutMeta("ncol", new RewriterDataType().ofType(root.getResultingDataType(ctx)).as("1").asLiteral(1).consolidate(ctx));
+						root.unsafePutMeta("ncol", new RewriterDataType().ofType("INT").as("1").asLiteral(1).consolidate(ctx));
 					}
-					return;
+					return null;
 				case "%*%(MATRIX,MATRIX)":
 					rowAccess = root.getOperands().get(0).getMeta("nrow");
 					colAccess = root.getOperands().get(1).getMeta("ncol");
 					root.unsafePutMeta("nrow", rowAccess);
 					root.unsafePutMeta("ncol", colAccess);
-					return;
-				case "sum(MATRIX)":
-					root.unsafePutMeta("nrow", new RewriterDataType().ofType(root.getResultingDataType(ctx)).as("1").asLiteral(1));
-					root.unsafePutMeta("ncol", new RewriterDataType().ofType(root.getResultingDataType(ctx)).as("1").asLiteral(1));
-					return;
+					return null;
 				case "diag(MATRIX)":
 					root.unsafePutMeta("nrow", root.getOperands().get(0).getMeta("nrow"));
-					root.unsafePutMeta("ncol", new RewriterDataType().ofType(root.getResultingDataType(ctx)).as("1").asLiteral(1));
-					return;
+					root.unsafePutMeta("ncol", new RewriterDataType().ofType("INT").as("1").asLiteral(1));
+					return null;
 				case "[](MATRIX,INT,INT,INT,INT)":
 					Integer[] ints = new Integer[4];
 
@@ -113,7 +143,15 @@ public class MetaPropagator implements Consumer<RewriterStatement> {
 						throw new NotImplementedException();
 					}
 
-					return;
+					return null;
+				case "rowSums(MATRIX)":
+					root.unsafePutMeta("nrow", root.getOperands().get(0).getMeta("nrow"));
+					root.unsafePutMeta("ncol", new RewriterDataType().ofType("INT").as("1").asLiteral(1));
+					return null;
+				case "colSums(MATRIX)":
+					root.unsafePutMeta("ncol", root.getOperands().get(0).getMeta("ncol"));
+					root.unsafePutMeta("nrow", new RewriterDataType().ofType("INT").as("1").asLiteral(1));
+					return null;
 			}
 
 			RewriterInstruction instr = (RewriterInstruction) root;
@@ -127,10 +165,22 @@ public class MetaPropagator implements Consumer<RewriterStatement> {
 					root.unsafePutMeta("ncol", root.getOperands().get(1).getMeta("ncol"));
 				}
 
-				return;
+				return null;
 			}
 
 			throw new NotImplementedException("Unknown instruction: " + instr.trueTypedInstruction(ctx) + "\n" + instr.toString(ctx));
+		}
+
+		return null;
+	}
+
+	private void validate(RewriterStatement stmt) {
+		if (stmt.isInstruction()) {
+			if (stmt.trueInstruction().equals("_idx") && (stmt.getMeta("ownerId") == null || stmt.getMeta("idxId") == null))
+				throw new IllegalArgumentException(stmt.toString(ctx));
+
+			if (stmt.trueInstruction().equals("_m") && stmt.getMeta("ownerId") == null)
+				throw new IllegalArgumentException(stmt.toString(ctx));
 		}
 	}
 }

@@ -350,6 +350,31 @@ public class RewriterRuleCollection {
 	public static void expandStreamingExpressions(final List<RewriterRule> rules, final RuleContext ctx) {
 		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 
+		// Matrix Multiplication
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("LITERAL_INT:1")
+				.withParsedStatement("%*%(A, B)", hooks)
+				.toParsedStatement("$4:_m($1:_idx(1, nrow(A)), $2:_idx(1, ncol(B)), sum($5:_m($3:_idx(1, ncol(A)), 1, *([](A, $1, $3), [](B, $3, $2)))))", hooks)
+				.apply(hooks.get(1).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
+				.apply(hooks.get(2).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
+				.apply(hooks.get(3).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
+				.apply(hooks.get(4).getId(), stmt -> {
+					UUID id = UUID.randomUUID();
+					stmt.unsafePutMeta("ownerId", id);
+					stmt.getOperands().get(0).unsafePutMeta("ownerId", id);
+					stmt.getOperands().get(1).unsafePutMeta("ownerId", id);
+				}, true) // Assumes it will never collide
+				.apply(hooks.get(5).getId(), stmt -> {
+					UUID id = UUID.randomUUID();
+					stmt.unsafePutMeta("ownerId", id);
+					stmt.getOperands().get(0).unsafePutMeta("ownerId", id);
+				}, true) // Assumes it will never collide
+				.build()
+		);
+
+		// E.g. A + B
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
@@ -409,13 +434,114 @@ public class RewriterRuleCollection {
 				}, true)
 				.build()
 		);
+
+		// sum(A) = sum(_m($1:_idx(1, nrow(A)), 1, sum(_m($2:_idx(1, ncol(A)), 1, [](A, $1, $2)))))
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("LITERAL_INT:1")
+				.withParsedStatement("sum(A)", hooks)
+				.toParsedStatement("sum($3:_m($1:_idx(1, nrow(A)), 1, sum($4:_m($2:_idx(1, ncol(A)), 1, [](A, $1, $2)))))", hooks)
+				.iff(match -> {
+					RewriterStatement meta = (RewriterStatement) match.getMatchRoot().getOperands().get(0).getMeta("ncol");
+
+					if (meta == null)
+						throw new IllegalArgumentException("Column meta should not be null: " + match.getMatchRoot().getOperands().get(0).toString(ctx));
+
+					return !meta.isLiteral() || ((int)meta.getLiteral()) != 1;
+				}, true)
+				.apply(hooks.get(1).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
+				.apply(hooks.get(2).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true)
+				.apply(hooks.get(3).getId(), stmt -> {
+					UUID id = UUID.randomUUID();
+					stmt.unsafePutMeta("ownerId", id);
+					stmt.getOperands().get(0).unsafePutMeta("ownerId", id);
+				}, true)
+				.apply(hooks.get(4).getId(), stmt -> {
+					UUID id = UUID.randomUUID();
+					stmt.unsafePutMeta("ownerId", id);
+					stmt.getOperands().get(0).unsafePutMeta("ownerId", id);
+				}, true)
+				.build()
+		);
+
+		// rowSums(A) -> _m($1:_idx(1, nrow(A)), 1, sum(_m($2:_idx(1, ncol(A)), 1, [](A, $1, $2)))
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("LITERAL_INT:1")
+				.withParsedStatement("rowSums(A)", hooks)
+				.toParsedStatement("$3:_m($1:_idx(1, nrow(A)), 1, sum($4:_m($2:_idx(1, ncol(A)), 1, [](A, $1, $2))))", hooks)
+				.iff(match -> {
+					RewriterStatement meta = (RewriterStatement) match.getMatchRoot().getOperands().get(0).getMeta("ncol");
+
+					if (meta == null)
+						throw new IllegalArgumentException("Column meta should not be null: " + match.getMatchRoot().getOperands().get(0).toString(ctx));
+
+					return !meta.isLiteral() || ((int)meta.getLiteral()) != 1;
+				}, true)
+				.apply(hooks.get(1).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
+				.apply(hooks.get(2).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true)
+				.apply(hooks.get(3).getId(), stmt -> {
+					UUID id = UUID.randomUUID();
+					stmt.unsafePutMeta("ownerId", id);
+					stmt.getOperands().get(0).unsafePutMeta("ownerId", id);
+				}, true)
+				.apply(hooks.get(4).getId(), stmt -> {
+					UUID id = UUID.randomUUID();
+					stmt.unsafePutMeta("ownerId", id);
+					stmt.getOperands().get(0).unsafePutMeta("ownerId", id);
+				}, true)
+				.build()
+		);
+
+		// rowSums(A) -> _m($1:_idx(1, ncol(A)), 1, sum(_m($2:_idx(1, nrow(A)), 1, [](A, $2, $1)))
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("LITERAL_INT:1")
+				.withParsedStatement("colSums(A)", hooks)
+				.toParsedStatement("$3:_m(1, $1:_idx(1, ncol(A)), sum($4:_m($2:_idx(1, nrow(A)), 1, [](A, $2, $1))))", hooks)
+				.iff(match -> {
+					RewriterStatement meta = (RewriterStatement) match.getMatchRoot().getOperands().get(0).getMeta("ncol");
+
+					if (meta == null)
+						throw new IllegalArgumentException("Column meta should not be null: " + match.getMatchRoot().getOperands().get(0).toString(ctx));
+
+					return !meta.isLiteral() || ((int)meta.getLiteral()) != 1;
+				}, true)
+				.apply(hooks.get(1).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
+				.apply(hooks.get(2).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true)
+				.apply(hooks.get(3).getId(), stmt -> {
+					UUID id = UUID.randomUUID();
+					stmt.unsafePutMeta("ownerId", id);
+					stmt.getOperands().get(1).unsafePutMeta("ownerId", id);
+				}, true)
+				.apply(hooks.get(4).getId(), stmt -> {
+					UUID id = UUID.randomUUID();
+					stmt.unsafePutMeta("ownerId", id);
+					stmt.getOperands().get(0).unsafePutMeta("ownerId", id);
+				}, true)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("LITERAL_INT:1")
+				.withParsedStatement("_idx(1, 1)", hooks)
+				.toParsedStatement("$1:1", hooks)
+				/*.apply(hooks.get(1).getId(), stmt -> {
+					System.out.println("YESS");
+				}, true)*/
+				.build()
+		);
 	}
 
 	// TODO: Big issue when having multiple references to the same sub-dag
 	public static void pushdownStreamSelections(final List<RewriterRule> rules, final RuleContext ctx) {
 		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 
-		rules.add(new RewriterRuleBuilder(ctx)
+		rules.add(new RewriterRuleBuilder(ctx, "Element selection pushdown")
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
 				.parseGlobalVars("INT:h,i,j,k,l,m")
@@ -423,14 +549,22 @@ public class RewriterRuleCollection {
 				.parseGlobalVars("LITERAL_INT:1")
 				.withParsedStatement("[]($1:_m(h, i, v), l, m)", hooks)
 				.toParsedStatement("as.scalar($2:_m(l, m, v))", hooks)
-				.iff(match -> {
+				/*.iff(match -> {
 					List<RewriterStatement> ops = match.getMatchRoot().getOperands().get(0).getOperands();
 					return ops.get(0).isInstruction()
 							&& ops.get(1).isInstruction()
 							&& ops.get(0).trueTypedInstruction(ctx).equals("_idx(INT,INT)")
 							&& ops.get(1).trueTypedInstruction(ctx).equals("_idx(INT,INT)");
-				}, true)
+				}, true)*/
 				.linkUnidirectional(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
+					RewriterStatement.transferMeta(lnk);
+					/*UUID ownerId = (UUID)lnk.newStmt.get(0).getMeta("ownerId");
+					System.out.println("OwnerId: " + ownerId);
+					lnk.newStmt.get(0).getOperands().get(0).unsafePutMeta("ownerId", ownerId);
+					lnk.newStmt.get(0).getOperands().get(0).unsafePutMeta("idxId", UUID.randomUUID());
+					lnk.newStmt.get(0).getOperands().get(1).unsafePutMeta("ownerId", ownerId);
+					lnk.newStmt.get(0).getOperands().get(1).unsafePutMeta("idxId", UUID.randomUUID());*/
+
 					// TODO: Big issue when having multiple references to the same sub-dag
 					for (int idx = 0; idx < 2; idx++) {
 						RewriterStatement oldRef = lnk.oldStmt.getOperands().get(idx);
@@ -455,7 +589,7 @@ public class RewriterRuleCollection {
 				.build()
 		);
 
-		rules.add(new RewriterRuleBuilder(ctx)
+		rules.add(new RewriterRuleBuilder(ctx, "Selection pushdown")
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
 				.parseGlobalVars("INT:h,i,j,k,l,m")
@@ -463,16 +597,26 @@ public class RewriterRuleCollection {
 				.parseGlobalVars("LITERAL_INT:1")
 				.withParsedStatement("[]($1:_m(h, i, v), j, k, l, m)", hooks)
 				.toParsedStatement("$2:_m(_idx(j, l), _idx(k, m), v)", hooks) // Assuming that selections are valid
-				.iff(match -> {
+				/*.iff(match -> {
 					List<RewriterStatement> ops = match.getMatchRoot().getOperands().get(0).getOperands();
 					return ops.get(0).isInstruction()
 							&& ops.get(1).isInstruction()
 							&& ops.get(0).trueTypedInstruction(ctx).equals("_idx(INT,INT)")
 							&& ops.get(1).trueTypedInstruction(ctx).equals("_idx(INT,INT)");
-				}, true)
+				}, true)*/
 				.linkUnidirectional(hooks.get(1).getId(), hooks.get(2).getId(), lnk -> {
 					// TODO: Big issue when having multiple references to the same sub-dag
 					// BUT: This should usually not happen if indices are never referenced
+					RewriterStatement.transferMeta(lnk);
+					/*UUID ownerId = (UUID)lnk.newStmt.get(0).getMeta("ownerId");
+					lnk.newStmt.get(0).getOperands().get(0).unsafePutMeta("ownerId", ownerId);
+					lnk.newStmt.get(0).getOperands().get(0).unsafePutMeta("idxId", UUID.randomUUID());
+					lnk.newStmt.get(0).getOperands().get(1).unsafePutMeta("ownerId", ownerId);
+					lnk.newStmt.get(0).getOperands().get(1).unsafePutMeta("idxId", UUID.randomUUID());*/
+
+					//if (ownerId == null)
+						//throw new IllegalArgumentException();
+
 					for (int idx = 0; idx < 2; idx++) {
 						RewriterStatement oldRef = lnk.oldStmt.getOperands().get(idx);
 						RewriterStatement newRef = lnk.newStmt.get(0).getOperands().get(idx);
@@ -496,7 +640,7 @@ public class RewriterRuleCollection {
 				.build()
 		);
 
-		rules.add(new RewriterRuleBuilder(ctx)
+		rules.add(new RewriterRuleBuilder(ctx, "Eliminate scalar matrices")
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
 				.parseGlobalVars("INT:i,j")
@@ -506,7 +650,7 @@ public class RewriterRuleCollection {
 				.build()
 		);
 
-		rules.add(new RewriterRuleBuilder(ctx)
+		rules.add(new RewriterRuleBuilder(ctx, "_m(i::<const>, j::<const>, v) => v")
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
 				.parseGlobalVars("INT:i,j")
@@ -516,16 +660,38 @@ public class RewriterRuleCollection {
 				.iff(match -> {
 					List<RewriterStatement> ops = match.getMatchRoot().getOperands();
 
-					return (!ops.get(0).isInstruction() || !ops.get(0).trueInstruction().equals("_idx") || ops.get(0).getMeta("ownerId") != match.getMatchRoot().getMeta("ownerId"))
-							&& (!ops.get(1).isInstruction() || !ops.get(1).trueInstruction().equals("_idx") || ops.get(0).getMeta("ownerId") != match.getMatchRoot().getMeta("ownerId"));
+					boolean matching = (!ops.get(0).isInstruction() || !ops.get(0).trueInstruction().equals("_idx") || ops.get(0).getMeta("ownerId") != match.getMatchRoot().getMeta("ownerId"))
+							&& (!ops.get(1).isInstruction() || !ops.get(1).trueInstruction().equals("_idx") || ops.get(1).getMeta("ownerId") != match.getMatchRoot().getMeta("ownerId"));
+
+					if (matching) {
+						System.out.println(match.getMatchRoot().getMeta("ownerId"));
+						System.out.println(ops.get(0).getMeta("ownerId"));
+						System.out.println(ops.get(1).getMeta("ownerId"));
+						System.out.println(match.getMatchRoot().toString(ctx));
+					}
+
+					return matching;
 				}, true)
 				.build()
 		);
 	}
 
 	public static void collapseStreamingExpressions(final List<RewriterRule> rules, final RuleContext ctx) {
+
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("LITERAL_INT:1")
+				.parseGlobalVars("INT:i,j")
+				.parseGlobalVars("FLOAT:v")
+				.withParsedStatement("sum(_m(_idx(1, nrow(A)), 1, sum(_m(_idx(1, ncol(A)), 1, [](A, i, j)))))", hooks)
+				.toParsedStatement("sum(A)", hooks)
+				.build()
+		);
+
 		RewriterUtils.buildBinaryPermutations(List.of("INT", "FLOAT", "BOOL"), (t1, t2) -> {
-			HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 			rules.add(new RewriterRuleBuilder(ctx)
 					.setUnidirectional(true)
 					.parseGlobalVars("MATRIX:A,B")
@@ -566,7 +732,7 @@ public class RewriterRuleCollection {
 			);
 		});
 
-		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+
 
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
@@ -587,12 +753,7 @@ public class RewriterRuleCollection {
 						&& b == A.getMeta("nrow")
 						&& c.isLiteral() && ((int)c.getLiteral()) == 1
 						&& d == A.getMeta("ncol")) {
-						System.out.println("TRUE");
 						return true;
-					} else {
-						System.out.println("A: " + A);
-						System.out.println(b.toString(ctx) + " != " + A.getMeta("nrow"));
-						System.out.println(b.toString(ctx) + " != " + A.getMeta("ncol"));
 					}
 
 					return false;
@@ -608,51 +769,23 @@ public class RewriterRuleCollection {
 				.parseGlobalVars("LITERAL_INT:1")
 				.withParsedStatement("_m($1:_idx(a, b), $2:_idx(c, d), [](A, $1, $2))", hooks)
 				.toParsedStatement("$3:[](A, a, b, c, d)", hooks)
-				/*.apply(hooks.get(3).getId(), stmt -> {
-					RewriterStatement A = stmt.getOperands().get(0);
-					RewriterStatement a = stmt.getOperands().get(1);
-					RewriterStatement b = stmt.getOperands().get(2);
-					RewriterStatement c = stmt.getOperands().get(3);
-					RewriterStatement d = stmt.getOperands().get(4);
-					if (a.isLiteral() && ((int)a.getLiteral()) == 1
-						&& b == A.getMeta("nrow")
-						&& c.isLiteral() && ((int)c.getLiteral()) == 1
-						&& d == A.getMeta("ncol")) {
-
-					}
-				}, true)*/
-				/*.apply(hooks.get(1).getId(), (stmt, match) -> {
-					System.out.println("Match: " + match.getMatchRoot());
-					System.out.println("Assoc: " + stmt);
-					boolean isRowMatrix = false;
-					boolean isColMatrix = false;
-
-					UUID oldIId = (UUID) match.getMatchRoot().getOperands().get(0).getMeta("idxId");
-					UUID oldJId = (UUID) match.getMatchRoot().getOperands().get(1).getMeta("idxId");
-
-					if (oldIId == null && oldJId == null)
-						return;
-
-					if (match.getMatchRoot().getOperands().get(0).isLiteral()
-							&& ((int)match.getMatchRoot().getOperands().get(0).getLiteral()) == 1)
-						isColMatrix = true;
-
-					if (match.getMatchRoot().getOperands().get(0).isLiteral()
-							&& ((int)match.getMatchRoot().getOperands().get(0).getLiteral()) == 1)
-						isRowMatrix = true;
-
-					// Now we handle different cases
-					// Case 1: _m(i, j, [](A, i, j)) -> A
-					// Case 2: _m(i, j, <const>)     -> rand(i, j, <const>, <const>)
-					// Case 3: _m(i, j, sum(_m())
-					stmt.forEachPreOrder((el, parent, pIdx) -> {
-
-					});
-
-				}, true)*/
 				.build()
 		);
 
+		/*rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("LITERAL_INT:1")
+				.parseGlobalVars("INT:i,j")
+				.parseGlobalVars("FLOAT:v")
+				.withParsedStatement("_m(i, j, sum($1:ElementWiseInstruction(A, B)))", hooks)
+				.toParsedStatement("sum(A)", hooks)
+				.build()
+		);*/
+
+
+
+		// TODO: The rule below only hold true for i = _idx(1, nrow(i)) and j = _idx(1, ncol(i))
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
@@ -682,7 +815,10 @@ public class RewriterRuleCollection {
 				.toParsedStatement("diag(A)", hooks)
 				.build()
 		);
+	}
 
+	public static void assertCollapsed(final List<RewriterRule> rules, final RuleContext ctx) {
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
@@ -690,8 +826,8 @@ public class RewriterRuleCollection {
 				.parseGlobalVars("FLOAT:v")
 				.withParsedStatement("_m(i, j, v)", hooks)
 				.toParsedStatement("$1:_m(i, j, v)", hooks)
-				.apply(hooks.get(1).getId(), stmt -> {
-					throw new IllegalArgumentException("Could not eliminate stream expression: " + stmt.toString(ctx));
+				.iff(match -> {
+					throw new IllegalArgumentException("Could not eliminate stream expression: " + match.getMatchRoot().toString(ctx));
 				}, true)
 				.build()
 		);

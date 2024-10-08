@@ -116,7 +116,8 @@ public class RewriterUtils {
 		for (String def : varDefinitions)
 			parseDataTypes(def, dataTypes, ctx);
 
-		return parseExpression(expr, new HashMap<>(), dataTypes, ctx);
+		RewriterStatement parsed = parseExpression(expr, new HashMap<>(), dataTypes, ctx);
+		return ctx.metaPropagator != null ? ctx.metaPropagator.apply(parsed) : parsed;
 	}
 
 	/**

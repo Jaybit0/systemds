@@ -7,6 +7,7 @@ import org.apache.sysds.api.DMLScript;
 import org.apache.sysds.hops.Hop;
 import org.apache.sysds.hops.LiteralOp;
 import org.apache.sysds.hops.OptimizerUtils;
+import org.apache.sysds.hops.rewriter.MetaPropagator;
 import org.apache.sysds.hops.rewriter.RewriterContextSettings;
 import org.apache.sysds.hops.rewriter.RewriterDatabase;
 import org.apache.sysds.hops.rewriter.RewriterHeuristic;
@@ -212,6 +213,7 @@ public class TestRewriteExecution {
 
 	private RewriterRuleSet createRules(Function<ExecutedRule, Boolean> handler) {
 		RuleContext ctx = RewriterContextSettings.getDefaultContext(new Random());
+		ctx.metaPropagator = new MetaPropagator(ctx);
 
 		ArrayList<RewriterRule> rules = new ArrayList<>();
 
@@ -230,6 +232,10 @@ public class TestRewriteExecution {
 		ArrayList<RewriterRule> colRules = new ArrayList<>();
 		RewriterRuleCollection.collapseStreamingExpressions(colRules, ctx);
 		RewriterHeuristic streamCollapse = new RewriterHeuristic(new RewriterRuleSet(ctx, colRules));
+
+		ArrayList<RewriterRule> assertCollapsedRules = new ArrayList<>();
+		RewriterRuleCollection.assertCollapsed(colRules, ctx);
+		RewriterHeuristic assertCollapsed = new RewriterHeuristic(new RewriterRuleSet(ctx, assertCollapsedRules));
 
 		/*rules.add(new RewriterRuleBuilder(ctx)
 				.parseGlobalVars("LITERAL_BOOL:TRUE")
@@ -295,8 +301,8 @@ public class TestRewriteExecution {
 		RewriterDatabase db = new RewriterDatabase();
 
 		String matrixDef = "MATRIX:A,B,C";
-		String intDef = "LITERAL_INT:10,20";
-		String floatDef = "LITERAL_FLOAT:0,1,-0.0001,0.0001,-1";
+		String intDef = "LITERAL_INT:1,10,20";
+		String floatDef = "LITERAL_FLOAT:0,1.0,-0.0001,0.0001,-1.0";
 		String boolDef = "LITERAL_BOOL:TRUE,FALSE";
 		//String startStr = "TRUE";
 		//String startStr = "var(rand(10, 10, 0, 1))";
@@ -340,28 +346,43 @@ public class TestRewriteExecution {
 			return null;*/
 
 		//String startStr = "trace(*(rand(10, 10, 0, 1), rand(10, 10, 0, 1)))";
-		String startStr = "t(t(t(rand(10, 10, 0, 1))))";
+		//String startStr = "t(t(t(rand(10, 10, 0, 1))))";
+		//String startStr = "t(t(t(rand(10, 10, 0, 1))))";
+		//String startStr = "trace(%*%(rand(10, 10, 0, 1), rand(10, 10, 0, 1)))";
+		//String startStr = "sum(*(rand(10, 10, 0, 1), t(rand(10, 10, 0, 1))))";
+		//String startStr = "sum(%*%(rand(10, 10, 0, 1), rand(10, 10, 0, 1)))";
+		//String startStr = "t(rowSums(t(rand(10, 10, 0, 1.0))))";
+		String startStr = "colSums(rand(10, 10, 0, 1.0))";
+		//String startStr = "_idx(1, 1)";
 		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef, boolDef);
 
 		System.out.println("===== STREAM EXPANSION =====");
 		stmt = streamExpansion.apply(stmt, (t, r) -> {
-			System.out.println("Apply");
+			if (r != null)
+				System.out.println("Applying rule: " + r.getName());
 			System.out.println(t);
 			return true;
 		});
 
 		System.out.println("===== STREAM-SELECT PUSHDOWN =====");
 		stmt = streamSelectPushdown.apply(stmt, (t, r) -> {
+			if (r != null)
+				System.out.println("Applying rule: " + r.getName());
 			System.out.println(String.join("\n", t.toExecutableString(ctx)));
 			System.out.println("=====");
 			return true;
 		});
 
+		System.out.println("===== STREAM COLLAPSE =====");
 		stmt = streamCollapse.apply(stmt, (t, r) -> {
+			if (r != null)
+				System.out.println("Applying rule: " + r.getName());
 			System.out.println(String.join("\n", t.toExecutableString(ctx)));
 			System.out.println("=====");
 			return true;
 		});
+
+		stmt = assertCollapsed.apply(stmt);
 
 		if (true)
 			return null;

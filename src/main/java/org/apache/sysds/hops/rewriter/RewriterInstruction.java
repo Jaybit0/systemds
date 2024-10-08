@@ -106,7 +106,6 @@ public class RewriterInstruction extends RewriterStatement {
 			if (this.operands.size() != inst.operands.size())
 				return false;
 
-			// TODO: Check if same reference (e.g. *($1:+(a,b), $1))
 			RewriterStatement existingRef = internalReferences.get(new RewriterRule.IdentityRewriterStatement(this));
 			if (existingRef != null)
 				return existingRef == stmt;
