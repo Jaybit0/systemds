@@ -91,7 +91,7 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	@Override
-	public boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, boolean allowTypeHierarchy) {
+	public boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, boolean allowTypeHierarchy, HashMap<RewriterRule.IdentityRewriterStatement, RewriterStatement> internalReferences) {
 		if (stmt instanceof RewriterInstruction && getResultingDataType(ctx).equals(stmt.getResultingDataType(ctx))) {
 			RewriterInstruction inst = (RewriterInstruction)stmt;
 
@@ -106,19 +106,13 @@ public class RewriterInstruction extends RewriterStatement {
 			if (this.operands.size() != inst.operands.size())
 				return false;
 
+			// TODO: Check if same reference (e.g. *($1:+(a,b), $1))
+			RewriterStatement existingRef = internalReferences.get(new RewriterRule.IdentityRewriterStatement(this));
+			if (existingRef != null)
+				return existingRef == stmt;
+
 			RewriterRule.LinkObject ruleLink = ruleLinks.get(this);
-			/*if (!ruleLinks.isEmpty()) {
-				System.out.println("::" + this);
-				System.out.println("::-> " + inst);
-				for (Map.Entry<RewriterStatement, RewriterRule.LinkObject> obj : ruleLinks.entrySet()) {
-					System.out.println(obj.getKey() + " -> " + obj.getValue().stmt);
-					System.out.println(obj.getKey().equals(this));
-					System.out.println(obj.getKey() == this);
-					System.out.println("hashcode: " + this.hashCode());
-					System.out.println("hashcode2: " + inst.hashCode());
-					//System.out.println(obj.getValue().equals(t));
-				}
-			}*/
+
 			if (ruleLink != null) {
 				links.add(new RewriterRule.ExplicitLink(inst, ruleLink.stmt, ruleLink.transferFunction));
 			}
@@ -126,10 +120,12 @@ public class RewriterInstruction extends RewriterStatement {
 			int s = inst.operands.size();
 
 			for (int i = 0; i < s; i++) {
-				if (!operands.get(i).match(ctx, inst.operands.get(i), dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks, allowDuplicatePointers, allowPropertyScan, allowTypeHierarchy)) {
+				if (!operands.get(i).match(ctx, inst.operands.get(i), dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks, allowDuplicatePointers, allowPropertyScan, allowTypeHierarchy, internalReferences)) {
 					return false;
 				}
 			}
+
+			internalReferences.put(new RewriterRule.IdentityRewriterStatement(this), stmt);
 
 			return true;
 		}

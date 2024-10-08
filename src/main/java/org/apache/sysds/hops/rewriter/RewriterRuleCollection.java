@@ -577,7 +577,7 @@ public class RewriterRuleCollection {
 				.withParsedStatement("_m($1:_idx(a, b), $2:_idx(c, d), [](A, $1, $2))", hooks)
 				.toParsedStatement("A", hooks)
 				.iff(match -> {
-					RewriterStatement A = match.getMatchRoot().getOperands().get(2);
+					RewriterStatement A = match.getMatchRoot().getOperands().get(2).getOperands().get(0);
 					RewriterStatement a = match.getMatchRoot().getOperands().get(0).getOperands().get(0);
 					RewriterStatement b = match.getMatchRoot().getOperands().get(0).getOperands().get(1);
 					RewriterStatement c = match.getMatchRoot().getOperands().get(1).getOperands().get(0);
@@ -587,7 +587,12 @@ public class RewriterRuleCollection {
 						&& b == A.getMeta("nrow")
 						&& c.isLiteral() && ((int)c.getLiteral()) == 1
 						&& d == A.getMeta("ncol")) {
+						System.out.println("TRUE");
 						return true;
+					} else {
+						System.out.println("A: " + A);
+						System.out.println(b.toString(ctx) + " != " + A.getMeta("nrow"));
+						System.out.println(b.toString(ctx) + " != " + A.getMeta("ncol"));
 					}
 
 					return false;
