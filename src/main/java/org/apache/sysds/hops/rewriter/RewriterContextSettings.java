@@ -321,7 +321,12 @@ public class RewriterContextSettings {
 		builder.append("[](MATRIX,INT,INT)::FLOAT\n");
 		builder.append("[](MATRIX,INT,INT,INT,INT)::MATRIX\n");
 		builder.append("diag(MATRIX)::MATRIX\n");
+		builder.append("sum(FLOAT...)::FLOAT\n");
+		builder.append("sum(FLOAT)::FLOAT\n");
+
 		builder.append("_m(INT,INT,FLOAT)::MATRIX\n");
+		builder.append("_idxExpr(INT,FLOAT)::FLOAT...\n");
+		builder.append("_idxExpr(INT,FLOAT...)::FLOAT...\n");
 		builder.append("_idx(INT,INT)::INT\n");
 		builder.append("_nrow()::INT\n");
 		builder.append("_ncol()::INT\n");

@@ -350,6 +350,7 @@ public class RewriterRuleCollection {
 	public static void expandStreamingExpressions(final List<RewriterRule> rules, final RuleContext ctx) {
 		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 
+
 		// Matrix Multiplication
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
@@ -530,9 +531,29 @@ public class RewriterRuleCollection {
 				.parseGlobalVars("LITERAL_INT:1")
 				.withParsedStatement("_idx(1, 1)", hooks)
 				.toParsedStatement("$1:1", hooks)
-				/*.apply(hooks.get(1).getId(), stmt -> {
-					System.out.println("YESS");
-				}, true)*/
+				.build()
+		);
+
+		// TODO: Continue
+		// Scalars dependent on matrix to index streams
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("LITERAL_INT:1")
+				.withParsedStatement("sum(A)", hooks)
+				.toParsedStatement("sum($3:_idxExpr($1:_idx(1, nrow(A)), $4:_idxExpr($2:_idx(1, ncol(A)), [](A, $1, $2))))", hooks)
+				.apply(hooks.get(1).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
+				.apply(hooks.get(2).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true)
+				.apply(hooks.get(3).getId(), stmt -> {
+					UUID id = UUID.randomUUID();
+					stmt.unsafePutMeta("ownerId", id);
+					stmt.getOperands().get(0).unsafePutMeta("ownerId", id);
+				}, true)
+				.apply(hooks.get(4).getId(), stmt -> {
+					UUID id = UUID.randomUUID();
+					stmt.unsafePutMeta("ownerId", id);
+					stmt.getOperands().get(0).unsafePutMeta("ownerId", id);
+				}, true)
 				.build()
 		);
 	}
@@ -663,15 +684,105 @@ public class RewriterRuleCollection {
 					boolean matching = (!ops.get(0).isInstruction() || !ops.get(0).trueInstruction().equals("_idx") || ops.get(0).getMeta("ownerId") != match.getMatchRoot().getMeta("ownerId"))
 							&& (!ops.get(1).isInstruction() || !ops.get(1).trueInstruction().equals("_idx") || ops.get(1).getMeta("ownerId") != match.getMatchRoot().getMeta("ownerId"));
 
-					if (matching) {
-						System.out.println(match.getMatchRoot().getMeta("ownerId"));
-						System.out.println(ops.get(0).getMeta("ownerId"));
-						System.out.println(ops.get(1).getMeta("ownerId"));
-						System.out.println(match.getMatchRoot().toString(ctx));
-					}
+					return matching;
+				}, true)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx, "_idxExpr(i::<const>, v) => v")
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:i,j")
+				.parseGlobalVars("FLOAT:v")
+				.withParsedStatement("_idxExpr(i, v)", hooks)
+				.toParsedStatement("v", hooks)
+				.iff(match -> {
+					List<RewriterStatement> ops = match.getMatchRoot().getOperands();
+
+					boolean matching = (!ops.get(0).isInstruction() || !ops.get(0).trueInstruction().equals("_idx") || ops.get(0).getMeta("ownerId") != match.getMatchRoot().getMeta("ownerId"))
+							&& (!ops.get(1).isInstruction() || !ops.get(1).trueInstruction().equals("_idx") || ops.get(1).getMeta("ownerId") != match.getMatchRoot().getMeta("ownerId"));
 
 					return matching;
 				}, true)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx, "_idxExpr(i::<const>, v) => v")
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:i,j")
+				.parseGlobalVars("FLOAT...:v")
+				.withParsedStatement("_idxExpr(i, v)", hooks)
+				.toParsedStatement("v", hooks)
+				.iff(match -> {
+					List<RewriterStatement> ops = match.getMatchRoot().getOperands();
+
+					boolean matching = (!ops.get(0).isInstruction() || !ops.get(0).trueInstruction().equals("_idx") || ops.get(0).getMeta("ownerId") != match.getMatchRoot().getMeta("ownerId"))
+							&& (!ops.get(1).isInstruction() || !ops.get(1).trueInstruction().equals("_idx") || ops.get(1).getMeta("ownerId") != match.getMatchRoot().getMeta("ownerId"));
+
+					return matching;
+				}, true)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx, "_idxExpr(i, sum(...)) => sum(_idxExpr(i, ...))")
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:i,j")
+				.parseGlobalVars("FLOAT:v")
+				.withParsedStatement("$1:_idxExpr(i, sum(v))", hooks)
+				.toParsedStatement("sum($2:_idxExpr(i, v))", hooks)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx, "_idxExpr(i, sum(...)) => sum(_idxExpr(i, ...))")
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:i,j")
+				.parseGlobalVars("FLOAT...:v")
+				.withParsedStatement("$1:_idxExpr(i, sum(v))", hooks)
+				.toParsedStatement("sum($2:_idxExpr(i, v))", hooks)
+				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
+				.build()
+		);
+
+		RewriterUtils.buildBinaryPermutations(List.of("FLOAT"), (t1, t2) -> {
+			// TODO: This probably first requires pulling out invariants of this idxExpr
+			rules.add(new RewriterRuleBuilder(ctx, "ElementWiseInstruction(sum(_idxExpr(i, ...)), sum(_idxExpr(j, ...))) => _idxExpr(i, _idxExpr(j, sum(...))")
+					.setUnidirectional(true)
+					.parseGlobalVars("MATRIX:A,B")
+					.parseGlobalVars("INT:i,j")
+					.parseGlobalVars(t1 + ":v1")
+					.parseGlobalVars(t2 + ":v2")
+					.withParsedStatement("$1:ElementWiseInstruction(sum($2:_idxExpr(i, v1)), sum($3:_idxExpr(j, v2)))", hooks)
+					.toParsedStatement("sum($4:_idxExpr(i, $5:_idxExpr(j, $6:ElementWiseInstruction(v1, v2))))", hooks)
+					.link(hooks.get(1).getId(), hooks.get(6).getId(), RewriterStatement::transferMeta)
+					.link(hooks.get(2).getId(), hooks.get(4).getId(), RewriterStatement::transferMeta)
+					.link(hooks.get(3).getId(), hooks.get(5).getId(), RewriterStatement::transferMeta)
+					.build()
+			);
+		});
+
+
+
+		rules.add(new RewriterRuleBuilder(ctx, "sum(sum(v)) => sum(v)")
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:i,j")
+				.parseGlobalVars("FLOAT:v")
+				.withParsedStatement("sum(sum(v))", hooks)
+				.toParsedStatement("sum(v)", hooks)
+				.build()
+		);
+
+		rules.add(new RewriterRuleBuilder(ctx, "sum(sum(v)) => sum(v)")
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("INT:i,j")
+				.parseGlobalVars("FLOAT...:v")
+				.withParsedStatement("sum(sum(v))", hooks)
+				.toParsedStatement("sum(v)", hooks)
 				.build()
 		);
 	}
