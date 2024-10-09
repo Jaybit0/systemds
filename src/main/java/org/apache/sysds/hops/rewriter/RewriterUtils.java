@@ -1,15 +1,22 @@
 package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableObject;
+import scala.Tuple2;
+import scala.collection.parallel.ParIterableLike;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -416,5 +423,93 @@ public class RewriterUtils {
 		}
 
 		return newOne;
+	}
+
+	// Function to check if two lists match
+	public static <T> boolean findMatchingOrderings(List<T> col1, List<T> col2, T[] stack, BiFunction<T, T, Boolean> matcher, Function<T[], Boolean> permutationEmitter, boolean symmetric) {
+		if (col1.size() != col2.size())
+			return false;  // Sizes must match
+
+		if (stack.length < col2.size())
+			throw new IllegalArgumentException("Mismatching stack sizes!");
+
+		if (col1.size() == 1) {
+			if (matcher.apply(col1.get(0), col2.get(0))) {
+				stack[0] = col2.get(0);
+				permutationEmitter.apply(stack);
+				return true;
+			}
+
+			return false;
+		}
+
+		// We need to get true on the diagonal for it to be a valid permutation
+		List<List<Integer>> possiblePermutations = new ArrayList<>(Collections.nCopies(col1.size(), null));
+
+		boolean anyMatch;
+
+		for (int i = 0; i < col1.size(); i++) {
+			anyMatch = false;
+
+			for (int j = 0; j < col2.size(); j++) {
+				if (j > i && symmetric)
+					break;
+
+				if (matcher.apply(col1.get(i), col2.get(j))) {
+					if (possiblePermutations.get(i) == null)
+						possiblePermutations.set(i, new ArrayList<>());
+
+					possiblePermutations.get(i).add(j);
+
+					if (symmetric) {
+						if (possiblePermutations.get(j) == null)
+							possiblePermutations.set(j, new ArrayList<>());
+						possiblePermutations.get(j).add(i);
+					}
+
+					anyMatch = true;
+				}
+			}
+
+			if (!anyMatch) // Then there cannot be a matching permutation
+				return false;
+		}
+
+		// Start recursive matching
+		return cartesianProduct(possiblePermutations, new Integer[possiblePermutations.size()], arrangement -> {
+			for (int i = 0; i < col2.size(); i++)
+				stack[i] = col2.get(arrangement[i]);
+			return permutationEmitter.apply(stack);
+		});
+	}
+
+	public static <T> boolean cartesianProduct(List<List<T>> list, T[] stack, Function<T[], Boolean> emitter) {
+		if (list.size() < 2)
+			throw new IllegalArgumentException(
+					"Can't have a product of fewer than two sets (got " +
+							list.size() + ")");
+
+		return _cartesianProduct(0, list, stack, emitter, new MutableBoolean(true));
+	}
+
+	private static <T> boolean _cartesianProduct(int index, List<List<T>> sets, T[] currentStack, Function<T[], Boolean> emitter, MutableBoolean doContinue) {
+		if (index >= sets.size()) {
+			if (!emitter.apply(currentStack))
+				doContinue.setValue(false);
+			return true;
+		}
+
+		int size = sets.get(index).size();
+		boolean matchFound = false;
+
+		for (int i = 0; i < size; i++) {
+			currentStack[index] = sets.get(index).get(i);
+			matchFound |= _cartesianProduct(index+1, sets, currentStack, emitter, doContinue);
+
+			if (!doContinue.booleanValue())
+				return matchFound;
+		}
+
+		return matchFound;
 	}
 }

@@ -1,13 +1,11 @@
 package org.apache.sysds.hops.rewriter;
 
-import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.lang3.function.TriFunction;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -91,12 +89,14 @@ public class RewriterInstruction extends RewriterStatement {
 	}
 
 	@Override
-	public boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, boolean allowTypeHierarchy, HashMap<RewriterRule.IdentityRewriterStatement, RewriterStatement> internalReferences) {
+	public boolean match(final MatcherContext mCtx) {
+		RewriterStatement stmt = mCtx.currentStatement;
+		RuleContext ctx = mCtx.ctx;
 		if (stmt instanceof RewriterInstruction && getResultingDataType(ctx).equals(stmt.getResultingDataType(ctx))) {
 			RewriterInstruction inst = (RewriterInstruction)stmt;
 
 			if(!inst.instr.equals(this.instr)) {
-				if (!allowPropertyScan)
+				if (!mCtx.allowPropertyScan)
 					return false;
 				Set<String> props = inst.getProperties(ctx);
 
@@ -106,25 +106,26 @@ public class RewriterInstruction extends RewriterStatement {
 			if (this.operands.size() != inst.operands.size())
 				return false;
 
-			RewriterStatement existingRef = internalReferences.get(new RewriterRule.IdentityRewriterStatement(this));
+			RewriterStatement existingRef = mCtx.findInternalReference(new RewriterRule.IdentityRewriterStatement(this));
 			if (existingRef != null)
 				return existingRef == stmt;
 
-			RewriterRule.LinkObject ruleLink = ruleLinks.get(this);
+			RewriterRule.LinkObject ruleLink = mCtx.ruleLinks.get(this);
 
 			if (ruleLink != null) {
-				links.add(new RewriterRule.ExplicitLink(inst, ruleLink.stmt, ruleLink.transferFunction));
+				mCtx.getLinks().add(new RewriterRule.ExplicitLink(inst, ruleLink.stmt, ruleLink.transferFunction));
 			}
 
 			int s = inst.operands.size();
 
 			for (int i = 0; i < s; i++) {
-				if (!operands.get(i).match(ctx, inst.operands.get(i), dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks, allowDuplicatePointers, allowPropertyScan, allowTypeHierarchy, internalReferences)) {
+				mCtx.currentStatement = inst.operands.get(i);
+				if (!operands.get(i).match(mCtx)) {
 					return false;
 				}
 			}
 
-			internalReferences.put(new RewriterRule.IdentityRewriterStatement(this), stmt);
+			mCtx.getInternalReferences().put(new RewriterRule.IdentityRewriterStatement(this), stmt);
 
 			return true;
 		}

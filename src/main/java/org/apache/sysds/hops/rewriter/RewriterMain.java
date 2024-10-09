@@ -142,34 +142,8 @@ public class RewriterMain {
 		ruleSet = new RewriterRuleSet(RuleContext.floatArithmetic, rules);
 	}
 
-	public static void main(String[] args) {
+	/*public static void main(String[] args) {
 		System.out.println(ruleSet);
-		/*RewriterInstruction instr = (RewriterInstruction)new RewriterRuleBuilder()
-				.asDAGBuilder()
-				.withInstruction("+")
-					.addOp("c")
-						.ofType("float")
-					.addOp("d")
-						.ofType("float")
-					.as("c+d")
-				.withInstruction("*")
-					.addExistingOp("c+d")
-					.addOp("1")
-						.ofType("float")
-						.asLiteral(1.0f)
-					.as("(c+d)*1")
-				.withInstruction("+")
-					.addOp("e")
-						.ofType("float")
-					.addExistingOp("(c+d)*1")
-					.asRootInstruction()
-				.buildDAG();
-
-		System.out.println("Origin: " + instr);
-		System.out.println("Simplified: " + instr.simplify());*/
-
-		/*if (true)
-			return;*/
 
 		RewriterInstruction instr = (RewriterInstruction)new RewriterRuleBuilder(RuleContext.floatArithmetic)
 				.asDAGBuilder()
@@ -237,8 +211,6 @@ public class RewriterMain {
 			//System.out.println("Match size: " + current.rule.matches.size());
 			for (RewriterRuleSet.ApplicableRule rule : rules) {
 				for (RewriterStatement.MatchingSubexpression match : rule.matches) {
-				/*if (current.root.toString().equals("(e + (1.0 * (c + d)))"))
-					System.out.println("HERE");*/
 					long delta = System.nanoTime();
 					RewriterStatement transformed = rule.forward ? rule.rule.applyForward(match, current, false) : rule.rule.applyBackward(match, current, false);
 					hashes.add(transformed.hashCode());
@@ -253,23 +225,6 @@ public class RewriterMain {
 					}
 					insertTime += System.nanoTime() - delta;
 
-				/*System.out.println("Source: " + current.root);
-				//System.out.println(current.rule);
-				System.out.println("Transformed: " + transformed);
-				System.out.println("Cost: " + transformed.getCost());
-				System.out.println();
-				System.out.println("=====");
-				System.out.println();*/
-					//System.out.println(transformed);
-
-				/*System.out.println("Available transformations:");
-				ruleSet.findApplicableRules(transformed).forEach(System.out::println);
-				System.out.println("======");*/
-
-				/*System.out.println("\rTransformed: " + current.root + " => " + transformed);
-				System.out.println("\tusing " + (current.rule.forward ? current.rule.rule.getStmt1() + " => " + current.rule.rule.getStmt2() : current.rule.rule.getStmt2() + " => " + current.rule.rule.getStmt1()));
-				System.out.println("\tCost: " + transformed.getCost());*/
-
 					long newCost = transformed.getCost();
 					if (newCost < optimalCost) {
 						System.out.println("\rFound reduction: " + current + " => " + transformed);
@@ -281,16 +236,7 @@ public class RewriterMain {
 					delta = System.nanoTime();
 					if (transformed instanceof RewriterInstruction) {
 						queue.add((RewriterInstruction)transformed);
-						/*applicableRules = ruleSet.findApplicableRules((RewriterInstruction) transformed);
-						findApplicableRulesTime += System.nanoTime() - delta;
-
-						if (applicableRules != null && !applicableRules.isEmpty())
-							queue.addAll(applicableRules.stream().map(r -> new RewriterQueuedTransformation((RewriterInstruction) transformed, r)).collect(Collectors.toList()));*/
 					}
-				/*try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-				}*/
 				}
 
 				total = System.nanoTime() - total;
@@ -309,5 +255,5 @@ public class RewriterMain {
 		System.out.println("Optimum: " + optimum);
 		System.out.println("Cost: " + optimalCost);
 		System.out.println("Unique hashes: " + hashes.size());
-	}
+	}*/
 }

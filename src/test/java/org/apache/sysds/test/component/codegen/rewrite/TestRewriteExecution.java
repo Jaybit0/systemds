@@ -349,10 +349,11 @@ public class TestRewriteExecution {
 		//String startStr = "t(t(t(rand(10, 10, 0, 1))))";
 		//String startStr = "t(t(t(rand(10, 10, 0, 1))))";
 		//String startStr = "trace(%*%(rand(10, 10, 0, 1), rand(10, 10, 0, 1)))";
-		//String startStr = "sum(*(rand(10, 10, 0, 1), t(rand(10, 10, 0, 1))))";
-		//String startStr = "sum(%*%(rand(10, 10, 0, 1), rand(10, 10, 0, 1)))";
+		//String startStr = "sum(*(colSums(rand(10, 10, 0, 1.0)), colSums(rand(10, 10, 0, 1.0))))";
+		//String startStr = "sum(%*%(rand(10, 10, 0, 1.0), t(rand(10, 10, 0, 1.0))))";
+		String startStr = "sum(*(colSums(rand(10, 10, 0, 1.0)), t(rowSums(rand(10, 10, 0, 1.0)))))";
 		//String startStr = "t(rowSums(t(rand(10, 10, 0, 1.0))))";
-		String startStr = "colSums(rand(10, 10, 0, 1.0))";
+		//String startStr = "colSums(rand(10, 10, 0, 1.0))";
 		//String startStr = "_idx(1, 1)";
 		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef, boolDef);
 

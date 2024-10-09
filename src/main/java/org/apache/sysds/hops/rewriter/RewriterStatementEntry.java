@@ -24,9 +24,9 @@ public class RewriterStatementEntry {
 			return false;
 
 		if (o instanceof RewriterStatement)
-			return instr.match(ctx, (RewriterStatement)o, new HashMap<>(), false, false, null, new DualHashBidiMap<>(), false, false, false);
+			return instr.match(new RewriterStatement.MatcherContext(ctx, (RewriterStatement)o, null, -1, false, false, false, false, false, true, new HashMap<>()));
 		if (o instanceof RewriterStatementEntry)
-			return instr.match(ctx, ((RewriterStatementEntry)o).instr, new HashMap<>(), false, false, null, new DualHashBidiMap<>(), false, false, false);
+			return instr.match(new RewriterStatement.MatcherContext(ctx, ((RewriterStatementEntry)o).instr, null, -1, false, false, false, false, false, true, new HashMap<>()));
 		return false;
 	}
 }

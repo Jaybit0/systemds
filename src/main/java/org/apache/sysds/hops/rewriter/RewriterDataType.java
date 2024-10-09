@@ -100,11 +100,13 @@ public class RewriterDataType extends RewriterStatement {
 	}
 
 	@Override
-	public boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValue, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, boolean allowTypeHierarchy, HashMap<RewriterRule.IdentityRewriterStatement, RewriterStatement> internalDependencies) {
+	public boolean match(final MatcherContext mCtx) {
+		RewriterStatement stmt = mCtx.currentStatement;
+		RuleContext ctx = mCtx.ctx;
 		String dType = stmt.getResultingDataType(ctx);
 
 		if (!dType.equals(type)) {
-			if (!allowTypeHierarchy)
+			if (!mCtx.allowTypeHierarchy)
 				return false;
 
 			Set<String> types = ctx.typeHierarchy.get(dType);
@@ -113,23 +115,23 @@ public class RewriterDataType extends RewriterStatement {
 		}
 
 		// TODO: This way of literal matching might cause confusion later on
-		if (literalsCanBeVariables) {
+		if (mCtx.literalsCanBeVariables) {
 			if (isLiteral())
-				if (!ignoreLiteralValue && (!stmt.isLiteral() || !getLiteral().equals(stmt.getLiteral())))
+				if (!mCtx.ignoreLiteralValues && (!stmt.isLiteral() || !getLiteral().equals(stmt.getLiteral())))
 					return false;
 		} else {
 			if (isLiteral() != stmt.isLiteral())
 				return false;
-			if (!ignoreLiteralValue && isLiteral() && !getLiteral().equals(stmt.getLiteral()))
+			if (!mCtx.ignoreLiteralValues && isLiteral() && !getLiteral().equals(stmt.getLiteral()))
 				return false;
 		}
 
-		RewriterStatement assoc = dependencyMap.get(this);
+		RewriterStatement assoc = mCtx.getDependencyMap().get(this);
 		if (assoc == null) {
 			// TODO: This is very inefficient
-			if (!allowDuplicatePointers && dependencyMap.containsValue(stmt))
+			if (!mCtx.allowDuplicatePointers && mCtx.getDependencyMap().containsValue(stmt))
 				return false; // Then the statement variable is already associated with another variable
-			dependencyMap.put(this, stmt);
+			mCtx.getDependencyMap().put(this, stmt);
 			return true;
 		} else if (assoc == stmt) {
 			return true;

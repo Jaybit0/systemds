@@ -1,5 +1,6 @@
 package org.apache.sysds.hops.rewriter;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
 import javax.annotation.Nullable;
@@ -13,7 +14,7 @@ public class RewriterHeuristic implements RewriterHeuristicTransformation {
 	//private final List<String> desiredProperties;
 
 	public RewriterHeuristic(RewriterRuleSet ruleSet) {
-		this(ruleSet, false);
+		this(ruleSet, true);
 	}
 
 	public RewriterHeuristic(RewriterRuleSet ruleSet, boolean accelerated/*, List<String> desiredProperties*/) {
@@ -51,7 +52,7 @@ public class RewriterHeuristic implements RewriterHeuristicTransformation {
 		if (accelerated)
 			rule = ruleSet.acceleratedFindFirst(current);
 		else
-			rule = ruleSet.findFirstApplicableRule(current);
+			throw new NotImplementedException("Must use accelerated mode");//rule = ruleSet.findFirstApplicableRule(current);
 
 		if (rule != null)
 			foundRewrite.setValue(true);
@@ -70,7 +71,7 @@ public class RewriterHeuristic implements RewriterHeuristicTransformation {
 			if (accelerated)
 				rule = ruleSet.acceleratedFindFirst(current);
 			else
-				rule = ruleSet.findFirstApplicableRule(current);
+				throw new IllegalArgumentException("Must use accelerated mode!");//rule = ruleSet.findFirstApplicableRule(current);
 		}
 
 		return currentStmt;

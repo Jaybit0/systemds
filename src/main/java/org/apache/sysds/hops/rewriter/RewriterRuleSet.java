@@ -62,6 +62,7 @@ public class RewriterRuleSet {
 	public RewriterRuleSet(RuleContext ctx, List<RewriterRule> rules) {
 		this.ctx = ctx;
 		this.rules = rules;
+		accelerate();
 	}
 
 	public RuleContext getContext() {
@@ -72,7 +73,7 @@ public class RewriterRuleSet {
 		rules.forEach(r -> consumer.accept(r, ctx));
 	}
 
-	public ApplicableRule findFirstApplicableRule(RewriterStatement stmt) {
+	/*public ApplicableRule findFirstApplicableRule(RewriterStatement stmt) {
 		ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
 
 		for (RewriterRule rule : rules) {
@@ -90,9 +91,9 @@ public class RewriterRuleSet {
 		}
 
 		return null;
-	}
+	}*/
 
-	public ArrayList<ApplicableRule> findApplicableRules(RewriterStatement instr) {
+	/*public ArrayList<ApplicableRule> findApplicableRules(RewriterStatement instr) {
 		ArrayList<ApplicableRule> applicableRules = new ArrayList<>();
 		ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
 
@@ -111,7 +112,7 @@ public class RewriterRuleSet {
 		}
 
 		return applicableRules;
-	}
+	}*/
 
 	public ApplicableRule acceleratedFindFirst(RewriterStatement root) {
 		List<ApplicableRule> match = acceleratedRecursiveMatch(root, true);

@@ -1,6 +1,7 @@
 package org.apache.sysds.hops.rewriter;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.function.TriFunction;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.logging.log4j.util.TriConsumer;
@@ -9,6 +10,7 @@ import spire.macros.CheckedRewriter;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -19,6 +21,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public abstract class RewriterStatement implements Comparable<RewriterStatement> {
 	public static final String META_VARNAME = "_varName";
@@ -60,13 +63,13 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 
 	public static class MatchingSubexpression {
 		private final RewriterStatement matchRoot;
-		private final RewriterInstruction matchParent;
+		private final RewriterStatement matchParent;
 		private final int rootIndex;
-		private final HashMap<RewriterStatement, RewriterStatement> assocs;
+		private final Map<RewriterStatement, RewriterStatement> assocs;
 		private final List<RewriterRule.ExplicitLink> links;
 		public Object shared_data = null;
 
-		public MatchingSubexpression(RewriterStatement matchRoot, RewriterInstruction matchParent, int rootIndex, HashMap<RewriterStatement, RewriterStatement> assocs, List<RewriterRule.ExplicitLink> links) {
+		public MatchingSubexpression(RewriterStatement matchRoot, RewriterStatement matchParent, int rootIndex, Map<RewriterStatement, RewriterStatement> assocs, List<RewriterRule.ExplicitLink> links) {
 			this.matchRoot = matchRoot;
 			this.matchParent = matchParent;
 			this.assocs = assocs;
@@ -82,7 +85,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 			return matchRoot;
 		}
 
-		public RewriterInstruction getMatchParent() {
+		public RewriterStatement getMatchParent() {
 			return matchParent;
 		}
 
@@ -90,12 +93,136 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 			return rootIndex;
 		}
 
-		public HashMap<RewriterStatement, RewriterStatement> getAssocs() {
+		public Map<RewriterStatement, RewriterStatement> getAssocs() {
 			return assocs;
 		}
 
 		public List<RewriterRule.ExplicitLink> getLinks() {
 			return links;
+		}
+	}
+
+	public static class MatcherContext {
+		final RuleContext ctx;
+		final boolean literalsCanBeVariables;
+		final boolean ignoreLiteralValues;
+		final boolean allowDuplicatePointers;
+		final boolean allowPropertyScan;
+		final boolean allowTypeHierarchy;
+		final boolean terminateOnFirstMatch;
+		final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks;
+		RewriterStatement matchRoot;
+		RewriterStatement matchParent;
+		int matchParentIndex;
+
+		public RewriterStatement currentStatement;
+
+		private HashMap<RewriterStatement, RewriterStatement> dependencyMap;
+		private List<RewriterRule.ExplicitLink> links;
+		private HashMap<RewriterRule.IdentityRewriterStatement, RewriterStatement> internalReferences;
+
+		private List<MatcherContext> subMatches;
+
+		public MatcherContext(final RuleContext ctx, RewriterStatement matchRoot, final boolean literalsCanBeVariables, final boolean ignoreLiteralValues, final boolean allowDuplicatePointers, final boolean allowPropertyScan, final boolean allowTypeHierarchy, final boolean terminateOnFirstMatch, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks) {
+			this.ctx = ctx;
+			this.matchRoot = matchRoot;
+			this.currentStatement = matchRoot;
+			this.literalsCanBeVariables = literalsCanBeVariables;
+			this.ignoreLiteralValues = ignoreLiteralValues;
+			this.allowDuplicatePointers = allowDuplicatePointers;
+			this.allowPropertyScan = allowPropertyScan;
+			this.allowTypeHierarchy = allowTypeHierarchy;
+			this.terminateOnFirstMatch = terminateOnFirstMatch;
+			this.ruleLinks = ruleLinks;
+		}
+
+		public MatcherContext(final RuleContext ctx, RewriterStatement matchRoot, RewriterStatement matchParent, int rootIndex, final boolean literalsCanBeVariables, final boolean ignoreLiteralValues, final boolean allowDuplicatePointers, final boolean allowPropertyScan, final boolean allowTypeHierarchy, final boolean terminateOnFirstMatch, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks) {
+			this.ctx = ctx;
+			this.matchRoot = matchRoot;
+			this.matchParent = matchParent;
+			this.matchParentIndex = rootIndex;
+			this.currentStatement = matchRoot;
+			this.literalsCanBeVariables = literalsCanBeVariables;
+			this.ignoreLiteralValues = ignoreLiteralValues;
+			this.allowDuplicatePointers = allowDuplicatePointers;
+			this.allowPropertyScan = allowPropertyScan;
+			this.allowTypeHierarchy = allowTypeHierarchy;
+			this.terminateOnFirstMatch = terminateOnFirstMatch;
+			this.ruleLinks = ruleLinks;
+		}
+
+		public Map<RewriterStatement, RewriterStatement> getDependencyMap() {
+			if (dependencyMap == null)
+				dependencyMap = new HashMap<>();
+			return dependencyMap;
+		}
+
+		public List<RewriterRule.ExplicitLink> getLinks() {
+			if (links == null)
+				links = new ArrayList<>();
+			return links;
+		}
+
+		public RewriterStatement findInternalReference(RewriterRule.IdentityRewriterStatement stmt) {
+			if (internalReferences == null)
+				return null;
+			return internalReferences.get(stmt);
+		}
+
+		public Map<RewriterRule.IdentityRewriterStatement, RewriterStatement> getInternalReferences() {
+			if (internalReferences == null)
+				internalReferences = new HashMap<>();
+			return internalReferences;
+		}
+
+		public List<MatcherContext> getSubMatches() {
+			if (subMatches == null)
+				return Collections.emptyList();
+			return subMatches;
+		}
+
+		public boolean hasSubMatches() {
+			return subMatches != null && !subMatches.isEmpty();
+		}
+
+		public void addSubMatch(MatcherContext matcherContext) {
+			if (subMatches == null)
+				subMatches = new ArrayList<>();
+			subMatches.addAll(matcherContext.getFlattenedSubMatches());
+		}
+
+		public List<MatcherContext> getFlattenedSubMatches() {
+			if (hasSubMatches())
+				return subMatches.stream().flatMap(mCtx -> mCtx.getFlattenedSubMatches().stream()).collect(Collectors.toList());
+			return Collections.emptyList();
+		}
+
+		public MatchingSubexpression toMatch() {
+			return new MatchingSubexpression(matchRoot, matchParent, matchParentIndex, getDependencyMap(), getLinks());
+		}
+
+		public void reset() {
+			if (dependencyMap != null)
+				dependencyMap.clear();
+			if (links != null)
+				links.clear();
+			if (internalReferences != null)
+				internalReferences.clear();
+		}
+
+		public MatcherContext createCheckpoint() {
+			MatcherContext checkpoint = new MatcherContext(ctx, matchRoot, literalsCanBeVariables, ignoreLiteralValues, allowDuplicatePointers, allowPropertyScan, allowTypeHierarchy, terminateOnFirstMatch, ruleLinks);
+			checkpoint.matchParent = matchParent;
+			checkpoint.matchParentIndex = matchParentIndex;
+			if (dependencyMap != null)
+				checkpoint.dependencyMap = new HashMap<>(dependencyMap);
+			if (links != null)
+				checkpoint.links = new ArrayList<>(links);
+			if (internalReferences != null)
+				checkpoint.internalReferences = new HashMap<>(internalReferences);
+			if (subMatches != null)
+				checkpoint.subMatches = new ArrayList<>(subMatches);
+			return checkpoint;
 		}
 	}
 
@@ -125,11 +252,11 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	//String toStringWithLinking(int dagId, DualHashBidiMap<RewriterStatementLink, RewriterStatementLink> links);
 
 	// Returns the root of the matching sub-statement, null if there is no match
-	public abstract boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, boolean allowTypeHierarchy, HashMap<RewriterRule.IdentityRewriterStatement, RewriterStatement> internalReferences);
+	public abstract boolean match(MatcherContext matcherContext);
 
-	public boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, boolean allowTypeHierarchy) {
-		return match(ctx, stmt, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks, allowDuplicatePointers, allowPropertyScan, allowTypeHierarchy, new HashMap<>());
-	}
+	/*public boolean match(final RuleContext ctx, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, boolean allowTypeHierarchy) {
+		return match(new MatcherContext(ctx, stmt, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks, allowDuplicatePointers, allowPropertyScan, allowTypeHierarchy, new HashMap<>()));
+	}*/
 
 	public abstract int recomputeHashCodes(boolean recursively);
 	public abstract long getCost();
@@ -183,43 +310,34 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	public int recomputeHashCodes() {
 		return recomputeHashCodes(true);
 	}
-	public boolean matchSubexpr(final RuleContext ctx, RewriterStatement root, RewriterInstruction parent, int rootIndex, List<MatchingSubexpression> matches, HashMap<RewriterStatement, RewriterStatement> dependencyMap, boolean literalsCanBeVariables, boolean ignoreLiteralValues, boolean findFirst, List<RewriterRule.ExplicitLink> links, final Map<RewriterStatement, RewriterRule.LinkObject> ruleLinks, boolean allowDuplicatePointers, boolean allowPropertyScan, boolean allowTypeHierarchy, Function<MatchingSubexpression, Boolean> iff) {
-		if (dependencyMap == null)
-			dependencyMap = new HashMap<>();
-		else
-			dependencyMap.clear();
 
-		if (links == null)
-			links = new ArrayList<>();
-		else
-			links.clear();
+	// TODO: Rework if necessary
+	public boolean matchSubexpr(MatcherContext ctx, List<MatchingSubexpression> matches, Function<MatchingSubexpression, Boolean> iff) {
+		/*
 
-		boolean foundMatch = match(ctx, root, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks, allowDuplicatePointers, allowPropertyScan, allowTypeHierarchy);
+		ctx.reset();
+		boolean foundMatch = match(ctx);
+		//boolean foundMatch = match(ctx, root, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, links, ruleLinks, allowDuplicatePointers, allowPropertyScan, allowTypeHierarchy);
 
 		if (foundMatch) {
-			MatchingSubexpression match = new MatchingSubexpression(root, parent, rootIndex, dependencyMap, links);
+			MatchingSubexpression match = ctx.toMatch();
 			if (iff == null || iff.apply(match)) {
 				matches.add(match);
 
-				if (findFirst)
+				if (ctx.terminateOnFirstMatch)
 					return true;
-
-				dependencyMap = null;
-				links = null;
 			} else {
 				foundMatch = false;
-				links.clear();
-				dependencyMap.clear();
 			}
 		}
 
 		int idx = 0;
 
-		if (root.getOperands() != null && root instanceof RewriterInstruction) {
-			for (RewriterStatement stmt : root.getOperands()) {
-				if (matchSubexpr(ctx, stmt, (RewriterInstruction) root, idx, matches, dependencyMap, literalsCanBeVariables, ignoreLiteralValues, findFirst, links, ruleLinks, allowDuplicatePointers, allowPropertyScan, allowTypeHierarchy, iff)) {
-					dependencyMap = new HashMap<>();
-					links = new ArrayList<>();
+		if (ctx.matchRoot.getOperands() != null && ctx.matchRoot instanceof RewriterInstruction) {
+			for (RewriterStatement stmt : ctx.matchRoot.getOperands()) {
+				ctx.matchRoot = stmt;
+				if (matchSubexpr(ctx, matches, iff)) {
+					//TODO
 					foundMatch = true;
 
 					if (findFirst)
@@ -229,7 +347,8 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 			}
 		}
 
-		return foundMatch;
+		return foundMatch;*/
+		throw new NotImplementedException();
 	}
 
 	public void prepareForHashing() {

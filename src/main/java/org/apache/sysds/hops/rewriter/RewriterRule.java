@@ -2,6 +2,7 @@ package org.apache.sysds.hops.rewriter;
 
 import com.google.common.collect.Sets;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.hadoop.yarn.webapp.hamlet2.Hamlet;
 import org.apache.spark.sql.catalyst.expressions.Exp;
@@ -104,16 +105,18 @@ public class RewriterRule extends AbstractRewriterRule {
 		return inplace ? applyInplace(match, rootNode, fromRoot, applyStmt2ToStmt1 == null ? Collections.emptyList() : applyStmt2ToStmt1) : apply(match, rootNode, fromRoot, modificationHandle, applyStmt2ToStmt1 == null ? Collections.emptyList() : applyStmt2ToStmt1);
 	}
 
-	@Override
+	/*@Override
 	public boolean matchStmt1(RewriterStatement stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr, boolean findFirst) {
 		return getStmt1().matchSubexpr(ctx, stmt, null, -1, arr, new HashMap<>(), true, false, findFirst, null, linksStmt1ToStmt2, true, true, false, iff1to2);
-	}
+	}*/
 
 	public RewriterStatement.MatchingSubexpression matchSingleStmt1(RewriterInstruction parent, int rootIndex, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, List<ExplicitLink> links, Map<RewriterStatement, LinkObject> ruleLinks) {
-		boolean match = getStmt1().match(ctx, stmt, dependencyMap, true, false, links, ruleLinks, true, true, false);
+		RewriterStatement.MatcherContext mCtx = new RewriterStatement.MatcherContext(ctx, stmt, parent, rootIndex, true, false, true, true, false, true, linksStmt1ToStmt2);
+		mCtx.currentStatement = stmt;
+		boolean match = getStmt1().match(mCtx);
 
 		if (match) {
-			RewriterStatement.MatchingSubexpression matchExpr = new RewriterStatement.MatchingSubexpression(stmt, parent, rootIndex, dependencyMap, links);
+			RewriterStatement.MatchingSubexpression matchExpr = mCtx.toMatch();
 
 			if (iff1to2 == null || iff1to2.apply(matchExpr))
 				return matchExpr;
@@ -122,16 +125,18 @@ public class RewriterRule extends AbstractRewriterRule {
 		return null;
 	}
 
-	@Override
+	/*@Override
 	public boolean matchStmt2(RewriterStatement stmt, ArrayList<RewriterStatement.MatchingSubexpression> arr, boolean findFirst) {
 		return getStmt2().matchSubexpr(ctx, stmt, null, -1, arr, new HashMap<>(), true, false, findFirst, null, linksStmt2ToStmt1, true, true, false, iff2to1);
-	}
+	}*/
 
 	public RewriterStatement.MatchingSubexpression matchSingleStmt2(RewriterInstruction parent, int rootIndex, RewriterStatement stmt, HashMap<RewriterStatement, RewriterStatement> dependencyMap, List<ExplicitLink> links, Map<RewriterStatement, LinkObject> ruleLinks) {
-		boolean match = getStmt2().match(ctx, stmt, dependencyMap, true, false, links, ruleLinks, true, true, false);
+		RewriterStatement.MatcherContext mCtx = new RewriterStatement.MatcherContext(ctx, stmt, parent, rootIndex, true, false, true, true, false, true, linksStmt2ToStmt1);
+		mCtx.currentStatement = stmt;
+		boolean match = getStmt2().match(mCtx);
 
 		if (match) {
-			RewriterStatement.MatchingSubexpression matchExpr = new RewriterStatement.MatchingSubexpression(stmt, parent, rootIndex, dependencyMap, links);
+			RewriterStatement.MatchingSubexpression matchExpr = mCtx.toMatch();
 
 			if (iff2to1 == null || iff2to1.apply(matchExpr))
 				return matchExpr;
@@ -273,8 +278,9 @@ public class RewriterRule extends AbstractRewriterRule {
 			return fromRoot.toString() + " <=> " + toRoot.toString();
 	}
 
+	// TODO: Rework
 	public List<RewriterRule> createNonGenericRules(Map<String, Set<String>> funcMappings) {
-		Set<IdentityRewriterStatement> visited = new HashSet<>();
+		/*Set<IdentityRewriterStatement> visited = new HashSet<>();
 		List<Tuple2<RewriterStatement, Set<String>>> matches = new ArrayList<>();
 
 		RewriterStatement from = fromRoot.nestedCopyOrInject(new HashMap<>(), stmt -> null);
@@ -315,7 +321,8 @@ public class RewriterRule extends AbstractRewriterRule {
 			rules.add(new RewriterRule(ctx, name, cpy, this.apply(mmatches.get(0), (RewriterInstruction) cpy, true, true), true, new HashMap<>(), new HashMap<>()));
 		}
 
-		return rules;
+		return rules;*/
+		throw new NotImplementedException();
 	}
 
 	static class IdentityRewriterStatement {
