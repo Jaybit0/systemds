@@ -556,6 +556,10 @@ public class RewriterUtils {
 				}
 			}
 		}, 0);
+
+		// Trigger a recomputation of the hash codes
+		stmt.prepareForHashing();
+		stmt.recomputeHashCodes();
 	}
 
 	private static void traversePostOrderWithDepthInfo(RewriterStatement stmt, RewriterStatement parent, TriConsumer<RewriterStatement, Integer, RewriterStatement> consumer, int currentDepth) {
