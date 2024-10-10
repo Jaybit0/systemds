@@ -323,10 +323,10 @@ public class TestRewriteExecution {
 		//String startStr = "colSums(rand(10, 10, 0, 1.0))";
 		//String startStr = "_idx(1, 1)";
 
-		//String startStr = "sum(*(colSums(rand(10, 10, 0, 1.0)), colSums(rand(10, 10, 0, 1.0))))";
-		String startStr = "+(+(A,B),C)";
-		//String startStr2 = "sum(%*%(rand(10, 10, 0, 1.0), t(rand(10, 10, 0, 1.0))))";
-		String startStr2 = "+(A,+(B,C))";
+		String startStr = "sum(*(colSums(rand(10, 10, 0, 1.0)), colSums(rand(10, 10, 0, 1.0))))";
+		//String startStr = "+(+(A,B),C)";
+		String startStr2 = "sum(%*%(rand(10, 10, 0, 1.0), t(rand(10, 10, 0, 1.0))))";
+		//String startStr2 = "+(A,+(B,C))";
 		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef, boolDef);
 
 		stmt = canonicalFormCreator.apply(stmt, (t, r) -> {

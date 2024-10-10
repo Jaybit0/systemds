@@ -805,6 +805,26 @@ public class RewriterRuleCollection {
 	public static void flattenOperations(final List<RewriterRule> rules, final RuleContext ctx) {
 		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
 
+		RewriterUtils.buildBinaryPermutations(List.of("INT", "INT..."), (t1, t2) -> {
+			rules.add(new RewriterRuleBuilder(ctx)
+					.setUnidirectional(true)
+					.parseGlobalVars(t1 + ":i")
+					.parseGlobalVars(t2 + ":j")
+					.parseGlobalVars("FLOAT:v")
+					.withParsedStatement("$1:_idxExpr(i, $2:_idxExpr(j, v))", hooks)
+					.toParsedStatement("$3:_idxExpr(argList(i, j), v)", hooks)
+					.link(hooks.get(1).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
+					.apply(hooks.get(3).getId(), (stmt, match) -> {
+						UUID newOwnerId = (UUID)stmt.getMeta("ownerId");
+
+						if (newOwnerId == null)
+							throw new IllegalArgumentException();
+
+						stmt.getOperands().get(0).getOperands().get(1).unsafePutMeta("ownerId", newOwnerId);
+					}, true)
+					.build());
+		});
+
 		RewriterUtils.buildBinaryPermutations(List.of("MATRIX", "INT", "FLOAT", "BOOL"), (t1, t2) -> {
 			if (RewriterUtils.convertibleType(t1, t2) != null) {
 				rules.add(new RewriterRuleBuilder(ctx)
@@ -839,7 +859,6 @@ public class RewriterRuleCollection {
 						}, true)
 						.link(hooks.get(2).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
 						.build());
-
 
 				List.of(t1, t1 + "...").forEach(t -> {
 					rules.add(new RewriterRuleBuilder(ctx)

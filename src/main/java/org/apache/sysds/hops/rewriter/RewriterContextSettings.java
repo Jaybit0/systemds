@@ -200,25 +200,6 @@ public class RewriterContextSettings {
 		builder.append("ElementWiseAdditiveInstruction(MATRIX...)::MATRIX\n");
 		builder.append("impl +\n");
 		builder.append("impl -\n");
-		/*builder.append("ElementWiseAdditiveInstruction(MATRIX,MATRIX)::MATRIX\n");
-		builder.append("impl +\n");
-		builder.append("impl -\n");
-
-		builder.append("ElementWiseAdditiveInstruction(MATRIX,FLOAT)::MATRIX\n");
-		builder.append("impl +\n");
-		builder.append("impl -\n");
-
-		builder.append("ElementWiseAdditiveInstruction(MATRIX,INT)::MATRIX\n");
-		builder.append("impl +\n");
-		builder.append("impl -\n");
-
-		builder.append("ElementWiseAdditiveInstruction(FLOAT,MATRIX)::MATRIX\n");
-		builder.append("impl +\n");
-		builder.append("impl -\n");
-
-		builder.append("ElementWiseAdditiveInstruction(INT,MATRIX)::MATRIX\n");
-		builder.append("impl +\n");
-		builder.append("impl -\n");*/
 
 		//
 
@@ -253,34 +234,6 @@ public class RewriterContextSettings {
 		RewriterUtils.buildBinaryAlgebraInstructions(builder, "-", List.of("INT", "FLOAT", "BOOL", "MATRIX"));
 		RewriterUtils.buildBinaryAlgebraInstructions(builder, "*", List.of("INT", "FLOAT", "BOOL", "MATRIX"));
 		RewriterUtils.buildBinaryAlgebraInstructions(builder, "/", List.of("INT", "FLOAT", "BOOL", "MATRIX"));
-
-		/*builder.append("-(INT,INT)::INT\n");
-		builder.append("+(INT,INT)::INT\n");
-		builder.append("*(INT,INT)::INT\n");
-		builder.append("/(INT,INT)::INT\n");
-
-		builder.append("-(FLOAT,FLOAT)::FLOAT\n");
-		builder.append("+(FLOAT,FLOAT)::FLOAT\n");
-		builder.append("*(FLOAT,FLOAT)::FLOAT\n");
-		builder.append("/(FLOAT,FLOAT)::FLOAT\n");
-
-		builder.append("-(INT,FLOAT)::FLOAT\n");
-		builder.append("+(INT,FLOAT)::FLOAT\n");
-		builder.append("*(INT,FLOAT)::FLOAT\n");
-		builder.append("/(INT,FLOAT)::FLOAT\n");
-
-		builder.append("-(FLOAT,INT)::FLOAT\n");
-		builder.append("+(FLOAT,INT)::FLOAT\n");
-		builder.append("*(FLOAT,INT)::FLOAT\n");
-		builder.append("/(FLOAT,INT)::FLOAT\n");
-
-		builder.append("/(MATRIX,INT)::FLOAT\n");*/
-
-		// Some bool algebra
-		/*builder.append("<=(INT,INT)::INT\n");
-		builder.append("==(INT,INT)::INT\n");
-		builder.append("&&(INT,INT)::INT\n");*/
-
 
 		builder.append("if(INT,MATRIX,MATRIX)::MATRIX\n");
 
@@ -353,6 +306,8 @@ public class RewriterContextSettings {
 		builder.append("_m(INT,INT,FLOAT)::MATRIX\n");
 		builder.append("_idxExpr(INT,FLOAT)::FLOAT*\n");
 		builder.append("_idxExpr(INT,FLOAT*)::FLOAT*\n");
+		builder.append("_idxExpr(INT...,FLOAT)::FLOAT*\n");
+		builder.append("_idxExpr(INT...,FLOAT*)::FLOAT*\n");
 		//builder.append("_idxExpr(INT,FLOAT...)::FLOAT*\n");
 		builder.append("_idx(INT,INT)::INT\n");
 		builder.append("_nrow()::INT\n");
