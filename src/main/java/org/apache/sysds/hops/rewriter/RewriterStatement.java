@@ -365,8 +365,8 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	}
 
 	protected void computeRefCtrs() {
-		if (isArgumentList())
-			return;
+		/*if (isArgumentList())
+			return;*/
 		refCtr++;
 		if (getOperands() != null)
 			getOperands().forEach(RewriterStatement::computeRefCtrs);

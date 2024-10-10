@@ -3,6 +3,7 @@ package org.apache.sysds.hops.rewriter;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.apache.logging.log4j.util.TriConsumer;
 import scala.Tuple2;
 import scala.collection.parallel.ParIterableLike;
 import scala.reflect.internal.Trees;
@@ -78,47 +79,10 @@ public class RewriterUtils {
 	}
 
 	public static void mergeArgLists(RewriterStatement stmt, final RuleContext ctx) {
-		/*Set<String> ops = new HashSet<>();
-
-		for (Map.Entry<String, HashSet<String>> p : ctx.instrProperties.entrySet()) {
-			if (p.getValue().contains("FusedOperator(MATRIX...)")) {
-				//String fName = p.getKey().substring(0, p.getKey().indexOf('('));
-				ops.add(p.getKey());
-			}
-		}
-
-		stmt.forEachPreOrderWithDuplicates(RewriterUtils.propertyExtractor(new ArrayList<>(ops), ctx));*/
 
 		stmt.forEachPreOrder(el -> {
 			tryFlattenNestedArgList(ctx, el, el, -1);
 			return true;
-			/*if (!(el instanceof RewriterInstruction))
-				return true;
-			RewriterInstruction e = (RewriterInstruction) el;
-			String ts = e.typedInstruction(ctx);
-
-			if (ops.contains(ts) && e.getOperands() != null) {
-				for (int idx = 0; idx < e.getOperands().size(); idx++) {
-					RewriterStatement stmt2 = e.getOperands().get(idx);
-					if (stmt2.isArgumentList()) {
-						for (int idx2 = 0; idx2 < stmt2.getOperands().size(); idx2++) {
-							RewriterStatement stmt3 = stmt2.getOperands().get(idx2);
-							if (stmt3 instanceof RewriterInstruction && ((RewriterInstruction)stmt3).typedInstruction(ctx).equals(ts)) {
-								if (stmt3.getOperands() != null && stmt3.getOperands().size() > 0 && stmt3.getOperands().size() == 1) {
-									RewriterStatement stmt4 = stmt3.getOperands().get(0);
-									if (stmt4.isArgumentList()) {
-										stmt2.getOperands().remove(idx);
-										stmt2.getOperands().addAll(idx, stmt4.getOperands());
-									}
-								}
-
-							}
-						}
-					}
-				}
-			}
-
-			return true;*/
 		});
 
 		stmt.prepareForHashing();
@@ -571,24 +535,55 @@ public class RewriterUtils {
 		return matchFound;
 	}
 
-	public static List<Map<RewriterRule.IdentityRewriterStatement, Integer>> createHierarchicalOrder(final RuleContext ctx, List<List<RewriterRule.IdentityRewriterStatement>> statementHierarchies) {
-		return statementHierarchies.stream().map(el -> createHierarchy(ctx, el)).collect(Collectors.toList());
+	public static void topologicalSort(RewriterStatement stmt, final RuleContext ctx, BiFunction<RewriterStatement, RewriterStatement, Boolean> arrangable) {
+		Map<RewriterRule.IdentityRewriterStatement, Map<RewriterRule.IdentityRewriterStatement, Integer>> votes = new HashMap<>();
+		List<Set<RewriterRule.IdentityRewriterStatement>> uncertainStatements = new ArrayList<>();
+		// First pass (try to figure out everything)
+		traversePostOrderWithDepthInfo(stmt, null, (el, depth, parent) -> {
+			if (el.getOperands() == null)
+				return;
+
+			if (arrangable.apply(el, parent)) {
+				RewriterRule.IdentityRewriterStatement id = new RewriterRule.IdentityRewriterStatement(el);
+
+				if (!votes.containsKey(id)) {
+					System.out.println("Sorting: " + el);
+					List<Set<RewriterRule.IdentityRewriterStatement>> uStatements = createHierarchy(ctx, el.getOperands());
+					if (uStatements.size() > 0) {
+						uStatements.forEach(e -> System.out.println("Uncertain: " + e.stream().map(t -> t.stmt)));
+						uncertainStatements.addAll(createHierarchy(ctx, el.getOperands()));
+					}
+				}
+			}
+		}, 0);
 	}
 
-	public static Map<RewriterRule.IdentityRewriterStatement, Integer> createHierarchy(final RuleContext ctx, List<RewriterRule.IdentityRewriterStatement> level) {
-		List<Tuple2<RewriterRule.IdentityRewriterStatement, String>> orderStrings = level.stream()
-				.map((RewriterRule.IdentityRewriterStatement el) -> new Tuple2<>(el, toOrderString(ctx, el.stmt)))  // Explicit type for `el` and `new Tuple2<>`
-				.sorted(Comparator.comparing(t -> t._2))
-				.collect(Collectors.toList());
-		Map<RewriterRule.IdentityRewriterStatement, Integer> map = new HashMap<>();
+	private static void traversePostOrderWithDepthInfo(RewriterStatement stmt, RewriterStatement parent, TriConsumer<RewriterStatement, Integer, RewriterStatement> consumer, int currentDepth) {
+		if (stmt.getOperands() != null)
+			stmt.getOperands().forEach(el -> traversePostOrderWithDepthInfo(el, stmt, consumer, currentDepth + 1));
 
-		int remainingCtr = 0;
-		for (int i = 1; i < orderStrings.size(); i++) {
-			if (!orderStrings.get(i)._2.equals(orderStrings.get(i-1)._2))
-				remainingCtr = i;
-			map.put(orderStrings.get(i)._1, remainingCtr);
+		consumer.accept(stmt, currentDepth, parent);
+	}
+
+	// Returns the range of uncertain elements [start, end)
+	public static List<Set<RewriterRule.IdentityRewriterStatement>> createHierarchy(final RuleContext ctx, List<RewriterStatement> level) {
+		level.sort(Comparator.comparing(el -> toOrderString(ctx, el)));
+
+		List<Set<RewriterRule.IdentityRewriterStatement>> ranges = new ArrayList<>();
+		int currentRangeStart = 0;
+		for (int i = 1; i < level.size(); i++) {
+			System.out.println(toOrderString(ctx, level.get(i)));
+			if (toOrderString(ctx, level.get(i)).equals(toOrderString(ctx, level.get(i-1)))) {
+				if (i - currentRangeStart > 1) {
+					Set<RewriterRule.IdentityRewriterStatement> mSet = level.subList(currentRangeStart, i).stream().map(RewriterRule.IdentityRewriterStatement::new).collect(Collectors.toSet());
+
+					if (mSet.size() > 1)
+						ranges.add(mSet);
+				}
+				currentRangeStart = i;
+			}
 		}
-		return map;
+		return ranges;
 	}
 
 	public static String toOrderString(final RuleContext ctx, RewriterStatement stmt) {

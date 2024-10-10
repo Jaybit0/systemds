@@ -326,7 +326,7 @@ public class RewriterRule extends AbstractRewriterRule {
 	}
 
 	static class IdentityRewriterStatement {
-		RewriterStatement stmt;
+		public RewriterStatement stmt;
 
 		public IdentityRewriterStatement(RewriterStatement stmt) {
 			this.stmt = stmt;

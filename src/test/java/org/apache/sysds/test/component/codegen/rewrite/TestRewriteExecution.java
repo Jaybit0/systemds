@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Random;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -323,9 +324,9 @@ public class TestRewriteExecution {
 		//String startStr = "colSums(rand(10, 10, 0, 1.0))";
 		//String startStr = "_idx(1, 1)";
 
-		String startStr = "sum(*(colSums(rand(10, 10, 0, 1.0)), colSums(rand(10, 10, 0, 1.0))))";
+		String startStr = "sum(*(colSums(rand(10, 20, 0, 1.0)), colSums(t(rand(20, 10, 0, 1.0)))))";
 		//String startStr = "+(+(A,B),C)";
-		String startStr2 = "sum(%*%(rand(10, 10, 0, 1.0), t(rand(10, 10, 0, 1.0))))";
+		String startStr2 = "sum(%*%(rand(10, 20, 0, 1.0), t(rand(10, 20, 0, 1.0))))";
 		//String startStr2 = "+(A,+(B,C))";
 		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef, boolDef);
 
@@ -337,6 +338,8 @@ public class TestRewriteExecution {
 		});
 
 		RewriterUtils.mergeArgLists(stmt, ctx);
+		System.out.println("PRE1: " + stmt.toString(ctx));
+		RewriterUtils.topologicalSort(stmt, ctx, (el, parent) -> el.isArgumentList() && parent != null && Set.of("+", "-", "*", "_idxExpr").contains(parent.trueInstruction()));
 		System.out.println("FINAL1: " + stmt.toString(ctx));
 
 		db.insertEntry(ctx, stmt);
@@ -351,6 +354,8 @@ public class TestRewriteExecution {
 		});
 
 		RewriterUtils.mergeArgLists(toCompare, ctx);
+		System.out.println("PRE2: " + toCompare.toString(ctx));
+		RewriterUtils.topologicalSort(toCompare, ctx, (el, parent) -> el.isArgumentList() && parent != null && Set.of("+", "-", "*", "_idxExpr").contains(parent.trueInstruction()));
 		System.out.println("FINAL2: " + toCompare.toString(ctx));
 
 		System.out.println("Hash1: " + stmt.hashCode());
