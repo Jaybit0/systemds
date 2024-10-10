@@ -229,6 +229,15 @@ public class TestRewriteExecution {
 		RewriterRuleCollection.pushdownStreamSelections(pd, ctx);
 		RewriterHeuristic streamSelectPushdown = new RewriterHeuristic(new RewriterRuleSet(ctx, pd));
 
+		ArrayList<RewriterRule> flatten = new ArrayList<>();
+		RewriterRuleCollection.flattenOperations(pd, ctx);
+		RewriterHeuristic flattenOperations = new RewriterHeuristic(new RewriterRuleSet(ctx, pd));
+
+		RewriterHeuristics canonicalFormCreator = new RewriterHeuristics();
+		canonicalFormCreator.add("EXPAND STREAMING EXPRESSIONS", streamExpansion);
+		canonicalFormCreator.add("PUSHDOWN STREAM SELECTIONS", streamSelectPushdown);
+		canonicalFormCreator.add("FLATTEN OPERATIONS", flattenOperations);
+
 		ArrayList<RewriterRule> colRules = new ArrayList<>();
 		RewriterRuleCollection.collapseStreamingExpressions(colRules, ctx);
 		RewriterHeuristic streamCollapse = new RewriterHeuristic(new RewriterRuleSet(ctx, colRules));
@@ -304,86 +313,53 @@ public class TestRewriteExecution {
 		String intDef = "LITERAL_INT:1,10,20";
 		String floatDef = "LITERAL_FLOAT:0,1.0,-0.0001,0.0001,-1.0";
 		String boolDef = "LITERAL_BOOL:TRUE,FALSE";
-		//String startStr = "TRUE";
-		//String startStr = "var(rand(10, 10, 0, 1))";
-		//String startStr = "sum(!=(rand(10, 10, -0.0001, 0.0001), 0))";
-		//String startStr = "<(*($1:rand(10, 10, -1, 1), $1), 0)";
-		//String startStr = "rand(10, 10, $1:_rdFloat(), $1)";
-		//String startStr = "sum(==(rand(10, 10, 0, 1), 1))";
-		//String startStr = "TRUE";
-		//String startStr = "|($1:_rdBOOL(), FALSE)";
-
-		RewriterStatement stmt2 = new RewriterRuleBuilder(ctx)
-				.asDAGBuilder()
-				.parseGlobalVars("LITERAL_INT:1,10")
-				.parseGlobalVars("LITERAL_FLOAT:2,4")
-				.parseGlobalStatementAsVariable("rand", "rand(10, 10, 2, 4)")
-				.parseGlobalStatementAsVariable("var_m1", "_m($2:_idx(1, nrow(rand)), $3:_idx(1, ncol(rand)), [](rand, $2, $3))")
-				.withParsedStatement("_m($1:_idx(1, nrow(var_m1)), 1, [](var_m1, $1, 1))")
-				.buildDAG();
-
-		//System.out.println(stmt2);
-
-		/*ArrayList<RewriterRule> mrules = new ArrayList<>();
-		mrules.add(new RewriterRuleBuilder(ctx)
-				.setUnidirectional(true)
-				.parseGlobalVars("FLOAT:a,b")
-				.parseGlobalVars("LITERAL_INT:0")
-				.withParsedStatement("*(a, b)")
-				.toParsedStatement("*(+(a, 0), b)")
-				.build()
-		);
-
-		RewriterRuleSet rs = new RewriterRuleSet(ctx, mrules);
-		rs.accelerate();
-		RewriterRuleSet.ApplicableRule ar = rs.acceleratedFindFirst(stmt2);
-		System.out.println(ar.matches.size());
-		stmt2 = ar.rule.apply(ar.matches.get(0), (RewriterInstruction) stmt2, true, true);*/
-		/*stmt2 = streamSelectPushdown.apply(stmt2);
-		System.out.println(stmt2);
-
-		if (true)
-			return null;*/
 
 		//String startStr = "trace(*(rand(10, 10, 0, 1), rand(10, 10, 0, 1)))";
 		//String startStr = "t(t(t(rand(10, 10, 0, 1))))";
 		//String startStr = "t(t(t(rand(10, 10, 0, 1))))";
 		//String startStr = "trace(%*%(rand(10, 10, 0, 1), rand(10, 10, 0, 1)))";
-		String startStr = "sum(*(colSums(rand(10, 10, 0, 1.0)), colSums(rand(10, 10, 0, 1.0))))";
-		//String startStr = "sum(%*%(rand(10, 10, 0, 1.0), t(rand(10, 10, 0, 1.0))))";
 		//String startStr = "sum(*(colSums(rand(10, 10, 0, 1.0)), t(rowSums(rand(10, 10, 0, 1.0)))))";
 		//String startStr = "t(rowSums(t(rand(10, 10, 0, 1.0))))";
 		//String startStr = "colSums(rand(10, 10, 0, 1.0))";
 		//String startStr = "_idx(1, 1)";
+
+		//String startStr = "sum(*(colSums(rand(10, 10, 0, 1.0)), colSums(rand(10, 10, 0, 1.0))))";
+		String startStr = "+(+(A,B),C)";
+		//String startStr2 = "sum(%*%(rand(10, 10, 0, 1.0), t(rand(10, 10, 0, 1.0))))";
+		String startStr2 = "+(A,+(B,C))";
 		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef, boolDef);
 
-		System.out.println("===== STREAM EXPANSION =====");
-		stmt = streamExpansion.apply(stmt, (t, r) -> {
+		stmt = canonicalFormCreator.apply(stmt, (t, r) -> {
 			if (r != null)
 				System.out.println("Applying rule: " + r.getName());
 			System.out.println(t);
 			return true;
 		});
 
-		System.out.println("===== STREAM-SELECT PUSHDOWN =====");
-		stmt = streamSelectPushdown.apply(stmt, (t, r) -> {
+		RewriterUtils.mergeArgLists(stmt, ctx);
+		System.out.println("FINAL1: " + stmt.toString(ctx));
+
+		db.insertEntry(ctx, stmt);
+
+		RewriterStatement toCompare = RewriterUtils.parse(startStr2, ctx, matrixDef, intDef, floatDef, boolDef);
+
+		toCompare = canonicalFormCreator.apply(toCompare, (t, r) -> {
 			if (r != null)
 				System.out.println("Applying rule: " + r.getName());
-			System.out.println(String.join("\n", t.toExecutableString(ctx)));
-			System.out.println("=====");
+			System.out.println(t);
 			return true;
 		});
 
-		System.out.println("===== STREAM COLLAPSE =====");
-		stmt = streamCollapse.apply(stmt, (t, r) -> {
-			if (r != null)
-				System.out.println("Applying rule: " + r.getName());
-			System.out.println(String.join("\n", t.toExecutableString(ctx)));
-			System.out.println("=====");
-			return true;
-		});
+		RewriterUtils.mergeArgLists(toCompare, ctx);
+		System.out.println("FINAL2: " + toCompare.toString(ctx));
 
-		stmt = assertCollapsed.apply(stmt);
+		System.out.println("Hash1: " + stmt.hashCode());
+		System.out.println("Hash2: " + toCompare.hashCode());
+
+		if (db.insertEntry(ctx, toCompare))
+			System.out.println("No match!");
+		else
+			System.out.println("Match!");
 
 		if (true)
 			return null;

@@ -89,6 +89,11 @@ public class MetaPropagator implements Function<RewriterStatement, RewriterState
 					root.unsafePutMeta("ncol", new RewriterDataType().ofType("INT").as("1").asLiteral(1));
 					root.unsafePutMeta("nrow", new RewriterDataType().ofType("INT").as("1").asLiteral(1));
 					return null;
+				case "argList":
+					// TODO: We assume argLists always occur if the matrix properties don't change (for now)
+					root.unsafePutMeta("nrow", root.getOperands().get(0).getMeta("nrow"));
+					root.unsafePutMeta("ncol", root.getOperands().get(0).getMeta("ncol"));
+					return null;
 			}
 
 			switch(root.trueTypedInstruction(ctx)) {
@@ -155,9 +160,10 @@ public class MetaPropagator implements Function<RewriterStatement, RewriterState
 			}
 
 			RewriterInstruction instr = (RewriterInstruction) root;
+			System.out.println(instr.getProperties(ctx));
 
 			if (instr.getProperties(ctx).contains("ElementWiseInstruction")) {
-				if (root.getOperands().get(0).getResultingDataType(ctx).equals("MATRIX")) {
+				if (root.getOperands().get(0).getResultingDataType(ctx).startsWith("MATRIX")) {
 					root.unsafePutMeta("nrow", root.getOperands().get(0).getMeta("nrow"));
 					root.unsafePutMeta("ncol", root.getOperands().get(0).getMeta("ncol"));
 				} else {

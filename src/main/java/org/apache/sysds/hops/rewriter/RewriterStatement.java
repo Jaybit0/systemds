@@ -403,6 +403,10 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 				getOperands().get(i).forEachPreOrderWithDuplicates(function);
 	}
 
+	public void forEachPreOrder(Function<RewriterStatement, Boolean> function) {
+		forEachPreOrder((el, p, pIdx) -> function.apply(el));
+	}
+
 	public void forEachPreOrder(TriFunction<RewriterStatement, RewriterStatement, Integer, Boolean> function) {
 		forEachPreOrder(function, new HashSet<>(), null, -1);
 	}

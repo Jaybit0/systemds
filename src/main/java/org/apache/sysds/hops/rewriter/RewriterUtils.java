@@ -5,10 +5,12 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableObject;
 import scala.Tuple2;
 import scala.collection.parallel.ParIterableLike;
+import scala.reflect.internal.Trees;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -24,6 +26,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class RewriterUtils {
 	public static String typedToUntypedInstruction(String instr) {
@@ -74,8 +77,8 @@ public class RewriterUtils {
 		};
 	}
 
-	public static void mergeArgLists(RewriterInstruction stmt, final RuleContext ctx) {
-		Set<String> ops = new HashSet<>();
+	public static void mergeArgLists(RewriterStatement stmt, final RuleContext ctx) {
+		/*Set<String> ops = new HashSet<>();
 
 		for (Map.Entry<String, HashSet<String>> p : ctx.instrProperties.entrySet()) {
 			if (p.getValue().contains("FusedOperator(MATRIX...)")) {
@@ -84,10 +87,12 @@ public class RewriterUtils {
 			}
 		}
 
-		stmt.forEachPreOrderWithDuplicates(RewriterUtils.propertyExtractor(new ArrayList<>(ops), ctx));
+		stmt.forEachPreOrderWithDuplicates(RewriterUtils.propertyExtractor(new ArrayList<>(ops), ctx));*/
 
-		stmt.forEachPreOrderWithDuplicates(el -> {
-			if (!(el instanceof RewriterInstruction))
+		stmt.forEachPreOrder(el -> {
+			tryFlattenNestedArgList(ctx, el, el, -1);
+			return true;
+			/*if (!(el instanceof RewriterInstruction))
 				return true;
 			RewriterInstruction e = (RewriterInstruction) el;
 			String ts = e.typedInstruction(ctx);
@@ -113,8 +118,42 @@ public class RewriterUtils {
 				}
 			}
 
-			return true;
+			return true;*/
 		});
+
+		stmt.prepareForHashing();
+		stmt.recomputeHashCodes();
+	}
+
+	private static boolean tryFlattenNestedArgList(final RuleContext ctx, RewriterStatement stmt, RewriterStatement root, int insertAt) {
+		if (!stmt.isArgumentList())
+			return false;
+
+		if (stmt == root) {
+			boolean anyMatch = false;
+
+			for (int i = 0; i < stmt.getOperands().size(); i++) {
+				RewriterStatement op = stmt.getOperands().get(i);
+				if (tryFlattenNestedArgList(ctx, op, root, i)) {
+					stmt.getOperands().remove(i);
+					anyMatch = true;
+				}
+			}
+
+			return anyMatch;
+		}
+
+		String dt1 = root.getResultingDataType(ctx);
+		String dt2 = stmt.getResultingDataType(ctx);
+
+		String convertibleDataType = convertibleType(dt1.substring(0, dt1.length()-3), dt2.substring(0, dt2.length()-3));
+
+		if (convertibleDataType == null)
+			return false;
+
+		root.getOperands().addAll(insertAt+1, stmt.getOperands());
+
+		return true;
 	}
 
 	public static RewriterStatement parse(String expr, final RuleContext ctx, String... varDefinitions) {
@@ -177,7 +216,7 @@ public class RewriterUtils {
 
 	public static boolean parseDataTypes(String expr, HashMap<String, RewriterStatement> dataTypes, final RuleContext ctx) {
 		RuleContext.currentContext = ctx;
-		Pattern pattern = Pattern.compile("[A-Za-z]([A-Za-z0-9]|_|\\.)*");
+		Pattern pattern = Pattern.compile("[A-Za-z]([A-Za-z0-9]|_|\\.|\\*)*");
 		Matcher matcher = pattern.matcher(expr);
 
 		if (!matcher.find())
@@ -359,6 +398,25 @@ public class RewriterUtils {
 		return "MATRIX";
 	}
 
+	public static String convertibleType(String t1, String t2) {
+		if (t1.equals("MATRIX") && t2.equals("MATRIX"))
+			return "MATRIX";
+
+		if (t1.equals("MATRIX") || t2.equals("MATRIX"))
+			return null; // Then it is not convertible
+
+		if (!List.of("FLOAT", "INT", "BOOL").contains(t1) || !List.of("FLOAT", "INT", "BOOL").contains(t2))
+			return null;
+
+		if (t1.equals("FLOAT") || t2.equals("FLOAT"))
+			return "FLOAT"; // This is the most "general" type
+
+		if (t1.equals("INT") || t2.equals("INT"))
+			return "INT";
+
+		return "BOOL";
+	}
+
 	public static void putAsBinaryPrintable(String instr, List<String> types, HashMap<String, BiFunction<RewriterStatement, RuleContext, String>> printFunctions, BiFunction<RewriterStatement, RuleContext, String> function) {
 		for (String type1 : types)
 			for (String type2 : types)
@@ -511,5 +569,33 @@ public class RewriterUtils {
 		}
 
 		return matchFound;
+	}
+
+	public static List<Map<RewriterRule.IdentityRewriterStatement, Integer>> createHierarchicalOrder(final RuleContext ctx, List<List<RewriterRule.IdentityRewriterStatement>> statementHierarchies) {
+		return statementHierarchies.stream().map(el -> createHierarchy(ctx, el)).collect(Collectors.toList());
+	}
+
+	public static Map<RewriterRule.IdentityRewriterStatement, Integer> createHierarchy(final RuleContext ctx, List<RewriterRule.IdentityRewriterStatement> level) {
+		List<Tuple2<RewriterRule.IdentityRewriterStatement, String>> orderStrings = level.stream()
+				.map((RewriterRule.IdentityRewriterStatement el) -> new Tuple2<>(el, toOrderString(ctx, el.stmt)))  // Explicit type for `el` and `new Tuple2<>`
+				.sorted(Comparator.comparing(t -> t._2))
+				.collect(Collectors.toList());
+		Map<RewriterRule.IdentityRewriterStatement, Integer> map = new HashMap<>();
+
+		int remainingCtr = 0;
+		for (int i = 1; i < orderStrings.size(); i++) {
+			if (!orderStrings.get(i)._2.equals(orderStrings.get(i-1)._2))
+				remainingCtr = i;
+			map.put(orderStrings.get(i)._1, remainingCtr);
+		}
+		return map;
+	}
+
+	public static String toOrderString(final RuleContext ctx, RewriterStatement stmt) {
+		if (stmt.isInstruction()) {
+			return stmt.getResultingDataType(ctx) + ":" + stmt.trueTypedInstruction(ctx) + "[" + stmt.refCtr + "]";
+		} else {
+			return stmt.getResultingDataType(ctx) + ":" + (stmt.isLiteral() ? "L:" + stmt.getLiteral() : "V");
+		}
 	}
 }

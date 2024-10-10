@@ -383,7 +383,7 @@ public class RewriterRuleCollection {
 				.withParsedStatement("$1:ElementWiseInstruction(A,B)", hooks)
 				.toParsedStatement("$7:_m($2:_idx(1, $5:nrow(A)), $3:_idx(1, $6:ncol(A)), $4:ElementWiseInstruction([](A, $2, $3), [](B, $2, $3)))", hooks)
 				.iff(match -> {
-					return match.getMatchParent() != null && match.getMatchParent().getMeta("dontExpand") == null;
+					return match.getMatchParent() == null || match.getMatchParent().getMeta("dontExpand") == null;
 				}, true)
 				.link(hooks.get(1).getId(), hooks.get(4).getId(), RewriterStatement::transferMeta)
 
@@ -399,6 +399,21 @@ public class RewriterRuleCollection {
 				//.apply(hooks.get(6).getId(), stmt -> stmt.unsafePutMeta("dontExpand", true), true)
 				.build()
 		);
+
+		List.of("$2:_m(i, j, v1), v2", "v1, $2:_m(i, j, v2)").forEach(s -> {
+			rules.add(new RewriterRuleBuilder(ctx)
+					.setUnidirectional(true)
+					.parseGlobalVars("MATRIX:A,B")
+					.parseGlobalVars("LITERAL_INT:1")
+					.parseGlobalVars("INT:i,j")
+					.parseGlobalVars("FLOAT:v1,v2")
+					.withParsedStatement("$1:ElementWiseInstruction(" + s + ")", hooks)
+					.toParsedStatement("$3:_m(i, j, $4:ElementWiseInstruction(v1, v2))", hooks)
+					.link(hooks.get(1).getId(), hooks.get(4).getId(), RewriterStatement::transferMeta)
+					.link(hooks.get(2).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
+					.build()
+			);
+		});
 
 		// Trace(A)
 		rules.add(new RewriterRuleBuilder(ctx)
@@ -711,7 +726,7 @@ public class RewriterRuleCollection {
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
 				.parseGlobalVars("INT:i,j")
-				.parseGlobalVars("FLOAT...:v")
+				.parseGlobalVars("FLOAT*:v")
 				.withParsedStatement("_idxExpr(i, v)", hooks)
 				.toParsedStatement("v", hooks)
 				.iff(match -> {
@@ -740,7 +755,7 @@ public class RewriterRuleCollection {
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
 				.parseGlobalVars("INT:i,j")
-				.parseGlobalVars("FLOAT...:v")
+				.parseGlobalVars("FLOAT*:v")
 				.withParsedStatement("$1:_idxExpr(i, sum(v))", hooks)
 				.toParsedStatement("sum($2:_idxExpr(i, v))", hooks)
 				.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
@@ -780,11 +795,108 @@ public class RewriterRuleCollection {
 				.setUnidirectional(true)
 				.parseGlobalVars("MATRIX:A,B")
 				.parseGlobalVars("INT:i,j")
-				.parseGlobalVars("FLOAT...:v")
+				.parseGlobalVars("FLOAT*:v")
 				.withParsedStatement("sum(sum(v))", hooks)
 				.toParsedStatement("sum(v)", hooks)
 				.build()
 		);
+	}
+
+	public static void flattenOperations(final List<RewriterRule> rules, final RuleContext ctx) {
+		HashMap<Integer, RewriterStatement> hooks = new HashMap<>();
+
+		RewriterUtils.buildBinaryPermutations(List.of("MATRIX", "INT", "FLOAT", "BOOL"), (t1, t2) -> {
+			if (RewriterUtils.convertibleType(t1, t2) != null) {
+				rules.add(new RewriterRuleBuilder(ctx)
+						.setUnidirectional(true)
+						.parseGlobalVars(t1 + ":A")
+						.parseGlobalVars(t2 + ":B")
+						.withParsedStatement("$1:FusableBinaryOperator(A,B)", hooks)
+						.toParsedStatement("$2:FusedOperator(argList(A,B))", hooks)
+						.link(hooks.get(1).getId(), hooks.get(2).getId(), RewriterStatement::transferMeta)
+						.build());
+
+				rules.add(new RewriterRuleBuilder(ctx)
+						.setUnidirectional(true)
+						.parseGlobalVars(t1 + "...:A")
+						.parseGlobalVars(t2 + ":B")
+						.withParsedStatement("$1:FusableBinaryOperator($2:FusedOperator(A), B)", hooks)
+						.toParsedStatement("$3:FusedOperator(argList(A, B))", hooks)
+						.iff(match -> {
+							return match.getMatchRoot().trueInstruction().equals(match.getMatchRoot().getOperands().get(0).trueInstruction());
+						}, true)
+						.link(hooks.get(2).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
+						.build());
+
+				rules.add(new RewriterRuleBuilder(ctx)
+						.setUnidirectional(true)
+						.parseGlobalVars(t1 + "...:A")
+						.parseGlobalVars(t2 + ":B")
+						.withParsedStatement("$1:FusableBinaryOperator(B, $2:FusedOperator(A))", hooks)
+						.toParsedStatement("$3:FusedOperator(argList(B, A))", hooks)
+						.iff(match -> {
+							return match.getMatchRoot().trueInstruction().equals(match.getMatchRoot().getOperands().get(0).trueInstruction());
+						}, true)
+						.link(hooks.get(2).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
+						.build());
+
+
+				List.of(t1, t1 + "...").forEach(t -> {
+					rules.add(new RewriterRuleBuilder(ctx)
+							.setUnidirectional(true)
+							.parseGlobalVars(t1 + ":A,B")
+							.parseGlobalVars(t + ":C")
+							.withParsedStatement("$1:FusedOperator(argList($2:FusableBinaryOperator(A, B), C))", hooks)
+							.toParsedStatement("$3:FusedOperator(argList(argList(A, B), C))", hooks)
+							.iff(match -> {
+								return match.getMatchRoot().trueInstruction().equals(match.getMatchRoot().getOperands().get(0).getOperands().get(0).trueInstruction());
+							}, true)
+							.link(hooks.get(2).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
+							.build());
+
+					rules.add(new RewriterRuleBuilder(ctx)
+							.setUnidirectional(true)
+							.parseGlobalVars(t1 + ":A,B")
+							.parseGlobalVars(t + ":C")
+							.withParsedStatement("$1:FusedOperator(argList(C, $2:FusableBinaryOperator(A, B)))", hooks)
+							.toParsedStatement("$3:FusedOperator(argList(C, argList(A, B)))", hooks)
+							.iff(match -> {
+								return match.getMatchRoot().trueInstruction().equals(match.getMatchRoot().getOperands().get(0).getOperands().get(1).trueInstruction());
+							}, true)
+							.link(hooks.get(2).getId(), hooks.get(3).getId(), RewriterStatement::transferMeta)
+							.build());
+				});
+
+			}
+		});
+
+	}
+
+	/**
+	 * THIS MUST BE EXECUTED PRE-ORDER (e.g. children HAVE to be ordered first)
+	 *
+	 * How two expressions are compared:
+	 * I   By typed instruction name (type-name for datatypes) [e.g. +(INT,INT) > *(INT,INT) > /(INT,INT)]
+	 * II  If it is a literal
+	 * III Other meta properties if available (e.g. nrow, ncol)
+	 *
+	 * For distributive instructions:
+	 * I  Expand [(a+b)*c = a*c + b*c]
+	 *
+	 * For commutative instructions:
+	 * I  Sort by children
+	 *
+	 * For associative instructions:
+	 * I  Left to right (must be after sorting commutative instructions)
+	 *
+	 * For stream expressions:
+	 * I  Index reference count determines outer expression
+	 * II First occurring index
+	 * @param rules
+	 * @param ctx
+	 */
+	public static void canonicalizeInstructionOrder(final List<RewriterRule> rules, final RuleContext ctx) {
+
 	}
 
 	public static void collapseStreamingExpressions(final List<RewriterRule> rules, final RuleContext ctx) {

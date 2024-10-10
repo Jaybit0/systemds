@@ -61,9 +61,9 @@ public class RewriterInstruction extends RewriterStatement {
 
 		getResult(ctx).consolidate(ctx);
 
-		if (isArgumentList())
+		/*if (isArgumentList())
 			hashCode = Objects.hash(instr, result);
-		else
+		else*/
 			hashCode = Objects.hash(rid, refCtr, instr, result, operands);
 		consolidated = true;
 
@@ -76,9 +76,9 @@ public class RewriterInstruction extends RewriterStatement {
 			operands.forEach(op -> op.recomputeHashCodes(true));
 		}
 
-		if (isArgumentList())
+		/*if (isArgumentList())
 			hashCode = Objects.hash(instr, result);
-		else
+		else*/
 			hashCode = Objects.hash(rid, refCtr, instr, result, operands);
 		return hashCode;
 	}
@@ -112,9 +112,8 @@ public class RewriterInstruction extends RewriterStatement {
 
 			RewriterRule.LinkObject ruleLink = mCtx.ruleLinks.get(this);
 
-			if (ruleLink != null) {
+			if (ruleLink != null)
 				mCtx.getLinks().add(new RewriterRule.ExplicitLink(inst, ruleLink.stmt, ruleLink.transferFunction));
-			}
 
 			int s = inst.operands.size();
 
