@@ -254,6 +254,7 @@ public class RewriterContextSettings {
 		builder.append("min(MATRIX)::FLOAT\n");
 
 		builder.append("rand(INT,INT,FLOAT,FLOAT)::MATRIX\n"); // Args: min, max, rows, cols
+		builder.append("rand(FLOAT,FLOAT,INT,INT)::FLOAT\n"); // Just to make it possible to say that random is dependent on both matrix indices
 		builder.append("matrix(INT,INT,INT)::MATRIX\n");
 
 		builder.append("trace(MATRIX)::FLOAT\n");
@@ -328,11 +329,11 @@ public class RewriterContextSettings {
 
 		RuleContext ctx = RuleContext.createContext(ctxString);
 
-		/*ctx.customStringRepr.put("_idx(INT,INT)", (stmt, mctx) -> {
+		ctx.customStringRepr.put("_idx(INT,INT)", (stmt, mctx) -> {
 			return stmt.trueInstruction() + "(" + String.join(", ", stmt.getOperands().stream().map(el -> el.toString(mctx)).collect(Collectors.toList())) + ") [" + stmt.getMeta("idxId") + "]";
 		});
 
-		ctx.customStringRepr.put("_m(INT,INT,FLOAT)", (stmt, mctx) -> {
+		/*ctx.customStringRepr.put("_m(INT,INT,FLOAT)", (stmt, mctx) -> {
 			return stmt.trueInstruction() + "["  + stmt.getMeta("ownerId") + "](" + String.join(", ", stmt.getOperands().stream().map(el -> el.toString(mctx)).collect(Collectors.toList())) + ")";
 		});*/
 

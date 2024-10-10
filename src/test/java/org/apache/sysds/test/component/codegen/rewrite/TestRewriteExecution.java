@@ -324,7 +324,8 @@ public class TestRewriteExecution {
 		//String startStr = "colSums(rand(10, 10, 0, 1.0))";
 		//String startStr = "_idx(1, 1)";
 
-		String startStr = "sum(*(colSums(rand(10, 20, 0, 1.0)), colSums(t(rand(20, 10, 0, 1.0)))))";
+		//String startStr = "sum(*(colSums(rand(10, 20, 0, 1.0)), colSums(t(rand(20, 10, 0, 1.0)))))";
+		String startStr = "sum(*(colSums(rand(10, 20, 0, 1.0)), colSums(rand(10, 20, 0, 1.0))))";
 		//String startStr = "+(+(A,B),C)";
 		String startStr2 = "sum(%*%(rand(10, 20, 0, 1.0), t(rand(10, 20, 0, 1.0))))";
 		//String startStr2 = "+(A,+(B,C))";
@@ -360,6 +361,9 @@ public class TestRewriteExecution {
 
 		System.out.println("Hash1: " + stmt.hashCode());
 		System.out.println("Hash2: " + toCompare.hashCode());
+
+		// TODO: Probably resultingDataType messes up the hashCode which might not get updated when shuffling around data types
+		System.out.println("MATCH: " + stmt.match(new RewriterStatement.MatcherContext(ctx, stmt, false, false, false, false, false, false, new HashMap<>())));
 
 		if (db.insertEntry(ctx, toCompare))
 			System.out.println("No match!");

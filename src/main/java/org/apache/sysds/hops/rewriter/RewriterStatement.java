@@ -379,8 +379,8 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	}
 
 	protected int computeIds(int id) {
-		if (rid != 0 || isArgumentList())
-			return id;
+		/*if (rid != 0 || isArgumentList())
+			return id;*/
 
 		rid = id++;
 

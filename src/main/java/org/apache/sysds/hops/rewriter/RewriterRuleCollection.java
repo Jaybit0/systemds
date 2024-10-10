@@ -451,6 +451,26 @@ public class RewriterRuleCollection {
 				.build()
 		);
 
+		// rand(rows, cols, min, max)
+		rules.add(new RewriterRuleBuilder(ctx)
+				.setUnidirectional(true)
+				.parseGlobalVars("MATRIX:A,B")
+				.parseGlobalVars("LITERAL_INT:1")
+				.parseGlobalVars("INT:n,m")
+				.parseGlobalVars("FLOAT:a,b")
+				.withParsedStatement("rand(n, m, a, b)", hooks)
+				.toParsedStatement("$3:_m($1:_idx(1, n), $2:_idx(1, m), rand(a, b, $1, $2))", hooks)
+				.apply(hooks.get(1).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
+				.apply(hooks.get(2).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true)
+				.apply(hooks.get(3).getId(), stmt -> {
+					UUID id = UUID.randomUUID();
+					stmt.unsafePutMeta("ownerId", id);
+					stmt.getOperands().get(0).unsafePutMeta("ownerId", id);
+					stmt.getOperands().get(1).unsafePutMeta("ownerId", id);
+				}, true)
+				.build()
+		);
+
 		// sum(A) = sum(_m($1:_idx(1, nrow(A)), 1, sum(_m($2:_idx(1, ncol(A)), 1, [](A, $1, $2)))))
 		rules.add(new RewriterRuleBuilder(ctx)
 				.setUnidirectional(true)
