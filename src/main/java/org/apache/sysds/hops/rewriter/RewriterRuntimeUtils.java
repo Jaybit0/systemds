@@ -14,8 +14,10 @@ import org.apache.sysds.parser.StatementBlock;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -36,11 +38,33 @@ public class RewriterRuntimeUtils {
 			sb.getHops().forEach(consumer);
 	}
 
-	public static RewriterStatement buildDAGFromHop(Hop hop, final RuleContext ctx) {
-		return buildDAGRecursively(hop, new HashMap<>(), ctx);
+	public static RewriterStatement buildDAGFromHop(Hop hop, int maxDepth, final RuleContext ctx) {
+		return buildDAGRecursively(hop, new HashMap<>(), 0, maxDepth, ctx);
 	}
 
-	private static RewriterStatement buildDAGRecursively(Hop next, Map<Hop, RewriterStatement> cache, final RuleContext ctx) {
+	public static void forAllUniqueTranslatableStatements(DMLProgram program, int maxDepth, Consumer<RewriterStatement> stmt, RewriterDatabase db, final RuleContext ctx) {
+		for (StatementBlock sb : program.getStatementBlocks())
+			sb.getHops().forEach(hop -> forAllUniqueTranslatableStatements(hop, maxDepth, stmt, new HashSet<>(), db, ctx));
+	}
+
+	private static void forAllUniqueTranslatableStatements(Hop currentHop, int maxDepth, Consumer<RewriterStatement> consumer, Set<Hop> visited, RewriterDatabase db, final RuleContext ctx) {
+		if (visited.contains(currentHop))
+			return;
+
+		visited.add(currentHop);
+		RewriterStatement stmt = buildDAGRecursively(currentHop, new HashMap<>(), 0, maxDepth, ctx);
+
+		if (stmt != null && db.insertEntry(ctx, stmt))
+			consumer.accept(stmt);
+
+		if (currentHop.getInput() != null)
+			currentHop.getInput().forEach(child -> forAllUniqueTranslatableStatements(child, maxDepth, consumer, visited, db, ctx));
+	}
+
+	private static RewriterStatement buildDAGRecursively(Hop next, Map<Hop, RewriterStatement> cache, int depth, int maxDepth, final RuleContext ctx) {
+		if (depth == maxDepth)
+			return buildLeaf(next, ctx);
+
 		if (cache.containsKey(next))
 			return cache.get(next);
 
@@ -54,9 +78,9 @@ public class RewriterRuntimeUtils {
 			RewriterStatement stmt = buildAggBinaryOp((AggBinaryOp) next, ctx);
 
 			if (stmt == null)
-				return null;
+				return buildLeaf(next, ctx);
 
-			if (buildInputs(stmt, next.getInput(), cache, true, ctx))
+			if (buildInputs(stmt, next.getInput(), cache, true, depth, maxDepth, ctx))
 				return stmt;
 
 			return null;
@@ -66,9 +90,9 @@ public class RewriterRuntimeUtils {
 			RewriterStatement stmt = buildAggUnaryOp((AggUnaryOp) next, ctx);
 
 			if (stmt == null)
-				return null;
+				return buildLeaf(next, ctx);
 
-			if (buildInputs(stmt, next.getInput(), cache, true, ctx))
+			if (buildInputs(stmt, next.getInput(), cache, true, depth, maxDepth, ctx))
 				return stmt;
 
 			return null;
@@ -78,9 +102,9 @@ public class RewriterRuntimeUtils {
 			RewriterStatement stmt = buildBinaryOp((BinaryOp) next, ctx);
 
 			if (stmt == null)
-				return null;
+				return buildLeaf(next, ctx);
 
-			if (buildInputs(stmt, next.getInput(), cache, true, ctx))
+			if (buildInputs(stmt, next.getInput(), cache, true, depth, maxDepth, ctx))
 				return stmt;
 
 			return null;
@@ -90,9 +114,9 @@ public class RewriterRuntimeUtils {
 			RewriterStatement stmt = buildReorgOp((ReorgOp) next, ctx);
 
 			if (stmt == null)
-				return null;
+				return buildLeaf(next, ctx);
 
-			if (buildInputs(stmt, next.getInput(), cache, true, ctx))
+			if (buildInputs(stmt, next.getInput(), cache, true, depth, maxDepth, ctx))
 				return stmt;
 
 			return null;
@@ -103,9 +127,9 @@ public class RewriterRuntimeUtils {
 			RewriterStatement stmt = buildDataGenOp((DataGenOp)next, ctx, interestingHops);
 
 			if (stmt == null)
-				return null;
+				return buildLeaf(next, ctx);
 
-			if (buildInputs(stmt, interestingHops, cache, true, ctx))
+			if (buildInputs(stmt, interestingHops, cache, true, depth, maxDepth, ctx))
 				return stmt;
 
 			return null;
@@ -118,10 +142,36 @@ public class RewriterRuntimeUtils {
 		return null;
 	}
 
-	private static boolean buildInputs(RewriterStatement stmt, List<Hop> inputs, Map<Hop, RewriterStatement> cache, boolean fixedSize, final RuleContext ctx) {
+	private static RewriterStatement buildLeaf(Hop hop, final RuleContext ctx) {
+		switch (hop.getDataType()) {
+			case SCALAR:
+				return buildScalarLeaf(hop, ctx);
+			case MATRIX:
+				return RewriterUtils.parse("A", ctx, matrixDefs);
+		}
+
+		return null; // Not supported then
+	}
+
+	private static RewriterStatement buildScalarLeaf(Hop hop, final RuleContext ctx) {
+		switch (hop.getValueType()) {
+			case FP64:
+			case FP32:
+				return RewriterUtils.parse("f1", ctx, floatDefs);
+			case INT64:
+			case INT32:
+				return RewriterUtils.parse("i1", ctx, intDefs);
+			case BOOLEAN:
+				return RewriterUtils.parse("b1", ctx, boolDefs);
+		}
+
+		return null; // Not supported then
+	}
+
+	private static boolean buildInputs(RewriterStatement stmt, List<Hop> inputs, Map<Hop, RewriterStatement> cache, boolean fixedSize, int depth, int maxDepth, final RuleContext ctx) {
 		List<RewriterStatement> children = new ArrayList<>();
 		for (Hop in : inputs) {
-			RewriterStatement childStmt = buildDAGRecursively(in, cache, ctx);
+			RewriterStatement childStmt = buildDAGRecursively(in, cache, depth + 1, maxDepth, ctx);
 
 			if (childStmt == null) {
 				System.out.println("Could not build child: " + in);

@@ -123,25 +123,19 @@ public class TestRewriteExecution {
 		Function<RewriterStatement, RewriterStatement> converter = RewriterUtils.buildCanonicalFormConverter(ctx, false);
 
 		RewriterDatabase db = new RewriterDatabase();
+		RewriterDatabase exactExprDB = new RewriterDatabase();
 
 		RewriterRuntimeUtils.attachHopInterceptor(prog -> {
-			RewriterRuntimeUtils.forAllHops(prog, hop -> {
-				hop = hop.getInput(0);
-				if (hop.getOpString().equals("u(castdts)"))
-					hop = hop.getInput(0);
+			RewriterRuntimeUtils.forAllUniqueTranslatableStatements(prog, 3, stmt -> {
+				System.out.println("Stmt: " + stmt);
+				stmt = converter.apply(stmt);
 
-				RewriterStatement stmt = RewriterRuntimeUtils.buildDAGFromHop(hop, ctx);
-
-				if (stmt != null) {
-					stmt = converter.apply(stmt);
-
-					if (!db.insertEntry(ctx, stmt)) {
-						System.out.println("Found equivalent statement!");
-					}
-
-					System.out.println(stmt.toString(ctx));
+				if (!db.insertEntry(ctx, stmt)) {
+					System.out.println("Found equivalent statement!");
 				}
-			});
+
+				System.out.println(stmt.toString(ctx));
+			}, exactExprDB, ctx);
 			return false;
 		});
 
