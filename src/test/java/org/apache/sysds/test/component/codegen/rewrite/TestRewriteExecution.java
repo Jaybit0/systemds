@@ -238,6 +238,8 @@ public class TestRewriteExecution {
 		canonicalFormCreator.add("EXPAND STREAMING EXPRESSIONS", streamExpansion);
 		canonicalFormCreator.add("PUSHDOWN STREAM SELECTIONS", streamSelectPushdown);
 		canonicalFormCreator.add("FLATTEN OPERATIONS", flattenOperations);
+		// TODO: Constant folding
+		// TODO: CSE
 
 		ArrayList<RewriterRule> colRules = new ArrayList<>();
 		RewriterRuleCollection.collapseStreamingExpressions(colRules, ctx);
@@ -315,6 +317,8 @@ public class TestRewriteExecution {
 		String floatDef = "LITERAL_FLOAT:0,1.0,-0.0001,0.0001,-1.0";
 		String boolDef = "LITERAL_BOOL:TRUE,FALSE";
 
+		String floatVarDef = "FLOAT:a";
+
 		//String startStr = "trace(*(rand(10, 10, 0, 1), rand(10, 10, 0, 1)))";
 		//String startStr = "t(t(t(rand(10, 10, 0, 1))))";
 		//String startStr = "t(t(t(rand(10, 10, 0, 1))))";
@@ -325,11 +329,11 @@ public class TestRewriteExecution {
 		//String startStr = "_idx(1, 1)";
 
 		//String startStr = "sum(*(colSums(rand(10, 20, 0, 1.0)), colSums(t(rand(20, 10, 0, 1.0)))))";
-		String startStr = "sum(*(colSums(rand(10, 20, 0, 1.0)), colSums(rand(10, 20, 0, 1.0))))";
+		String startStr = "sum(*(colSums(*(rand(10, 20, 0, 1.0), a)), colSums(rand(10, 20, 0, 1.0))))";
 		//String startStr = "+(+(A,B),C)";
-		String startStr2 = "sum(%*%(rand(10, 20, 0, 1.0), t(rand(10, 20, 0, 1.0))))";
+		String startStr2 = "sum(%*%(*(rand(10, 20, 0, 1.0), a), t(rand(10, 20, 0, 1.0))))";
 		//String startStr2 = "+(A,+(B,C))";
-		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef, boolDef);
+		RewriterStatement stmt = RewriterUtils.parse(startStr, ctx, matrixDef, intDef, floatDef, boolDef, floatVarDef);
 
 		stmt = canonicalFormCreator.apply(stmt, (t, r) -> {
 			if (r != null)
@@ -345,7 +349,7 @@ public class TestRewriteExecution {
 
 		db.insertEntry(ctx, stmt);
 
-		RewriterStatement toCompare = RewriterUtils.parse(startStr2, ctx, matrixDef, intDef, floatDef, boolDef);
+		RewriterStatement toCompare = RewriterUtils.parse(startStr2, ctx, matrixDef, intDef, floatDef, boolDef, floatVarDef);
 
 		toCompare = canonicalFormCreator.apply(toCompare, (t, r) -> {
 			if (r != null)

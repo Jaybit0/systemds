@@ -44,7 +44,16 @@ public class RewriterRuleCollection {
 					.parseGlobalVars(t2 + ":B")
 					.parseGlobalVars("LITERAL_FLOAT:0")
 					.withParsedStatement("==(A,B)")
-					.toParsedStatement("==(-(A,B),0)")
+					.toParsedStatement("==(+(A,-(B)),0)")
+					.build()
+			);
+
+			rules.add(new RewriterRuleBuilder(ctx)
+					.parseGlobalVars(t1 + ":A")
+					.parseGlobalVars(t2 + ":B")
+					.parseGlobalVars("LITERAL_FLOAT:0")
+					.withParsedStatement("==(A,B)")
+					.toParsedStatement("==(+(-(A),B),0)")
 					.build()
 			);
 		});
@@ -459,7 +468,7 @@ public class RewriterRuleCollection {
 				.parseGlobalVars("INT:n,m")
 				.parseGlobalVars("FLOAT:a,b")
 				.withParsedStatement("rand(n, m, a, b)", hooks)
-				.toParsedStatement("$3:_m($1:_idx(1, n), $2:_idx(1, m), rand(a, b, $1, $2))", hooks)
+				.toParsedStatement("$3:_m($1:_idx(1, n), $2:_idx(1, m), +(a, *(+(b, -(a)), rand($1, $2))))", hooks)
 				.apply(hooks.get(1).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
 				.apply(hooks.get(2).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true)
 				.apply(hooks.get(3).getId(), stmt -> {
@@ -790,8 +799,8 @@ public class RewriterRuleCollection {
 					.parseGlobalVars("INT:i,j")
 					.parseGlobalVars(t1 + ":v1")
 					.parseGlobalVars(t2 + ":v2")
-					.withParsedStatement("$1:ElementWiseInstruction(sum($2:_idxExpr(i, v1)), sum($3:_idxExpr(j, v2)))", hooks)
-					.toParsedStatement("sum($4:_idxExpr(i, $5:_idxExpr(j, $6:ElementWiseInstruction(v1, v2))))", hooks)
+					.withParsedStatement("$1:ElementWiseSumExpandableInstruction(sum($2:_idxExpr(i, v1)), sum($3:_idxExpr(j, v2)))", hooks)
+					.toParsedStatement("sum($4:_idxExpr(i, $5:_idxExpr(j, $6:ElementWiseSumExpandableInstruction(v1, v2))))", hooks)
 					.link(hooks.get(1).getId(), hooks.get(6).getId(), RewriterStatement::transferMeta)
 					.link(hooks.get(2).getId(), hooks.get(4).getId(), RewriterStatement::transferMeta)
 					.link(hooks.get(3).getId(), hooks.get(5).getId(), RewriterStatement::transferMeta)

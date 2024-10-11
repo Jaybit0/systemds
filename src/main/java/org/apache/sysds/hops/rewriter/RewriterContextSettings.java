@@ -17,7 +17,7 @@ public class RewriterContextSettings {
 
 		builder.append("IdxSelectPushableBinaryInstruction(MATRIX,MATRIX)::MATRIX\n");
 		builder.append("impl +\n");
-		builder.append("impl -\n");
+		//builder.append("impl -\n");
 		builder.append("impl *\n");
 		builder.append("impl /\n");
 		builder.append("impl min\n");
@@ -118,7 +118,7 @@ public class RewriterContextSettings {
 
 		builder.append("SizePreservingInstruction(MATRIX,MATRIX)::MATRIX\n"); // Maintains the size information of the matrix
 		builder.append("impl +\n");
-		builder.append("impl -\n");
+		//builder.append("impl -\n");
 		builder.append("impl *\n");
 		builder.append("impl /\n");
 		builder.append("impl min\n");
@@ -139,67 +139,37 @@ public class RewriterContextSettings {
 
 		RewriterUtils.buildBinaryPermutations(List.of("MATRIX...", "MATRIX", "INT", "FLOAT"), (t1, t2) -> {
 			builder.append("ElementWiseInstruction(" + t1 + "," + t2 + ")::" + RewriterUtils.defaultTypeHierarchy(t1, t2) + "\n");
-			builder.append("impl ElementWiseAdditiveInstruction\n");
-			builder.append("impl *\n");
+			builder.append("impl ElementWiseSumExpandableInstruction\n");
 			builder.append("impl /\n");
 			builder.append("impl max\n");
 			builder.append("impl min\n");
 		});
 
 		builder.append("ElementWiseInstruction(MATRIX...)::MATRIX\n");
-		builder.append("impl ElementWiseAdditiveInstruction\n");
-		builder.append("impl *\n");
+		builder.append("impl ElementWiseSumExpandableInstruction\n");
 		builder.append("impl /\n");
 		builder.append("impl max\n");
 		builder.append("impl min\n");
-
-		/*builder.append("ElementWiseInstruction(MATRIX,FLOAT)::MATRIX\n");
-		builder.append("impl ElementWiseAdditiveInstruction\n");
-		builder.append("impl *\n");
-		builder.append("impl /\n");
-		builder.append("impl max\n");
-		builder.append("impl min\n");
-
-		builder.append("ElementWiseInstruction(MATRIX,INT)::MATRIX\n");
-		builder.append("impl ElementWiseAdditiveInstruction\n");
-		builder.append("impl *\n");
-		builder.append("impl /\n");
-		builder.append("impl max\n");
-		builder.append("impl min\n");
-
-		builder.append("ElementWiseInstruction(FLOAT,MATRIX)::MATRIX\n");
-		builder.append("impl ElementWiseAdditiveInstruction\n");
-		builder.append("impl *\n");
-		builder.append("impl /\n");
-		builder.append("impl max\n");
-		builder.append("impl min\n");
-
-		builder.append("ElementWiseInstruction(INT,MATRIX)::MATRIX\n");
-		builder.append("impl ElementWiseAdditiveInstruction\n");
-		builder.append("impl *\n");
-		builder.append("impl /\n");
-		builder.append("impl max\n");
-		builder.append("impl min\n");
-
-		// Element-wise instruction
-		builder.append("ElementWiseInstruction(MATRIX,MATRIX)::MATRIX\n");
-		builder.append("impl ElementWiseAdditiveInstruction\n");
-		builder.append("impl *\n");
-		builder.append("impl /\n");
-		builder.append("impl max\n");
-		builder.append("impl min\n");*/
-
-		//
 
 		RewriterUtils.buildBinaryPermutations(List.of("MATRIX...", "MATRIX", "INT", "FLOAT", "BOOL"), (t1, t2) -> {
-			builder.append("ElementWiseAdditiveInstruction(" + t1 + "," + t2 + ")::MATRIX\n");
+			builder.append("ElementWiseSumExpandableInstruction(" + t1 + "," + t2 + ")::" + RewriterUtils.defaultTypeHierarchy(t1, t2) + "\n"); // Any instruction that allows op(sum(A*), sum(B*)) = sum(op(A, B))
+			builder.append("impl ElementWiseAdditiveInstruction\n");
+			builder.append("impl *\n");
+
+			builder.append("ElementWiseAdditiveInstruction(" + t1 + "," + t2 + ")::" + RewriterUtils.defaultTypeHierarchy(t1, t2) + "\n");
 			builder.append("impl +\n");
-			builder.append("impl -\n");
+			//builder.append("impl -\n");
 		});
 
 		builder.append("ElementWiseAdditiveInstruction(MATRIX...)::MATRIX\n");
 		builder.append("impl +\n");
-		builder.append("impl -\n");
+		//builder.append("impl -\n");
+
+
+		ALL_TYPES.forEach(t -> {
+			builder.append("UnaryOperator(" + t + ")::" + t + "\n");
+			builder.append("impl -\n");
+		});
 
 		//
 
@@ -213,7 +183,7 @@ public class RewriterContextSettings {
 		RewriterUtils.buildBinaryPermutations(List.of("MATRIX...", "MATRIX", "INT", "FLOAT", "BOOL"), (t1, t2) -> {
 			builder.append("FusableBinaryOperator(" + t1 + "," + t2 + ")::" + RewriterUtils.defaultTypeHierarchy(t1, t2) + "\n");
 			builder.append("impl +\n");
-			builder.append("impl -\n");
+			//builder.append("impl -\n");
 			builder.append("impl *\n");
 			builder.append("impl %*%\n");
 		});
@@ -221,7 +191,7 @@ public class RewriterContextSettings {
 		List.of("MATRIX", "INT", "FLOAT", "BOOL").forEach(t -> {
 			builder.append("FusedOperator(" + t + "...)::" + t + "\n");
 			builder.append("impl +\n");
-			builder.append("impl -\n");
+			//builder.append("impl -\n");
 			builder.append("impl *\n");
 			builder.append("impl %*%\n");
 		});
@@ -231,7 +201,7 @@ public class RewriterContextSettings {
 		builder.append("length(MATRIX)::INT\n");
 
 		RewriterUtils.buildBinaryAlgebraInstructions(builder, "+", List.of("INT", "FLOAT", "BOOL", "MATRIX"));
-		RewriterUtils.buildBinaryAlgebraInstructions(builder, "-", List.of("INT", "FLOAT", "BOOL", "MATRIX"));
+		//RewriterUtils.buildBinaryAlgebraInstructions(builder, "-", List.of("INT", "FLOAT", "BOOL", "MATRIX"));
 		RewriterUtils.buildBinaryAlgebraInstructions(builder, "*", List.of("INT", "FLOAT", "BOOL", "MATRIX"));
 		RewriterUtils.buildBinaryAlgebraInstructions(builder, "/", List.of("INT", "FLOAT", "BOOL", "MATRIX"));
 
@@ -254,7 +224,7 @@ public class RewriterContextSettings {
 		builder.append("min(MATRIX)::FLOAT\n");
 
 		builder.append("rand(INT,INT,FLOAT,FLOAT)::MATRIX\n"); // Args: min, max, rows, cols
-		builder.append("rand(FLOAT,FLOAT,INT,INT)::FLOAT\n"); // Just to make it possible to say that random is dependent on both matrix indices
+		builder.append("rand(INT,INT)::FLOAT\n"); // Just to make it possible to say that random is dependent on both matrix indices
 		builder.append("matrix(INT,INT,INT)::MATRIX\n");
 
 		builder.append("trace(MATRIX)::FLOAT\n");
@@ -329,11 +299,11 @@ public class RewriterContextSettings {
 
 		RuleContext ctx = RuleContext.createContext(ctxString);
 
-		ctx.customStringRepr.put("_idx(INT,INT)", (stmt, mctx) -> {
+		/*ctx.customStringRepr.put("_idx(INT,INT)", (stmt, mctx) -> {
 			return stmt.trueInstruction() + "(" + String.join(", ", stmt.getOperands().stream().map(el -> el.toString(mctx)).collect(Collectors.toList())) + ") [" + stmt.getMeta("idxId") + "]";
 		});
 
-		/*ctx.customStringRepr.put("_m(INT,INT,FLOAT)", (stmt, mctx) -> {
+		ctx.customStringRepr.put("_m(INT,INT,FLOAT)", (stmt, mctx) -> {
 			return stmt.trueInstruction() + "["  + stmt.getMeta("ownerId") + "](" + String.join(", ", stmt.getOperands().stream().map(el -> el.toString(mctx)).collect(Collectors.toList())) + ")";
 		});*/
 

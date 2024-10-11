@@ -228,8 +228,6 @@ public class RewriterRuleSet {
 			if (!rule.isUnidirectional())
 				accelerate(rule, false);
 		}
-
-		System.out.println(accelerator);
 	}
 
 	private void accelerate(RewriterRule rule, boolean forward) {

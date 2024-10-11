@@ -160,7 +160,6 @@ public class MetaPropagator implements Function<RewriterStatement, RewriterState
 			}
 
 			RewriterInstruction instr = (RewriterInstruction) root;
-			System.out.println(instr.getProperties(ctx));
 
 			if (instr.getProperties(ctx).contains("ElementWiseInstruction")) {
 				if (root.getOperands().get(0).getResultingDataType(ctx).startsWith("MATRIX")) {
