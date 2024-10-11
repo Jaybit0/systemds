@@ -493,7 +493,7 @@ public class RewriterRuleCollection {
 					if (meta == null)
 						throw new IllegalArgumentException("Column meta should not be null: " + match.getMatchRoot().getOperands().get(0).toString(ctx));
 
-					return !meta.isLiteral() || ((int)meta.getLiteral()) != 1;
+					return !meta.isLiteral() || ((long)meta.getLiteral()) != 1;
 				}, true)
 				.apply(hooks.get(1).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
 				.apply(hooks.get(2).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true)
@@ -523,7 +523,7 @@ public class RewriterRuleCollection {
 					if (meta == null)
 						throw new IllegalArgumentException("Column meta should not be null: " + match.getMatchRoot().getOperands().get(0).toString(ctx));
 
-					return !meta.isLiteral() || ((int)meta.getLiteral()) != 1;
+					return !meta.isLiteral() || ((long)meta.getLiteral()) != 1;
 				}, true)
 				.apply(hooks.get(1).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
 				.apply(hooks.get(2).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true)
@@ -553,7 +553,7 @@ public class RewriterRuleCollection {
 					if (meta == null)
 						throw new IllegalArgumentException("Column meta should not be null: " + match.getMatchRoot().getOperands().get(0).toString(ctx));
 
-					return !meta.isLiteral() || ((int)meta.getLiteral()) != 1;
+					return !meta.isLiteral() || ((long)meta.getLiteral()) != 1;
 				}, true)
 				.apply(hooks.get(1).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true) // Assumes it will never collide
 				.apply(hooks.get(2).getId(), stmt -> stmt.unsafePutMeta("idxId", UUID.randomUUID()), true)
@@ -1020,9 +1020,9 @@ public class RewriterRuleCollection {
 					RewriterStatement c = match.getMatchRoot().getOperands().get(1).getOperands().get(0);
 					RewriterStatement d = match.getMatchRoot().getOperands().get(1).getOperands().get(1);
 
-					if (a.isLiteral() && ((int)a.getLiteral()) == 1
+					if (a.isLiteral() && ((long)a.getLiteral()) == 1
 						&& b == A.getMeta("nrow")
-						&& c.isLiteral() && ((int)c.getLiteral()) == 1
+						&& c.isLiteral() && ((long)c.getLiteral()) == 1
 						&& d == A.getMeta("ncol")) {
 						return true;
 					}

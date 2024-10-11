@@ -309,63 +309,63 @@ public class RewriterContextSettings {
 
 		// Meta instruction resolver
 		ctx.customStringRepr.put("_lower(INT)", (stmt, mctx) -> {
-			float mrd = 1F - rd.nextFloat();
+			double mrd = 1F - rd.nextDouble();
 			if (stmt.getMeta("MetaInstrRdFloatValue") != null)
-				mrd = (float)stmt.getMeta("MetaInstrRdFloatValue");
+				mrd = (double)stmt.getMeta("MetaInstrRdFloatValue");
 			else
 				stmt.unsafePutMeta("MetaInstrRdFloatValue", mrd);
 			if (stmt.getOperands().get(0).isLiteral())
-				return "(" + (((int) stmt.getOperands().get(0).getLiteral()) - mrd) + ")";
+				return "(" + (((long) stmt.getOperands().get(0).getLiteral()) - mrd) + ")";
 			else
 				return stmt.getOperands().get(0).toString(ctx) + " - " + mrd;
 		});
 		ctx.customStringRepr.put("_lower(FLOAT)", (stmt, mctx) -> {
-			float mrd = 1F - rd.nextFloat();
+			double mrd = 1F - rd.nextDouble();
 			if (stmt.getMeta("MetaInstrRdFloatValue") != null)
-				mrd = (float)stmt.getMeta("MetaInstrRdFloatValue");
+				mrd = (double)stmt.getMeta("MetaInstrRdFloatValue");
 			else
 				stmt.unsafePutMeta("MetaInstrRdFloatValue", mrd);
 			if (stmt.getOperands().get(0).isLiteral())
-				return "(" + (((float) stmt.getOperands().get(0).getLiteral()) - mrd) + ")";
+				return "(" + (((double) stmt.getOperands().get(0).getLiteral()) - mrd) + ")";
 			else
 				return stmt.getOperands().get(0).toString(ctx) + " - " + mrd;
 		});
 		ctx.customStringRepr.put("_higher(INT)", (stmt, mctx) -> {
-			float mrd = rd.nextFloat();
+			double mrd = rd.nextDouble();
 			if (stmt.getMeta("MetaInstrRdFloatValue") != null)
-				mrd = (float)stmt.getMeta("MetaInstrRdFloatValue");
+				mrd = (double)stmt.getMeta("MetaInstrRdFloatValue");
 			else
 				stmt.unsafePutMeta("MetaInstrRdFloatValue", mrd);
 			if (stmt.getOperands().get(0).isLiteral())
-				return "(" + (((int) stmt.getOperands().get(0).getLiteral()) + mrd) + ")";
+				return "(" + (((long) stmt.getOperands().get(0).getLiteral()) + mrd) + ")";
 			else
 				return stmt.getOperands().get(0).toString(ctx) + " + " + mrd;
 		});
 		ctx.customStringRepr.put("_higher(FLOAT)", (stmt, mctx) -> {
-			float mrd = rd.nextFloat();
+			double mrd = rd.nextDouble();
 			if (stmt.getMeta("MetaInstrRdFloatValue") != null)
-				mrd = (float)stmt.getMeta("MetaInstrRdFloatValue");
+				mrd = (double)stmt.getMeta("MetaInstrRdFloatValue");
 			else
 				stmt.unsafePutMeta("MetaInstrRdFloatValue", mrd);
 			if (stmt.getOperands().get(0).isLiteral())
-				return "(" + (((float) stmt.getOperands().get(0).getLiteral()) + mrd) + ")";
+				return "(" + (((double) stmt.getOperands().get(0).getLiteral()) + mrd) + ")";
 			else
 				return stmt.getOperands().get(0).toString(ctx) + " + " + mrd;
 		});
 
 		ctx.customStringRepr.put("_posInt()", (stmt, mctx) -> {
-			int i = 1 + rd.nextInt(100);
+			long i = 1 + rd.nextInt(100);
 			if (stmt.getMeta("MetaInstrRdIntValue") != null)
-				i = (int)stmt.getMeta("MetaInstrRdIntValue");
+				i = (long)stmt.getMeta("MetaInstrRdIntValue");
 			else
 				stmt.unsafePutMeta("MetaInstrRdIntValue", i);
 			return String.valueOf(i);
 		});
 
 		ctx.customStringRepr.put("_rdFloat()", (stmt, mctx) -> {
-			float f = (rd.nextFloat() - 0.5f) * (rd.nextInt(100000) + 1);
+			double f = (rd.nextDouble() - 0.5f) * (rd.nextInt(100000) + 1);
 			if (stmt.getMeta("MetaInstrRdFloatValue") != null)
-				f = (float)stmt.getMeta("MetaInstrRdFloatValue");
+				f = (double)stmt.getMeta("MetaInstrRdFloatValue");
 			else
 				stmt.unsafePutMeta("MetaInstrRdFloatValue", f);
 			return String.valueOf(f);

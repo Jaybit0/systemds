@@ -229,8 +229,8 @@ public class RewriterInstruction extends RewriterStatement {
 	}*/
 
 	@Override
-	public ArrayList<RewriterStatement> getOperands() {
-		return operands;
+	public List<RewriterStatement> getOperands() {
+		return operands == null ? Collections.emptyList() : operands;
 	}
 
 

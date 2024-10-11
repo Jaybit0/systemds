@@ -302,9 +302,8 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 			getOperands().forEach(RewriterStatement::eraseDefinitions);
 	}
 
-	@Nullable
 	public List<RewriterStatement> getOperands() {
-		return null;
+		return Collections.emptyList();
 	}
 
 	public int recomputeHashCodes() {

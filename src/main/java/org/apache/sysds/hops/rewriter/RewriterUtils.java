@@ -18,6 +18,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
 import java.util.UUID;
@@ -212,11 +213,11 @@ public class RewriterUtils {
 			RewriterDataType dt;
 
 			if (intLiteral) {
-				dt = new RewriterDataType().as(varName).ofType("INT").asLiteral(Integer.parseInt(varName));
+				dt = new RewriterDataType().as(varName).ofType("INT").asLiteral(Long.parseLong(varName));
 			} else if (boolLiteral) {
 				dt = new RewriterDataType().as(varName).ofType("BOOL").asLiteral(Boolean.parseBoolean(varName));
 			} else if (floatLiteral) {
-				dt = new RewriterDataType().as(varName).ofType("FLOAT").asLiteral(Float.parseFloat(varName));
+				dt = new RewriterDataType().as(varName).ofType("FLOAT").asLiteral(Double.parseDouble(varName));
 			} else {
 				dt = new RewriterDataType().as(varName).ofType(dType);
 			}
@@ -547,7 +548,7 @@ public class RewriterUtils {
 				RewriterRule.IdentityRewriterStatement id = new RewriterRule.IdentityRewriterStatement(el);
 
 				if (!votes.containsKey(id)) {
-					System.out.println("Sorting: " + el);
+					//System.out.println("Sorting: " + el);
 					List<Set<RewriterRule.IdentityRewriterStatement>> uStatements = createHierarchy(ctx, el.getOperands());
 					if (uStatements.size() > 0) {
 						uStatements.forEach(e -> System.out.println("Uncertain: " + e.stream().map(t -> t.stmt)));
@@ -576,7 +577,7 @@ public class RewriterUtils {
 		List<Set<RewriterRule.IdentityRewriterStatement>> ranges = new ArrayList<>();
 		int currentRangeStart = 0;
 		for (int i = 1; i < level.size(); i++) {
-			System.out.println(toOrderString(ctx, level.get(i)));
+			//System.out.println(toOrderString(ctx, level.get(i)));
 			if (toOrderString(ctx, level.get(i)).equals(toOrderString(ctx, level.get(i-1)))) {
 				if (i - currentRangeStart > 1) {
 					Set<RewriterRule.IdentityRewriterStatement> mSet = level.subList(currentRangeStart, i).stream().map(RewriterRule.IdentityRewriterStatement::new).collect(Collectors.toSet());
@@ -596,5 +597,53 @@ public class RewriterUtils {
 		} else {
 			return stmt.getResultingDataType(ctx) + ":" + (stmt.isLiteral() ? "L:" + stmt.getLiteral() : "V");
 		}
+	}
+
+	public static RuleContext buildDefaultContext() {
+		RuleContext ctx = RewriterContextSettings.getDefaultContext(new Random());
+		ctx.metaPropagator = new MetaPropagator(ctx);
+		return ctx;
+	}
+
+	public static Function<RewriterStatement, RewriterStatement> buildCanonicalFormConverter(final RuleContext ctx, boolean debug) {
+		ArrayList<RewriterRule> expRules = new ArrayList<>();
+		RewriterRuleCollection.expandStreamingExpressions(expRules, ctx);
+		RewriterHeuristic streamExpansion = new RewriterHeuristic(new RewriterRuleSet(ctx, expRules));
+
+		ArrayList<RewriterRule> pd = new ArrayList<>();
+		RewriterRuleCollection.pushdownStreamSelections(pd, ctx);
+		RewriterHeuristic streamSelectPushdown = new RewriterHeuristic(new RewriterRuleSet(ctx, pd));
+
+		ArrayList<RewriterRule> flatten = new ArrayList<>();
+		RewriterRuleCollection.flattenOperations(pd, ctx);
+		RewriterHeuristic flattenOperations = new RewriterHeuristic(new RewriterRuleSet(ctx, pd));
+
+		RewriterHeuristics canonicalFormCreator = new RewriterHeuristics();
+		canonicalFormCreator.add("EXPAND STREAMING EXPRESSIONS", streamExpansion);
+		canonicalFormCreator.add("PUSHDOWN STREAM SELECTIONS", streamSelectPushdown);
+		canonicalFormCreator.add("FLATTEN OPERATIONS", flattenOperations);
+
+		return stmt -> {
+			stmt = canonicalFormCreator.apply(stmt, (t, r) -> {
+				if (!debug)
+					return true;
+
+				if (r != null)
+					System.out.println("Applying rule: " + r.getName());
+				System.out.println(t);
+				return true;
+			});
+
+			RewriterUtils.mergeArgLists(stmt, ctx);
+			if (debug)
+				System.out.println("PRE1: " + stmt.toString(ctx));
+
+			RewriterUtils.topologicalSort(stmt, ctx, (el, parent) -> el.isArgumentList() && parent != null && Set.of("+", "-", "*", "_idxExpr").contains(parent.trueInstruction()));
+
+			if (debug)
+				System.out.println("FINAL1: " + stmt.toString(ctx));
+
+			return stmt;
+		};
 	}
 }

@@ -17,6 +17,7 @@ import org.apache.sysds.hops.rewriter.RewriterRule;
 import org.apache.sysds.hops.rewriter.RewriterRuleBuilder;
 import org.apache.sysds.hops.rewriter.RewriterRuleCollection;
 import org.apache.sysds.hops.rewriter.RewriterRuleSet;
+import org.apache.sysds.hops.rewriter.RewriterRuntimeUtils;
 import org.apache.sysds.hops.rewriter.RewriterStatement;
 import org.apache.sysds.hops.rewriter.RewriterUtils;
 import org.apache.sysds.hops.rewriter.RuleContext;
@@ -60,9 +61,7 @@ public class TestRewriteExecution {
 	private String nextProg = null;*/
 	private List<ExecutedRule> costIncreasingTransformations = new ArrayList<>();
 
-	private BiConsumer<DMLProgram, String> interceptor = (prog, phase) -> {
-		if (!phase.equals("HOPRewrites"))
-			return;
+	private Function<DMLProgram, Boolean> interceptor = prog -> {
 		//int hopCtr = 0;
 		for (StatementBlock sb : prog.getStatementBlocks()) {
 			int hopCount = sb.getHops() == null ? 0 : sb.getHops().stream().mapToInt(this::countHops).sum();
@@ -82,8 +81,9 @@ public class TestRewriteExecution {
 
 			//System.out.println(phase + "-Size: " + hopCount);
 			//System.out.println("==> " + sb);
-			return;
+			return true;
 		}
+		return true;
 	};
 
 	private int countHops(List<Hop> hops) {
@@ -112,6 +112,44 @@ public class TestRewriteExecution {
 	}
 
 	@Test
+	public void interceptionTest() {
+		System.out.println("OptLevel:" + OptimizerUtils.getOptLevel().toString());
+		System.out.println("AllowOpFusion: " + OptimizerUtils.ALLOW_OPERATOR_FUSION);
+		System.out.println("AllowSumProductRewrites: " + OptimizerUtils.ALLOW_SUM_PRODUCT_REWRITES);
+		System.out.println("AllowConstantFolding: " + OptimizerUtils.ALLOW_CONSTANT_FOLDING);
+
+		// Setup default context
+		RuleContext ctx = RewriterUtils.buildDefaultContext();
+		Function<RewriterStatement, RewriterStatement> converter = RewriterUtils.buildCanonicalFormConverter(ctx, false);
+
+		RewriterDatabase db = new RewriterDatabase();
+
+		RewriterRuntimeUtils.attachHopInterceptor(prog -> {
+			RewriterRuntimeUtils.forAllHops(prog, hop -> {
+				hop = hop.getInput(0);
+				if (hop.getOpString().equals("u(castdts)"))
+					hop = hop.getInput(0);
+
+				RewriterStatement stmt = RewriterRuntimeUtils.buildDAGFromHop(hop, ctx);
+
+				if (stmt != null) {
+					stmt = converter.apply(stmt);
+
+					if (!db.insertEntry(ctx, stmt)) {
+						System.out.println("Found equivalent statement!");
+					}
+
+					System.out.println(stmt.toString(ctx));
+				}
+			});
+			return false;
+		});
+
+		RewriterRuntimeUtils.executeScript("X=rand(rows=10,cols=5)\nY=rand(rows=5,cols=10)\nprint(sum(X%*%Y))");
+		RewriterRuntimeUtils.executeScript("X=rand(rows=10,cols=5)\nY=rand(rows=5,cols=10)\nprint(sum(colSums(X) * colSums(t(Y))))");
+	}
+
+	/*@Test
 	public void test() {
 		System.out.println("OptLevel:" + OptimizerUtils.getOptLevel().toString());
 		System.out.println("AllowOpFusion: " + OptimizerUtils.ALLOW_OPERATOR_FUSION);
@@ -140,7 +178,7 @@ public class TestRewriteExecution {
 			System.out.println(incTransforms.to.executableString);
 			System.out.println("HopCount: " + incTransforms.from.hopCount + " => " + incTransforms.to.hopCount);
 		}
-	}
+	}*/
 
 	private static RewriterHeuristic mHeur;
 
@@ -155,7 +193,7 @@ public class TestRewriteExecution {
 			RewriterHeuristic heur = mHeur;
 			stmt = heur.apply(stmt);
 
-			DMLScript.programInterceptor = interceptor;
+			RewriterRuntimeUtils.attachHopInterceptor(interceptor);
 			//System.setOut(new PrintStream(new CustomOutputStream(System.out, line -> System.err.println("INTERCEPT: " + line))));
 
 

@@ -36,6 +36,7 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import org.apache.commons.cli.AlreadySelectedException;
 import org.apache.commons.cli.HelpFormatter;
@@ -408,7 +409,7 @@ public class DMLScript
 		setGlobalFlags(dmlconf);
 	}
 
-	public static BiConsumer<DMLProgram, String> programInterceptor = null;
+	public static Function<DMLProgram, Boolean> hopInterceptor = null;
 	/**
 	 * The running body of DMLScript execution. This method should be called after execution properties have been correctly set,
 	 * and customized parameters have been put into _argVals
@@ -435,7 +436,7 @@ public class DMLScript
 		//Step 2: configure codegen
 		configureCodeGen();
 
-		System.out.println("DTime: " + (System.currentTimeMillis() - millis) + "ms");
+		//System.out.println("DTime: " + (System.currentTimeMillis() - millis) + "ms");
 		millis = System.currentTimeMillis();
 
 		//Step 3: parse dml script
@@ -455,17 +456,14 @@ public class DMLScript
 		//Step 5: rewrite HOP DAGs (incl IPA and memory estimates)
 		dmlt.rewriteHopsDAG(prog);
 
-		if (programInterceptor != null)
-			programInterceptor.accept(prog, "HOPRewrites");
+		if (hopInterceptor != null && !hopInterceptor.apply(prog))
+			return;
 		
 		//Step 6: construct lops (incl exec type and op selection)
 		dmlt.constructLops(prog);
 
 		//Step 7: rewrite LOP DAGs (incl adding new LOPs s.a. prefetch, broadcast)
 		dmlt.rewriteLopDAG(prog);
-
-		if (programInterceptor != null)
-			programInterceptor.accept(prog, "LOPRewrites");
 		
 		//Step 8: generate runtime program, incl codegen
 		Program rtprog = dmlt.getRuntimeProgram(prog, ConfigurationManager.getDMLConfig());
