@@ -124,23 +124,45 @@ public class TestRewriteExecution {
 
 		RewriterDatabase db = new RewriterDatabase();
 		RewriterDatabase exactExprDB = new RewriterDatabase();
+		List<RewriterStatement> equivalentStatements = new ArrayList<>();
 
 		RewriterRuntimeUtils.attachHopInterceptor(prog -> {
-			RewriterRuntimeUtils.forAllUniqueTranslatableStatements(prog, 3, stmt -> {
+			RewriterRuntimeUtils.forAllUniqueTranslatableStatements(prog, 10, stmt -> {
+				RewriterStatement cpy = stmt.nestedCopyOrInject(new HashMap<>(), el -> null);
 				System.out.println("Stmt: " + stmt);
 				stmt = converter.apply(stmt);
 
-				if (!db.insertEntry(ctx, stmt)) {
+				RewriterStatement oldEntry = db.insertOrReturn(ctx, stmt);
+
+				if (oldEntry == null) {
+					List<RewriterStatement> expr = new ArrayList<>();
+					expr.add(cpy);
+					stmt.unsafePutMeta("equivalentExpressions", expr);
+				} else {
+					List<RewriterStatement> eStmts = (List<RewriterStatement>) oldEntry.getMeta("equivalentExpressions");
+					eStmts.add(cpy);
+
+					if (eStmts.size() == 2)
+						equivalentStatements.add(oldEntry);
+
 					System.out.println("Found equivalent statement!");
 				}
 
-				System.out.println(stmt.toString(ctx));
+				//System.out.println("Canonical form:");
+				//System.out.println(stmt.toString(ctx));
 			}, exactExprDB, ctx);
 			return false;
 		});
 
 		RewriterRuntimeUtils.executeScript("X=rand(rows=10,cols=5)\nY=rand(rows=5,cols=10)\nprint(sum(X%*%Y))");
 		RewriterRuntimeUtils.executeScript("X=rand(rows=10,cols=5)\nY=rand(rows=5,cols=10)\nprint(sum(colSums(X) * colSums(t(Y))))");
+
+		System.out.println("===== ALL EQUIVALENCES =====");
+
+		for (RewriterStatement eStmt : equivalentStatements) {
+			System.out.println("Canonical form: " + eStmt.toString(ctx));
+			((List<RewriterStatement>)eStmt.getMeta("equivalentExpressions")).forEach(stmt -> System.out.println(stmt.toString(ctx)));
+		}
 	}
 
 	/*@Test

@@ -615,8 +615,8 @@ public class RewriterUtils {
 		RewriterHeuristic streamSelectPushdown = new RewriterHeuristic(new RewriterRuleSet(ctx, pd));
 
 		ArrayList<RewriterRule> flatten = new ArrayList<>();
-		RewriterRuleCollection.flattenOperations(pd, ctx);
-		RewriterHeuristic flattenOperations = new RewriterHeuristic(new RewriterRuleSet(ctx, pd));
+		RewriterRuleCollection.flattenOperations(flatten, ctx);
+		RewriterHeuristic flattenOperations = new RewriterHeuristic(new RewriterRuleSet(ctx, flatten));
 
 		RewriterHeuristics canonicalFormCreator = new RewriterHeuristics();
 		canonicalFormCreator.add("EXPAND STREAMING EXPRESSIONS", streamExpansion);
@@ -632,7 +632,7 @@ public class RewriterUtils {
 					System.out.println("Applying rule: " + r.getName());
 				System.out.println(t);
 				return true;
-			});
+			}, debug);
 
 			RewriterUtils.mergeArgLists(stmt, ctx);
 			if (debug)

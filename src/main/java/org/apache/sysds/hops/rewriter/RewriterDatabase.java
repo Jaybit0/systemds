@@ -1,17 +1,26 @@
 package org.apache.sysds.hops.rewriter;
 
+import java.util.HashMap;
 import java.util.HashSet;
 
 public class RewriterDatabase {
 
-	private HashSet<RewriterStatementEntry> db = new HashSet<>();
+	private HashMap<RewriterStatementEntry, RewriterStatement> db = new HashMap<>();
 
 	public boolean containsEntry(RewriterStatement instr) {
-		return db.contains(instr);
+		return db.containsKey(instr);
 	}
 
 	public boolean insertEntry(final RuleContext ctx, RewriterStatement stmt) {
-		return db.add(new RewriterStatementEntry(ctx, stmt));
+		return db.putIfAbsent(new RewriterStatementEntry(ctx, stmt), stmt) == null;
+	}
+
+	public RewriterStatement find(final RuleContext ctx, RewriterStatement stmt) {
+		return db.get(new RewriterStatementEntry(ctx, stmt));
+	}
+
+	public RewriterStatement insertOrReturn(final RuleContext ctx, RewriterStatement stmt) {
+		return db.putIfAbsent(new RewriterStatementEntry(ctx, stmt), stmt);
 	}
 
 	public int size() {return db.size(); }

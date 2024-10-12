@@ -14,9 +14,11 @@ public class RewriterHeuristics implements RewriterHeuristicTransformation {
 
 	public void forEachRuleSet(Consumer<RewriterRuleSet> consumer, boolean printNames) {
 		heuristics.forEach(entry -> {
-			System.out.println();
-			System.out.println("> " + entry.name + " <");
-			System.out.println();
+			if (printNames) {
+				System.out.println();
+				System.out.println("> " + entry.name + " <");
+				System.out.println();
+			}
 			entry.heuristics.forEachRuleSet(consumer, printNames);
 		});
 	}
@@ -30,13 +32,15 @@ public class RewriterHeuristics implements RewriterHeuristicTransformation {
 	}
 
 	@Override
-	public RewriterStatement apply(RewriterStatement stmt, @Nullable BiFunction<RewriterStatement, RewriterRule, Boolean> func, MutableBoolean bool) {
+	public RewriterStatement apply(RewriterStatement stmt, @Nullable BiFunction<RewriterStatement, RewriterRule, Boolean> func, MutableBoolean bool, boolean print) {
 		for (HeuristicEntry entry : heuristics) {
-			System.out.println();
-			System.out.println("> " + entry.name + " <");
-			System.out.println();
+			if (print) {
+				System.out.println();
+				System.out.println("> " + entry.name + " <");
+				System.out.println();
+			}
 
-			stmt = entry.heuristics.apply(stmt, func, bool);
+			stmt = entry.heuristics.apply(stmt, func, bool, print);
 		}
 
 		return stmt;
@@ -65,11 +69,11 @@ public class RewriterHeuristics implements RewriterHeuristicTransformation {
 		}
 
 		@Override
-		public RewriterStatement apply(RewriterStatement stmt, @Nullable BiFunction<RewriterStatement, RewriterRule, Boolean> func, MutableBoolean bool) {
+		public RewriterStatement apply(RewriterStatement stmt, @Nullable BiFunction<RewriterStatement, RewriterRule, Boolean> func, MutableBoolean bool, boolean print) {
 			bool.setValue(true);
 			while (bool.getValue()) {
 				bool.setValue(false);
-				heuristic.apply(stmt, func, bool);
+				heuristic.apply(stmt, func, bool, print);
 			}
 
 			return stmt;

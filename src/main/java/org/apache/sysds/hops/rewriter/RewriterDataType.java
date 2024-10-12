@@ -180,6 +180,7 @@ public class RewriterDataType extends RewriterStatement {
 		} else
 			mCopy.literal = literal;
 		mCopy.consolidated = consolidated;
+		mCopy.hashCode = hashCode;
 		copiedObjects.put(this, mCopy);
 
 		return mCopy;

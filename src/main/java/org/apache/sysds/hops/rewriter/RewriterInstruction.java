@@ -166,6 +166,7 @@ public class RewriterInstruction extends RewriterStatement {
 		mCopy.costFunction = costFunction;
 		mCopy.consolidated = consolidated;
 		mCopy.operands = new ArrayList<>(operands.size());
+		mCopy.hashCode = hashCode;
 		if (meta != null)
 			mCopy.meta = new HashMap<>(meta);
 		else

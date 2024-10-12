@@ -54,8 +54,10 @@ public class RewriterRuntimeUtils {
 		visited.add(currentHop);
 		RewriterStatement stmt = buildDAGRecursively(currentHop, new HashMap<>(), 0, maxDepth, ctx);
 
-		if (stmt != null && db.insertEntry(ctx, stmt))
-			consumer.accept(stmt);
+		if (stmt != null && db.insertEntry(ctx, stmt)) {
+			RewriterStatement cpy = stmt.nestedCopyOrInject(new HashMap<>(), el -> null);
+			consumer.accept(cpy);
+		}
 
 		if (currentHop.getInput() != null)
 			currentHop.getInput().forEach(child -> forAllUniqueTranslatableStatements(child, maxDepth, consumer, visited, db, ctx));

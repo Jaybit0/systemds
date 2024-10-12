@@ -32,10 +32,10 @@ public class RewriterHeuristic implements RewriterHeuristicTransformation {
 	}
 
 	public RewriterStatement apply(RewriterStatement current, @Nullable BiFunction<RewriterStatement, RewriterRule, Boolean> handler) {
-		return apply(current, handler, new MutableBoolean(false));
+		return apply(current, handler, new MutableBoolean(false), true);
 	}
 
-	public RewriterStatement apply(RewriterStatement currentStmt, @Nullable BiFunction<RewriterStatement, RewriterRule, Boolean> handler, MutableBoolean foundRewrite) {
+	public RewriterStatement apply(RewriterStatement currentStmt, @Nullable BiFunction<RewriterStatement, RewriterRule, Boolean> handler, MutableBoolean foundRewrite, boolean print) {
 		RuleContext.currentContext = ruleSet.getContext();
 
 		//current.forEachPostOrderWithDuplicates(RewriterUtils.propertyExtractor(desiredProperties, ruleSet.getContext()));
