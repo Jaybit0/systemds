@@ -112,6 +112,12 @@ public class TestRewriteExecution {
 	}
 
 	@Test
+	public void myTest() {
+		RewriterRuntimeUtils.executeScript("X=rand(rows=10,cols=5)\nY=rand(rows=5,cols=10)\nprint(sum(X%*%Y))");
+		RewriterRuntimeUtils.executeScript("X=rand(rows=10,cols=5)\nY=rand(rows=5,cols=10)\nprint(sum(colSums(X) * colSums(t(Y))))");
+	}
+
+	//@Test
 	public void interceptionTest() {
 		System.out.println("OptLevel:" + OptimizerUtils.getOptLevel().toString());
 		System.out.println("AllowOpFusion: " + OptimizerUtils.ALLOW_OPERATOR_FUSION);

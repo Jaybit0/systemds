@@ -8,6 +8,7 @@ import org.apache.sysds.hops.BinaryOp;
 import org.apache.sysds.hops.DataGenOp;
 import org.apache.sysds.hops.Hop;
 import org.apache.sysds.hops.LiteralOp;
+import org.apache.sysds.hops.OptimizerUtils;
 import org.apache.sysds.hops.ReorgOp;
 import org.apache.sysds.parser.DMLProgram;
 import org.apache.sysds.parser.StatementBlock;
@@ -23,10 +24,71 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class RewriterRuntimeUtils {
+	private static final boolean interceptAll = true;
+
+
 	private static final String matrixDefs = "MATRIX:A,B,C";
 	private static final String floatDefs = "FLOAT:q,r,s,t,f1,f2,f3,f4,f5";
 	private static final String intDefs = "INT:i1,i2,i3,i4,i5";
 	private static final String boolDefs = "BOOL:b1,b2,b3";
+
+	private static boolean setupComplete = false;
+
+	public static void setupIfNecessary() {
+		if (setupComplete)
+			return;
+
+		setupComplete = true;
+		System.out.println("INTERCEPTOR");
+		if (interceptAll) {
+			System.out.println("OptLevel:" + OptimizerUtils.getOptLevel().toString());
+			System.out.println("AllowOpFusion: " + OptimizerUtils.ALLOW_OPERATOR_FUSION);
+			System.out.println("AllowSumProductRewrites: " + OptimizerUtils.ALLOW_SUM_PRODUCT_REWRITES);
+			System.out.println("AllowConstantFolding: " + OptimizerUtils.ALLOW_CONSTANT_FOLDING);
+
+			// Setup default context
+			RuleContext ctx = RewriterUtils.buildDefaultContext();
+			Function<RewriterStatement, RewriterStatement> converter = RewriterUtils.buildCanonicalFormConverter(ctx, false);
+
+			RewriterDatabase db = new RewriterDatabase();
+			RewriterDatabase exactExprDB = new RewriterDatabase();
+			List<RewriterStatement> equivalentStatements = new ArrayList<>();
+
+			RewriterRuntimeUtils.attachHopInterceptor(prog -> {
+				RewriterRuntimeUtils.forAllUniqueTranslatableStatements(prog, 10, stmt -> {
+					RewriterStatement cpy = stmt.nestedCopyOrInject(new HashMap<>(), el -> null);
+					System.out.println("Stmt: " + stmt);
+					stmt = converter.apply(stmt);
+
+					RewriterStatement oldEntry = db.insertOrReturn(ctx, stmt);
+
+					if (oldEntry == null) {
+						List<RewriterStatement> expr = new ArrayList<>();
+						expr.add(cpy);
+						stmt.unsafePutMeta("equivalentExpressions", expr);
+					} else {
+						List<RewriterStatement> eStmts = (List<RewriterStatement>) oldEntry.getMeta("equivalentExpressions");
+						eStmts.add(cpy);
+
+						if (eStmts.size() == 2)
+							equivalentStatements.add(oldEntry);
+
+						System.out.println("Found equivalent statement!");
+					}
+				}, exactExprDB, ctx);
+				return false;
+			});
+
+			Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+				System.out.println("===== ALL EQUIVALENCES =====");
+
+				for (RewriterStatement eStmt : equivalentStatements) {
+					System.out.println("Canonical form: " + eStmt.toString(ctx));
+					((List<RewriterStatement>)eStmt.getMeta("equivalentExpressions")).forEach(stmt -> System.out.println(stmt.toString(ctx)));
+				}
+			}));
+		}
+	}
 
 	public static void attachHopInterceptor(Function<DMLProgram, Boolean> interceptor) {
 		DMLScript.hopInterceptor = interceptor;
