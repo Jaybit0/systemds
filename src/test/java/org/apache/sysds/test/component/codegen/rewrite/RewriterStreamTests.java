@@ -7,6 +7,7 @@ import org.apache.sysds.hops.rewriter.TopologicalSort;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.function.Function;
 
 public class RewriterStreamTests {
@@ -257,8 +258,6 @@ public class RewriterStreamTests {
 		RewriterStatement stmt2 = RewriterUtils.parse("%*%(t(V), U)", ctx, "MATRIX:U,V");
 		stmt1 = canonicalConverter.apply(stmt1);
 		stmt2 = canonicalConverter.apply(stmt2);
-		//TopologicalSort.sort(stmt1, ctx);
-		//TopologicalSort.sort(stmt2, ctx);
 
 		System.out.println("==========");
 		System.out.println(stmt1.toParsableString(ctx, true));
@@ -287,5 +286,32 @@ public class RewriterStreamTests {
 		stmt = canonicalConverter.apply(stmt);
 
 		System.out.println(stmt.toParsableString(ctx));
+	}
+
+	@Test
+	public void test3() {
+		RewriterStatement stmt = RewriterUtils.parse("sum(-(*(Y,natural_parameters),b_cumulant))", ctx, "MATRIX:b_cumulant,Y,natural_parameters");
+
+		List<RewriterStatement> subtrees = RewriterUtils.generateSubtrees(stmt, ctx);
+
+		for (RewriterStatement mstmt : subtrees)
+			stmt = canonicalConverter.apply(mstmt);
+
+		System.out.println(stmt.toParsableString(ctx, true));
+	}
+
+	@Test
+	public void test4() {
+		String str = "MATRIX:n_event_stratum,n_risk_stratum,n_risk,parsertemp270371\n" +
+				"*(*(parsertemp270371,*(n_risk,n_event_stratum)),-(n_risk_stratum,n_event_stratum))";
+
+		RewriterStatement stmt = RewriterUtils.parse(str, ctx);
+
+		List<RewriterStatement> subtrees = RewriterUtils.generateSubtrees(stmt, ctx);
+
+		for (RewriterStatement mstmt : subtrees)
+			TopologicalSort.sort(mstmt, ctx);
+
+		System.out.println(stmt.toParsableString(ctx, true));
 	}
 }

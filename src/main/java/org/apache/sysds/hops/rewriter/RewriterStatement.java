@@ -68,7 +68,7 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		private final int rootIndex;
 		private final Map<RewriterStatement, RewriterStatement> assocs;
 		private final List<RewriterRule.ExplicitLink> links;
-		public Object shared_data = null;
+		private RewriterStatement newExprRoot;
 
 		public MatchingSubexpression(RewriterStatement expressionRoot, RewriterStatement matchRoot, RewriterStatement matchParent, int rootIndex, Map<RewriterStatement, RewriterStatement> assocs, List<RewriterRule.ExplicitLink> links) {
 			this.expressionRoot = expressionRoot;
@@ -105,6 +105,14 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 
 		public List<RewriterRule.ExplicitLink> getLinks() {
 			return links;
+		}
+
+		public RewriterStatement getNewExprRoot() {
+			return newExprRoot;
+		}
+
+		public void setNewExprRoot(RewriterStatement stmt) {
+			newExprRoot = stmt;
 		}
 	}
 
@@ -323,7 +331,8 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 	}
 
 	public RewriterStatement nestedCopy() {
-		return nestedCopyOrInject(new HashMap<>(), el -> null);
+		Map<RewriterStatement, RewriterStatement> createdObjects = new HashMap<>();
+		return nestedCopyOrInject(createdObjects, el -> null);
 	}
 	//String toStringWithLinking(int dagId, DualHashBidiMap<RewriterStatementLink, RewriterStatementLink> links);
 
@@ -478,6 +487,12 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 				getOperands().get(i).forEachPreOrderWithDuplicates(function);
 	}
 
+	public void forEachPreOrderWithDuplicates(TriFunction<RewriterStatement, RewriterStatement, Integer, Boolean> function, RewriterStatement parent, int pIdx) {
+		if (function.apply(this, parent, pIdx) && getOperands() != null)
+			for (int i = 0; i < getOperands().size(); i++)
+				getOperands().get(i).forEachPreOrderWithDuplicates(function, this, i);
+	}
+
 	public void forEachPreOrder(Function<RewriterStatement, Boolean> function) {
 		forEachPreOrder((el, p, pIdx) -> function.apply(el));
 	}
@@ -560,15 +575,50 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		return meta.get(key);
 	}
 
-	public RewriterAssertions getAssertions(final RuleContext ctx) {
+	/*public RewriterAssertions getAssertions(final RuleContext ctx) {
 		RewriterAssertions assertions = (RewriterAssertions) getMeta("_assertions");
-		if (assertions == null) {
-			assertions = new RewriterAssertions(ctx);
-			unsafePutMeta("_assertions", assertions);
-		}
+		if (assertions == null)
+			return RewriterAssertions.ofExpression(this, ctx);
 
 		return assertions;
+	}*/
+
+	/*public boolean updateAssertions(Map<RewriterStatement, RewriterStatement> createdObjects) {
+		RewriterAssertions assertions = (RewriterAssertions) getMeta("_assertions");
+
+		if (assertions == null)
+			return false;
+
+		Map<RewriterRule.IdentityRewriterStatement, RewriterRule.IdentityRewriterStatement> newMap = new HashMap<>(createdObjects.size());
+		createdObjects.forEach((k, v) -> {
+			newMap.put(new RewriterRule.IdentityRewriterStatement(k), new RewriterRule.IdentityRewriterStatement(v));
+		});
+
+		assertions.update(newMap);
+		return true;
 	}
+
+	public boolean transferAssertionsNoIdentity(RewriterStatement oldRoot, Map<RewriterStatement, RewriterStatement> createdObjects, boolean removeOthers) {
+		if (oldRoot.getMeta("_assertions") == null)
+			return false;
+
+		Map<RewriterRule.IdentityRewriterStatement, RewriterRule.IdentityRewriterStatement> newMap = new HashMap<>(createdObjects.size());
+		createdObjects.forEach((k, v) -> {
+			newMap.put(new RewriterRule.IdentityRewriterStatement(k), new RewriterRule.IdentityRewriterStatement(v));
+		});
+
+		return transferAssertions(oldRoot, newMap, removeOthers);
+	}
+
+	public boolean transferAssertions(RewriterStatement oldRoot, Map<RewriterRule.IdentityRewriterStatement, RewriterRule.IdentityRewriterStatement> createdObjects, boolean removeOthers) {
+		RewriterAssertions oldAssertions = (RewriterAssertions) oldRoot.getMeta("_assertions");
+
+		if (oldAssertions == null)
+			return false;
+
+		unsafePutMeta("_assertions", RewriterAssertions.copy(oldAssertions, createdObjects, removeOthers));
+		return true;
+	}*/
 
 	public RewriterStatement getNCol() {
 		return (RewriterStatement) getMeta("ncol");
@@ -615,5 +665,28 @@ public abstract class RewriterStatement implements Comparable<RewriterStatement>
 		eraseDefinitions();
 
 		return defList;
+	}
+
+	/*public void clearMetaReferences(boolean recursively) {
+		clearMetaReferences();
+		if (recursively)
+			getOperands().forEach(op -> op.clearMetaReferences(true));
+	}
+
+	protected void clearMetaReferences() {
+		unsafeRemoveMeta("ncol");
+		unsafeRemoveMeta("nrow");
+	}*/
+
+	protected void forEachMetaStatementPreOrder(Function<RewriterStatement, > injector) {
+
+	}
+
+	protected void nestedCopyOrInjectMetaReferences(Map<RewriterStatement, RewriterStatement> copiedObjects, TriFunction<RewriterStatement, RewriterStatement, Integer, RewriterStatement> injector) {
+		if (getNCol() != null)
+			getNCol().nestedCopyOrInject(copiedObjects, injector, this, -1);
+
+		if (getNRow() != null)
+			getNCol().nestedCopyOrInject(copiedObjects, injector, this, -1);
 	}
 }

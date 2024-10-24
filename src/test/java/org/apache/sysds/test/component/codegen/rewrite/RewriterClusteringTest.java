@@ -54,6 +54,10 @@ public class RewriterClusteringTest {
 
 	@Test
 	public void testExpressionClustering() {
+		// TODO: There is an issue with (probably) expressions stored in metadata
+		// TODO: Like assertions and ncol, nrow information
+		// TODO: Somehow assertions must be copied and adjusted to the new nodes
+
 		long startTime = System.currentTimeMillis();
 		MutableLong generatedExpressions = new MutableLong(0);
 		MutableLong evaluatedExpressions = new MutableLong(0);
@@ -75,6 +79,7 @@ public class RewriterClusteringTest {
 
 					evaluationCtr++;
 
+					System.out.println("Checking: " + subExpr.toParsableString(ctx, true));
 					// Duplicate the statement as we do not want to canonicalize the original statement
 					RewriterStatement canonicalForm = converter.apply(subExpr.nestedCopy());
 
@@ -151,10 +156,10 @@ public class RewriterClusteringTest {
 
 				match &= stmt1.match(RewriterStatement.MatcherContext.exactMatchWithDifferentLiteralValues(ctx, stmt2));
 
-				if (match && stmt2.toString(ctx).contains("t(t(")) {
+				/*if (match && stmt2.toString(ctx).contains("t(t(")) {
 					System.out.println("MATCH: " + stmt1.toParsableString(ctx) + " [" + stmt1.hashCode() + "]; " + stmt2.toParsableString(ctx) + "[" + stmt2.hashCode() + "]");
 					stmt1.match(RewriterStatement.MatcherContext.exactMatchWithDifferentLiteralValues(ctx, stmt2).debug(true));
-				}
+				}*/
 
 				/*if (match)
 					System.out.println("Equals: " + stmt1 + "; " + stmt2);

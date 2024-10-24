@@ -352,6 +352,8 @@ public class RewriterUtils {
 		for (String def : varDefinitions)
 			parseDataTypes(def, dataTypes, ctx);
 
+		//System.out.println(dataTypes);
+
 		RewriterStatement parsed = parseExpression(expr, new HashMap<>(), dataTypes, ctx);
 		return ctx.metaPropagator != null ? ctx.metaPropagator.apply(parsed) : parsed;
 	}
@@ -411,7 +413,7 @@ public class RewriterUtils {
 
 	public static boolean parseDataTypes(String expr, HashMap<String, RewriterStatement> dataTypes, final RuleContext ctx) {
 		RuleContext.currentContext = ctx;
-		Pattern pattern = Pattern.compile("([A-Za-z0-9]|_|\\.|\\*)+");
+		Pattern pattern = Pattern.compile("([A-Za-z0-9]|_|-|\\.|\\*)+");
 		Matcher matcher = pattern.matcher(expr);
 
 		if (!matcher.find())
@@ -1238,8 +1240,8 @@ public class RewriterUtils {
 	public static List<RewriterStatement> generateSubtrees(RewriterStatement stmt, final RuleContext ctx) {
 		List<RewriterStatement> l = generateSubtrees(stmt, new HashMap<>(), ctx);
 
-		if (ctx.metaPropagator != null)
-			l.forEach(subtree -> ctx.metaPropagator.apply(subtree));
+		//if (ctx.metaPropagator != null)
+		//	l.forEach(subtree -> ctx.metaPropagator.apply(subtree));
 
 		return l.stream().map(subtree -> {
 			if (ctx.metaPropagator != null)
@@ -1349,8 +1351,8 @@ public class RewriterUtils {
 				System.out.println("PRE1: " + stmt.toParsableString(ctx, false));
 
 			//RewriterUtils.topologicalSort(stmt, ctx, (el, parent) -> el.isArgumentList() && parent != null && Set.of("+", "-", "*", "_idxExpr").contains(parent.trueInstruction()));
-			stmt = stmt.getAssertions(ctx).buildEquivalences(stmt);
-			System.out.println(stmt.getAssertions(ctx));
+			//stmt = stmt.getAssertions(ctx).buildEquivalences(stmt);
+			//System.out.println(stmt.getAssertions(ctx));
 			TopologicalSort.sort(stmt, ctx);
 
 			if (debug)
@@ -1417,6 +1419,102 @@ public class RewriterUtils {
 
 			return stmt;
 		};
+	}
+
+	public static void assertEquality(RewriterStatement root, RewriterStatement stmt1, RewriterStatement stmt2, final RuleContext ctx) {
+		Tuple2<RewriterStatement, List<Tuple2<RewriterStatement, Integer>>> eClass1 = getEClassAndParentsOf(stmt1, root);
+		Tuple2<RewriterStatement, List<Tuple2<RewriterStatement, Integer>>> eClass2 = getEClassAndParentsOf(stmt2, root);
+		Tuple2<RewriterStatement, List<Tuple2<RewriterStatement, Integer>>> remaining1 = null;
+		Tuple2<RewriterStatement, List<Tuple2<RewriterStatement, Integer>>> remaining2 = null;
+
+		System.out.println("Asserting " + stmt1 + " := " + stmt2);
+		System.out.println(eClass1);
+		System.out.println(eClass2);
+
+		if (eClass1._1 == null) {
+			remaining1 = new Tuple2<>(stmt1, eClass1._2);
+			eClass1 = null;
+		}
+
+		if (eClass2._1 == null) {
+			remaining2 = new Tuple2<>(stmt2, eClass2._2);
+			eClass2 = null;
+		}
+
+		if (eClass1 == null && eClass2 != null) {
+			eClass1 = eClass2;
+			eClass2 = null;
+		}
+
+		if (remaining1 == null && remaining2 != null) {
+			remaining1 = remaining2;
+			remaining2 = null;
+		}
+
+		// TODO: What happens if parent is null? Not handled yet
+		if (eClass1 != null) {
+			if (eClass2 == null) {
+				// Then we add the non e-class to the existing e-class
+				eClass1._1.getChild(0).getOperands().add(remaining1._1);
+
+				remaining1._1.unsafePutMeta("_EClass", eClass1._1);
+
+				for (Tuple2<RewriterStatement, Integer> parent : remaining1._2)
+					parent._1.getOperands().set(parent._2, eClass1._1);
+			} else {
+				// Then, we need to merge both e-classes
+				final RewriterStatement chosenEClass = eClass1._1;
+				chosenEClass.getChild(0).getOperands().addAll(eClass2._1.getChild(0).getOperands());
+				eClass2._1.getChild(0).getOperands().forEach(el -> {
+					el.unsafePutMeta("_EClass", chosenEClass);
+				});
+
+				for (Tuple2<RewriterStatement, Integer> parent : eClass2._2)
+					parent._1.getOperands().set(parent._2, chosenEClass);
+			}
+		} else {
+			// Otherwise, there is no e-class -> create
+			RewriterStatement mArgList = new RewriterInstruction().as(UUID.randomUUID().toString()).withInstruction("argList").withOps(remaining1._1, remaining2._1).consolidate(ctx);
+			RewriterStatement mEClass = new RewriterInstruction().as(UUID.randomUUID().toString()).withInstruction("_EClass").withOps(mArgList).consolidate(ctx);
+			remaining1._1.unsafePutMeta("_EClass", mEClass);
+			remaining2._1.unsafePutMeta("_EClass", mEClass);
+
+			for (Tuple2<RewriterStatement, Integer> parent : remaining1._2)
+				parent._1.getOperands().set(parent._2, mEClass);
+
+			for (Tuple2<RewriterStatement, Integer> parent : remaining2._2)
+				parent._1.getOperands().set(parent._2, mEClass);
+		}
+	}
+
+	private static Tuple2<RewriterStatement, List<Tuple2<RewriterStatement, Integer>>> getEClassAndParentsOf(RewriterStatement stmt, RewriterStatement root) {
+		MutableObject<Tuple2<RewriterStatement, List<Tuple2<RewriterStatement, Integer>>>> eClass = new MutableObject<>(new Tuple2<>(null, new ArrayList<>()));
+		root.forEachPreOrderWithDuplicates((cur, parent, pIdx) -> {
+			if (cur.isInstruction() && cur.trueInstruction().equals("_EClass")) {
+				if (stmt == cur) {
+					Tuple2<RewriterStatement, List<Tuple2<RewriterStatement, Integer>>> t = eClass.getValue();
+					if (t._1 == null) {
+						t = new Tuple2<>(stmt, new ArrayList<>());
+						eClass.setValue(t);
+					}
+					t._2.add(new Tuple2<>(parent, pIdx));
+				} else if (cur.getChild(0).getOperands().contains(stmt)) {
+					Tuple2<RewriterStatement, List<Tuple2<RewriterStatement, Integer>>> t = eClass.getValue();
+					if (t._1 == null) {
+						t = new Tuple2<>(cur, new ArrayList<>());
+						eClass.setValue(t);
+					}
+					t._2.add(new Tuple2<>(parent, pIdx));
+				}
+			} else {
+				if (stmt == cur)
+					eClass.getValue()._2.add(new Tuple2<>(parent, pIdx));
+			}
+
+			return true;
+		}, null, -1);
+
+		return eClass.getValue();
 	}
 
 	public static void doCSE(RewriterStatement stmt, final RuleContext ctx) {

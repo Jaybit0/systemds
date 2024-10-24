@@ -183,6 +183,8 @@ public class RewriterInstruction extends RewriterStatement {
 		for (int i = 0; i < operands.size(); i++)
 			mCopy.operands.add(operands.get(i).nestedCopyOrInject(copiedObjects, injector, mCopy, i));
 		//operands.forEach(op -> mCopy.operands.add(op.nestedCopyOrInject(copiedObjects, injector)));
+		//mCopy.clearMetaReferences();
+		nestedCopyOrInjectMetaReferences(copiedObjects, injector);
 
 		return mCopy;
 	}

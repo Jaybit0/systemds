@@ -19,11 +19,11 @@ public class MetaPropagator implements Function<RewriterStatement, RewriterState
 
 	// TODO: Maybe automatically recompute hash codes?
 	public RewriterStatement apply(RewriterStatement root) {
-		RewriterAssertions assertions = root.getAssertions(ctx);
+		//RewriterAssertions assertions = root.getAssertions(ctx);
 		MutableObject<RewriterStatement> out = new MutableObject<>(root);
 		HashMap<Object, RewriterStatement> literalMap = new HashMap<>();
 		root.forEachPostOrder((el, parent, pIdx) -> {
-			RewriterStatement toSet = propagateDims(el, parent, pIdx, assertions);
+			RewriterStatement toSet = propagateDims(el, parent, pIdx);
 
 			if (toSet != null) {
 				el = toSet;
@@ -59,7 +59,7 @@ public class MetaPropagator implements Function<RewriterStatement, RewriterState
 		return out.getValue();
 	}
 
-	private RewriterStatement propagateDims(RewriterStatement root, RewriterStatement parent, int pIdx, RewriterAssertions assertions) {
+	private RewriterStatement propagateDims(RewriterStatement root, RewriterStatement parent, int pIdx) {
 		if (!root.getResultingDataType(ctx).startsWith("MATRIX")) {
 			if (root.isInstruction()) {
 				String ti = root.trueTypedInstruction(ctx);

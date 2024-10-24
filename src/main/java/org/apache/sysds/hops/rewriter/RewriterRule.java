@@ -166,7 +166,9 @@ public class RewriterRule extends AbstractRewriterRule {
 
 			match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 			match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
+			match.setNewExprRoot(cpy);
 			applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1), match));
+			//cpy.clearMetaReferences(true);
 
 			if (postProcessor != null)
 				postProcessor.accept(cpy);
@@ -179,7 +181,7 @@ public class RewriterRule extends AbstractRewriterRule {
 
 			modificationHandle.setValue(new Tuple3<>(cpy, null, -1));
 
-			cpy.unsafePutMeta("_assertions", match.getExpressionRoot().getMeta("_assertions"));
+			//cpy.unsafePutMeta("_assertions", match.getExpressionRoot().getMeta("_assertions"));
 
 			return cpy;
 		}
@@ -213,9 +215,11 @@ public class RewriterRule extends AbstractRewriterRule {
 		if (tmp != null)
 			cpy2 = tmp;
 
+		match.setNewExprRoot(cpy2);
 		match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 		match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
 		applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1), match));
+		//cpy2.clearMetaReferences(true);
 
 		if (postProcessor != null)
 			postProcessor.accept(cpy2);
@@ -226,7 +230,7 @@ public class RewriterRule extends AbstractRewriterRule {
 		cpy2.prepareForHashing();
 		cpy2.recomputeHashCodes(ctx);
 
-		cpy2.unsafePutMeta("_assertions", match.getExpressionRoot().getMeta("_assertions"));
+		//cpy2.unsafePutMeta("_assertions", match.getExpressionRoot().getMeta("_assertions"));
 
 		return cpy2;
 	}
@@ -239,9 +243,11 @@ public class RewriterRule extends AbstractRewriterRule {
 			if (cpy2 != null)
 				cpy = cpy2;
 
+			match.setNewExprRoot(cpy);
 			match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 			match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
 			applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1), match));
+			//cpy.clearMetaReferences(true);
 
 			if (postProcessor != null)
 				postProcessor.accept(cpy);
@@ -252,20 +258,22 @@ public class RewriterRule extends AbstractRewriterRule {
 			cpy.prepareForHashing();
 			cpy.recomputeHashCodes(ctx);
 
-			if (match.getExpressionRoot() == match.getMatchRoot())
-				cpy.unsafePutMeta("_assertions", rootInstruction.getMeta("_assertions"));
+
+				//cpy.unsafePutMeta("_assertions", rootInstruction.getMeta("_assertions"));
 			return cpy;
 		}
 
 		final Map<RewriterStatement, RewriterStatement> createdObjects = new HashMap<>();
 		match.getMatchParent().getOperands().set(match.getRootIndex(), dest.nestedCopyOrInject(createdObjects, obj -> match.getAssocs().get(obj)));
-		RewriterStatement out = rootInstruction.simplify(ctx);
+		/*RewriterStatement out = rootInstruction.simplify(ctx);
 		if (out != null)
-			out = rootInstruction;
+			out = rootInstruction;*/
 
+		match.setNewExprRoot(rootInstruction);
 		match.getLinks().forEach(lnk -> lnk.newStmt.replaceAll(createdObjects::get));
 		match.getLinks().forEach(lnk -> lnk.transferFunction.accept(lnk));
 		applyFunction.forEach(t -> t._2.accept(createdObjects.get(t._1), match));
+		//rootInstruction.clearMetaReferences(true);
 
 		if (postProcessor != null)
 			postProcessor.accept(rootInstruction);

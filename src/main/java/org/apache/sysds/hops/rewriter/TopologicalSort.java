@@ -17,6 +17,7 @@ public class TopologicalSort {
 
 	// TODO: Sort doesn't work if we have sth like _EClass(argList(nrow(U), nrow(V)), as the lowest address will be nrow, ncol and not U, V
 	public static void sort(RewriterStatement root, final RuleContext ctx) {
+		System.out.println("Sorting: " + root.toParsableString(ctx, true));
 		sort(root, (el, parent) -> el.isArgumentList() && parent != null && Set.of("+", "-", "*", "_idxExpr", "_EClass").contains(parent.trueInstruction()), ctx);
 	}
 

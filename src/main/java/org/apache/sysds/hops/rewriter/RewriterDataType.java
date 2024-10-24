@@ -189,6 +189,9 @@ public class RewriterDataType extends RewriterStatement {
 			mCopy.meta = new HashMap<>(meta);
 		copiedObjects.put(this, mCopy);
 
+		nestedCopyOrInjectMetaReferences(copiedObjects, injector);
+		//mCopy.clearMetaReferences();
+
 		return mCopy;
 	}
 
