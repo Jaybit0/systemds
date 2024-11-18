@@ -1473,6 +1473,9 @@ public abstract class AutomatedTestBase {
 				TestUtils.printDMLScript(fullDMLScriptName);
 			}
 		}
+
+		// TODO
+		//args.add("-applyGeneratedRewrites");
 	
 		ByteArrayOutputStream buff = outputBuffering ? new ByteArrayOutputStream() : null;
 		PrintStream old = System.out;
