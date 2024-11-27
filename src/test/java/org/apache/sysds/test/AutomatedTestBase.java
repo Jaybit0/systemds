@@ -196,6 +196,7 @@ public abstract class AutomatedTestBase {
 	protected static ExecMode rtplatform = ExecMode.HYBRID;
 
 	protected static final boolean DEBUG = false;
+	protected static final boolean ALLOW_GENERATED_REWRITES = true;
 
 	public static boolean VERBOSE_STATS = false;
 
@@ -1441,6 +1442,10 @@ public abstract class AutomatedTestBase {
 		cleanupScratchSpace();
 	
 		ArrayList<String> args = new ArrayList<>();
+		if (ALLOW_GENERATED_REWRITES) {
+			args.add("-applyGeneratedRewrites");
+		}
+
 		// setup arguments to SystemDS
 		if(DEBUG) {
 			args.add("-Dsystemds.logging=trace");
