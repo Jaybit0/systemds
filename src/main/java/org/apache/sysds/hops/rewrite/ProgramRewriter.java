@@ -136,6 +136,10 @@ public class ProgramRewriter{
 			if( OptimizerUtils.ALLOW_ALGEBRAIC_SIMPLIFICATION ) {
 				_dagRuleSet.add( new RewriteAlgebraicSimplificationDynamic()      ); //dependencies: cse
 				_dagRuleSet.add( new RewriteAlgebraicSimplificationStatic()       ); //dependencies: cse
+
+				if ( DMLScript.APPLY_GENERATED_REWRITES ) {
+					_dagRuleSet.add(new RewriteAutomaticallyGenerated(new GeneratedRewriteClass()));
+				}
 			}
 		}
 		
@@ -150,7 +154,7 @@ public class ProgramRewriter{
 		_sbRuleSet.add(  new RewriteRemoveEmptyBasicBlocks()                 );
 		_sbRuleSet.add(  new RewriteRemoveEmptyForLoops()                    );
 
-		if ( DMLScript.APPLY_GENERATED_REWRITES ) {
+		/*if ( DMLScript.APPLY_GENERATED_REWRITES ) {
 			_dagRuleSet.add(new RewriteAutomaticallyGenerated(new GeneratedRewriteClass()));                // Rewrites automatically found by the rewrite discovery system
 
 			if( OptimizerUtils.ALLOW_COMMON_SUBEXPRESSION_ELIMINATION )
@@ -159,7 +163,7 @@ public class ProgramRewriter{
 				_dagRuleSet.add( new RewriteConstantFolding()                    ); //dependency: cse
 			_sbRuleSet.add(  new RewriteRemoveEmptyBasicBlocks()                 );
 			_sbRuleSet.add(  new RewriteRemoveEmptyForLoops()                    );
-		}
+		}*/
 	}
 	
 	/**
