@@ -1418,7 +1418,7 @@ public abstract class AutomatedTestBase {
 			for (int i = 0; i < builders.length; i++) {
 				String baseString = OptimizerUtils.ALLOW_ALGEBRAIC_SIMPLIFICATION ? "/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/wrewrites/" : "/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/norewrites/";
 				System.out.println("Writing to: " + baseString + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv");
-				try (FileWriter writer = new FileWriter(baseString + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv")) {
+				/*try (FileWriter writer = new FileWriter(baseString + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv")) {
 					Statistics.toCSVStream(builders[i], s -> {
 						try {
 							writer.write(s);
@@ -1429,7 +1429,7 @@ public abstract class AutomatedTestBase {
 				} catch (IOException e) {
 					System.out.println("An error occurred.");
 					e.printStackTrace();
-				}
+				}*/
 			}
 
 			Statistics.reset();

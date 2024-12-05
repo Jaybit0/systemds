@@ -393,8 +393,9 @@ public class OptimizerUtils
 			throw new DMLRuntimeException("Error: invalid optimization level '"+optlevel+"' (valid values: 0-5).");
 
 		optlevel = 2;
-		ALLOW_OPERATOR_FUSION = false;
-		ALLOW_SUM_PRODUCT_REWRITES = false;
+		ALLOW_OPERATOR_FUSION = true;
+		//ALLOW_SUM_PRODUCT_REWRITES = true;
+		ALLOW_ALGEBRAIC_SIMPLIFICATION = true;
 		System.out.println("overwriting optlevel to 2");
 	
 		switch( optlevel )
