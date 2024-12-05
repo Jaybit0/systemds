@@ -134,8 +134,8 @@ public class OptimizerUtils
 	 */
 	public static boolean ALLOW_CONSTANT_FOLDING = true;
 	
-	public static boolean ALLOW_ALGEBRAIC_SIMPLIFICATION = true;
-	public static boolean ALLOW_OPERATOR_FUSION = true;
+	public static boolean ALLOW_ALGEBRAIC_SIMPLIFICATION = false;
+	public static boolean ALLOW_OPERATOR_FUSION = false;
 	
 	/**
 	 * Enables if-else branch removal for constant predicates (original literals or 
@@ -393,8 +393,8 @@ public class OptimizerUtils
 			throw new DMLRuntimeException("Error: invalid optimization level '"+optlevel+"' (valid values: 0-5).");
 
 		optlevel = 2;
-		ALLOW_OPERATOR_FUSION = true;
-		ALLOW_SUM_PRODUCT_REWRITES = true;
+		ALLOW_OPERATOR_FUSION = false;
+		ALLOW_SUM_PRODUCT_REWRITES = false;
 		System.out.println("overwriting optlevel to 2");
 	
 		switch( optlevel )

@@ -1416,8 +1416,9 @@ public abstract class AutomatedTestBase {
 
 			NGramBuilder<String, Statistics.NGramStats>[] builders = Statistics.mergeNGrams();
 			for (int i = 0; i < builders.length; i++) {
-				System.out.println("Writing to: " + "/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/wrewrites/" + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv");
-				try (FileWriter writer = new FileWriter("/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/wrewrites/" + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv")) {
+				String baseString = OptimizerUtils.ALLOW_ALGEBRAIC_SIMPLIFICATION ? "/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/wrewrites/" : "/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/norewrites/";
+				System.out.println("Writing to: " + baseString + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv");
+				try (FileWriter writer = new FileWriter(baseString + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv")) {
 					Statistics.toCSVStream(builders[i], s -> {
 						try {
 							writer.write(s);
