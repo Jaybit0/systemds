@@ -1382,32 +1382,38 @@ public abstract class AutomatedTestBase {
 		String errMessage, int maxSparkInst) {
 		try{
 			final List<ByteArrayOutputStream> out = new ArrayList<>();
-			ArrayList<String> pArgs = new ArrayList<>(Arrays.asList(programArgs));
-			if (!pArgs.contains("-ngrams")) {
-				pArgs.add(0, "-ngrams");
-				pArgs.add(1, "1");
-				pArgs.add(2, "10");
-			}
 
-			programArgs = pArgs.toArray(new String[0]);
+			for (int nRun = 0; nRun < 10; nRun++) {
+				out.clear();
+				Statistics.reset();
 
-			Thread t = new Thread(
-				() -> out.add(runTestWithTimeout(newWay, exceptionExpected, expectedException, errMessage, maxSparkInst)),
-				"TestRunner_main");
-			Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
-				@Override
-				public void uncaughtException(Thread th, Throwable ex) {
-					fail("Thread Failed test with message: " +ex.getMessage());
+				ArrayList<String> pArgs = new ArrayList<>(Arrays.asList(programArgs));
+				if (!pArgs.contains("-ngrams")) {
+					pArgs.add(0, "-ngrams");
+					pArgs.add(1, "1");
+					pArgs.add(2, "10");
 				}
-			};
-			t.setUncaughtExceptionHandler(h);
-			t.start();
 
-			t.join(TEST_TIMEOUT * 1000);
-			if(t.isAlive())
-				throw new TimeoutException("Test failed to finish in time");
-			if(out.size() <= 0) // hack in case the test failed return empty string.
-				fail("test failed");
+				programArgs = pArgs.toArray(new String[0]);
+
+				Thread t = new Thread(
+						() -> out.add(runTestWithTimeout(newWay, exceptionExpected, expectedException, errMessage, maxSparkInst)),
+						"TestRunner_main");
+				Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
+					@Override
+					public void uncaughtException(Thread th, Throwable ex) {
+						fail("Thread Failed test with message: " + ex.getMessage());
+					}
+				};
+				t.setUncaughtExceptionHandler(h);
+				t.start();
+
+				t.join(TEST_TIMEOUT * 1000);
+				if (t.isAlive())
+					throw new TimeoutException("Test failed to finish in time");
+				if (out.size() <= 0) // hack in case the test failed return empty string.
+					fail("test failed");
+			}
 
 			if (!lastTestName.equals(this.getClass().getSimpleName())) {
 				testCtr = 1;

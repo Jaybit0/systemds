@@ -49,7 +49,7 @@ public class L2SVMTest extends AutomatedTestBase
 		numRecords = rows;
 		numFeatures = cols;
 		sparsity = sp;
-		intercept = this.intercept;
+		this.intercept = intercept;
 	}
 	
 	@Parameters
@@ -66,7 +66,7 @@ public class L2SVMTest extends AutomatedTestBase
 		addTestConfiguration(TEST_CLASS_DIR, TEST_NAME);
 	}
 	
-	@Test
+	//@Test
 	public void testL2SVM1() {
 		// TODO: This is just commented for data generation
 		//testL2SVM(true);
