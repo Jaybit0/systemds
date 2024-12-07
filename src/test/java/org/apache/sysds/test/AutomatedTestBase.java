@@ -1385,8 +1385,8 @@ public abstract class AutomatedTestBase {
 			ArrayList<String> pArgs = new ArrayList<>(Arrays.asList(programArgs));
 			if (!pArgs.contains("-ngrams")) {
 				pArgs.add(0, "-ngrams");
-				pArgs.add(1, "1,2,3,4,5,6,7,8,9,10");
-				pArgs.add(2, "1");
+				pArgs.add(1, "1");
+				pArgs.add(2, "10");
 			}
 
 			programArgs = pArgs.toArray(new String[0]);
