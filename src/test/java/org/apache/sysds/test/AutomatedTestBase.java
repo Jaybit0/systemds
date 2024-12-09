@@ -1385,7 +1385,8 @@ public abstract class AutomatedTestBase {
 
 			for (int nRun = 0; nRun < 10; nRun++) {
 				out.clear();
-				Statistics.reset();
+				if (nRun < 5)
+					Statistics.reset();
 
 				ArrayList<String> pArgs = new ArrayList<>(Arrays.asList(programArgs));
 				if (!pArgs.contains("-ngrams")) {
