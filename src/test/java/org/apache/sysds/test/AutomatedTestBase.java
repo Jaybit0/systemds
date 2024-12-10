@@ -32,6 +32,8 @@ import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -107,6 +109,16 @@ import org.junit.Before;
  *
  */
 public abstract class AutomatedTestBase {
+
+	static {
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			String csv = Statistics.characteristicsToCSV();
+			try {
+				Files.writeString(Path.of("/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/characteristics.csv"), csv);
+			} catch (IOException e) {
+			}
+		}));
+	}
 
 	private static final Log LOG = LogFactory.getLog(AutomatedTestBase.class.getName());
 
@@ -1383,7 +1395,7 @@ public abstract class AutomatedTestBase {
 		try{
 			final List<ByteArrayOutputStream> out = new ArrayList<>();
 
-			for (int nRun = 0; nRun < 10; nRun++) {
+			for (int nRun = 0; nRun < 1; nRun++) {
 				out.clear();
 				if (nRun < 5)
 					Statistics.reset();
@@ -1421,7 +1433,7 @@ public abstract class AutomatedTestBase {
 				lastTestName = this.getClass().getSimpleName();
 			}
 
-			NGramBuilder<String, Statistics.NGramStats>[] builders = Statistics.mergeNGrams();
+			/*NGramBuilder<String, Statistics.NGramStats>[] builders = Statistics.mergeNGrams();
 			for (int i = 0; i < builders.length; i++) {
 				String baseString = OptimizerUtils.ALLOW_ALGEBRAIC_SIMPLIFICATION ? "/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/wrewrites/" : "/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/norewrites/";
 				System.out.println("Writing to: " + baseString + this.getClass().getSimpleName() + testCtr + "_" + builders[i].getSize() + "-grams.csv");
@@ -1437,7 +1449,7 @@ public abstract class AutomatedTestBase {
 					System.out.println("An error occurred.");
 					e.printStackTrace();
 				}
-			}
+			}*/
 
 			Statistics.reset();
 

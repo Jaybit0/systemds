@@ -43,6 +43,7 @@ import org.apache.sysds.utils.stats.ParamServStatistics;
 import org.apache.sysds.utils.stats.RecompileStatistics;
 import org.apache.sysds.utils.stats.SparkStatistics;
 import org.apache.sysds.utils.stats.TransformStatistics;
+import scala.Tuple3;
 
 import java.lang.management.CompilationMXBean;
 import java.lang.management.GarbageCollectorMXBean;
@@ -59,6 +60,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.DoubleAdder;
 import java.util.concurrent.atomic.LongAdder;
@@ -495,6 +497,22 @@ public class Statistics
 
 	public static synchronized LineageNGramExtension getExtendedLineage(LineageItem li) {
 		return _lineageExtensions.get(li);
+	}
+
+	private static List<Tuple3<Long, Long, Long>> dataCharacteristics = new ArrayList<>();
+
+	public static synchronized void maintainCharacteristics(long nnz, long nrow, long ncol) {
+		dataCharacteristics.add(new Tuple3<>(nnz, nrow, ncol));
+	}
+
+	public static String characteristicsToCSV() {
+		StringJoiner j = new StringJoiner("\n");
+		j.add("NNZ,NRow,NCol");
+		for (Tuple3<Long, Long, Long> dat : dataCharacteristics) {
+			j.add(dat._1().toString() + "," + dat._2().toString() + "," + dat._3().toString());
+		}
+
+		return j.toString();
 	}
 
 	public static synchronized void maintainNGramsFromLineage(LineageItem li) {
