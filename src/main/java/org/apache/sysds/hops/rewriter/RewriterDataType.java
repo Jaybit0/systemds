@@ -75,7 +75,7 @@ public class RewriterDataType extends RewriterStatement {
 
 	@Override
 	public String getResultingDataType(final RuleContext ctx) {
-		return type;
+		return type.replace("BOOL", "FLOAT").replace("INT", "FLOAT");
 	}
 
 	@Override

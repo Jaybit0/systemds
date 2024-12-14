@@ -72,8 +72,9 @@ public class RewriterInstruction extends RewriterStatement {
 
 	@Override
 	public String getResultingDataType(final RuleContext ctx) {
-		if (returnType != null)
-			return returnType;
+		if (returnType != null) {
+			return returnType.replace("BOOL", "FLOAT").replace("INT", "FLOAT");
+		}
 
 		if (isArgumentList())
 			returnType = getOperands().stream().map(op -> op.getResultingDataType(ctx)).reduce(RewriterUtils::defaultTypeHierarchy).get() + "...";

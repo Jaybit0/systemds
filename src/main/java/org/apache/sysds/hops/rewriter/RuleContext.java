@@ -121,6 +121,10 @@ public class RuleContext {
 				fName = keyVal[0];
 				fArgTypes = keyVal[1];
 				fReturnType = keyVal[2];
+				if (fReturnType.equals("INT") || fReturnType.equals("BOOL"))
+					fReturnType = "FLOAT";
+				fArgTypes = fArgTypes.replace("INT", "FLOAT");
+				fArgTypes = fArgTypes.replace("BOOL", "FLOAT");
 				instrTypes.put(fName + fArgTypes, fReturnType);
 				ctx.instrCosts.put(fName + fArgTypes, d -> 1L);
 			}
