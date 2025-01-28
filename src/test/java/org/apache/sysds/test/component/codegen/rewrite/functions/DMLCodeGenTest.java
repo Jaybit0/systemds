@@ -184,7 +184,6 @@ public class DMLCodeGenTest {
 
 	@Test
 	public void testFused4() {
-		// TODO: const() should not contain a var for consistency
 		String ruleStr = "MATRIX:A,B,C\nLITERAL_FLOAT:0.0,1.0\n" +
 				"1-*(A, const(A, 0.0))\n" +
 				"=>\n" +
@@ -225,5 +224,28 @@ public class DMLCodeGenTest {
 		assert RewriterRuleCreator.validateRuleCorrectness(rule, ctx);
 
 		assert RewriterRuleCreator.validateRuleApplicability(rule, ctx, true, null);
+	}
+
+	@Test
+	public void testTransposeScript() {
+		String ruleStr = "MATRIX:A\n" +
+				"LITERAL_FLOAT:0.0\n" +
+				"\n" +
+				"t(t(A))\n" +
+				"=>\n" +
+				"A";
+
+		RewriterRule rule = RewriterUtils.parseRule(ruleStr, ctx);
+
+		System.out.println(canonicalConverter.apply(rule.getStmt1()).toParsableString(ctx));
+		System.out.println(canonicalConverter.apply(rule.getStmt2()).toParsableString(ctx));
+
+		//assert rule.getStmt1().match(RewriterStatement.MatcherContext.exactMatch(ctx, rule.getStmt2(), rule.getStmt1()));
+
+		System.out.println(DMLCodeGenerator.generateRuleValidationDML(rule, "test", ctx));
+
+		assert RewriterRuleCreator.validateRuleCorrectness(rule, ctx);
+
+		assert !RewriterRuleCreator.validateRuleApplicability(rule, ctx, true, null);
 	}
 }

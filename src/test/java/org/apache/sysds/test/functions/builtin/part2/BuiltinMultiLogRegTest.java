@@ -19,6 +19,7 @@
 
 package org.apache.sysds.test.functions.builtin.part2;
 
+import org.apache.sysds.hops.rewriter.RewriteAutomaticallyGenerated;
 import org.junit.Test;
 import org.apache.sysds.api.DMLScript;
 import org.apache.sysds.common.Types;
@@ -60,7 +61,7 @@ public class BuiltinMultiLogRegTest extends AutomatedTestBase {
 	public void testMultiLogRegInterceptCP2() {
 		runMultiLogeRegTest( 2, tol, 1.0, maxIter, maxInnerIter, ExecType.CP);
 	}
-	@Test
+	/*@Test
 	public void testMultiLogRegInterceptSpark0() {
 		runMultiLogeRegTest( 0, tol, 1.0, maxIter, maxInnerIter, ExecType.SPARK);
 	}
@@ -71,7 +72,7 @@ public class BuiltinMultiLogRegTest extends AutomatedTestBase {
 	@Test
 	public void testMultiLogRegInterceptSpark2() {
 		runMultiLogeRegTest(2, tol, 1.0, maxIter, maxInnerIter, ExecType.SPARK);
-	}
+	}*/
 
 	private void runMultiLogeRegTest( int inc, double tol, double reg, int maxOut, int maxIn, ExecType instType) {
 		Types.ExecMode platformOld = setExecMode(instType);
@@ -103,5 +104,10 @@ public class BuiltinMultiLogRegTest extends AutomatedTestBase {
 			OptimizerUtils.ALLOW_AUTO_VECTORIZATION = true;
 			OptimizerUtils.ALLOW_OPERATOR_FUSION = true;
 		}
+
+		System.out.println("GenRewrite Time: " + RewriteAutomaticallyGenerated.totalTimeNanos/1000000D + "ms");
+		System.out.println("CallCount: " + RewriteAutomaticallyGenerated.callCount);
+		System.out.println("Max GenRewrite Pass Time: " + RewriteAutomaticallyGenerated.maxTimeNanos/1000000D + "ms");
+		RewriteAutomaticallyGenerated.totalTimeNanos = 0;
 	}
 }

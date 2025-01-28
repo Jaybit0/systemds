@@ -35,8 +35,14 @@ eps = ifdef ($tol, 0.000001);
 moi = ifdef ($moi, 200);
 mii = ifdef ($mii, 0);
 
+print(sum(X))
+print(sum(Y))
+t = time()
 beta_out = glm(X=X, Y=Y, dfam=dfam, vpow=vpow, link=link, lpow=lpow,
   yneg=yneg, icpt=icpt, disp=disp, reg=reg, tol=eps, moi=moi, mii=mii);
+
+t1 = time()
+print((t1-t)/1000000 + "ms")
 
 write (beta_out, $B, format=fmtB);
 

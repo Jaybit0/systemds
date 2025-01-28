@@ -2723,9 +2723,15 @@ public class TestUtils {
 			//create outputstream to HDFS / FS and writer
 			DataOutputStream out = null;
 			if (!isR) {
-				Path path = new Path(file);
+				// TODO: Revert
+				/*Path path = new Path(file);
 				FileSystem fs = IOUtilFunctions.getFileSystem(path, conf);
-				out = fs.create(path, true);
+				out = fs.create(path, true);*/
+
+				if (file.endsWith("/X/in"))
+					out = new DataOutputStream(new FileOutputStream(System.getProperty("user.home") + "/Dev/systemds/target/testTemp/applications/glm/GLMTest/in/X.csv"));
+				else
+					out = new DataOutputStream(new FileOutputStream(System.getProperty("user.home") + "/Dev/systemds/target/testTemp/applications/glm/GLMTest/in/Y.csv"));
 			}
 			else {
 				out = new DataOutputStream(new FileOutputStream(file));

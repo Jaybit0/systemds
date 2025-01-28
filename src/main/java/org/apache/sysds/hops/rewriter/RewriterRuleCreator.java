@@ -50,6 +50,7 @@ public class RewriterRuleCreator {
 		}
 	}
 
+	// Note that rule registration does not use cost sampling, but uses the default assumption 2000x2000, fully dense
 	public synchronized boolean registerRule(RewriterRule rule, long preCost, long postCost, boolean validateCorrectness, Function<RewriterStatement, RewriterStatement> canonicalFormCreator) {
 		// First, we check if an existing rule already applies an equivalent rewrite (cost wise)
 		RewriterStatement toTest = rule.getStmt1().nestedCopy(false);
@@ -268,6 +269,8 @@ public class RewriterRuleCreator {
 			code2 += "\nprint(lineage(result))";
 		else
 			code2 += "\nprint(lineage(as.matrix(result)))";
+
+		System.out.println(code2);
 
 		MutableBoolean isRelevant = new MutableBoolean(false);
 

@@ -403,6 +403,8 @@ public class OptimizerUtils
 		ALLOW_OPERATOR_FUSION = true;
 		ALLOW_SUM_PRODUCT_REWRITES = true;*/
 
+		System.out.println("Optlevel: " + optlevel);
+
 		switch( optlevel )
 		{
 			// opt level 0: static dimensionality

@@ -30,8 +30,8 @@ public class GeneratedRewriteClass implements Function {
 		if ( hi.getDataType() == Types.DataType.SCALAR ) {
 			hi = _applyRewrite0(hi); // *(0.0,a) => 0.0
 			hi = _applyRewrite1(hi); // *(a,0.0) => 0.0
-			hi = _applyRewrite26(hi); // sum(/(tmp83271,tmp60732)) => /(sum(tmp83271),tmp60732)
-			hi = _applyRewrite30(hi); // sum(*(*(tmp8790,tmp30390),tmp97178)) => *(tmp30390,sum(*(tmp97178,tmp8790)))
+			hi = _applyRewrite23(hi); // sum(/(tmp83271,tmp60732)) => /(sum(tmp83271),tmp60732)
+			hi = _applyRewrite27(hi); // sum(*(*(tmp8790,tmp30390),tmp97178)) => *(tmp30390,sum(*(tmp97178,tmp8790)))
 		} else if ( hi.getDataType() == Types.DataType.MATRIX ) {
 			if ( hi instanceof BinaryOp ) {
 				if ( (( BinaryOp ) hi ).getOp() == Types.OpOp2.PLUS ) {
@@ -55,47 +55,31 @@ public class GeneratedRewriteClass implements Function {
 														Hop hi_1_0 = hi_1.getInput(0);
 														Hop hi_1_1 = hi_1.getInput(1);
 														hi = _applyRewrite7(hi); // +(-(0.0,A),B) => -(B,A)
-														hi = _applyRewrite21(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
-														hi = _applyRewrite35(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
-														hi = _applyRewrite45(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
-														hi = _applyRewrite46(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
-														hi = _applyRewrite60(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
-														hi = _applyRewrite49(hi); // +(M9347,*(K,*(M40316,f32765))) => +*(M9347,f32765,*(K,M40316))
-														hi = _applyRewrite54(hi); // +(M9347,*(*(f32765,K),M40316)) => +*(M9347,f32765,*(K,M40316))
+														hi = _applyRewrite20(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
+														hi = _applyRewrite31(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
+														hi = _applyRewrite37(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
+														hi = _applyRewrite38(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
+														hi = _applyRewrite41(hi); // +(-(f45081,A),B) => +(f45081,-(B,A))
+														hi = _applyRewrite46(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
+														hi = _applyRewrite39(hi); // +(M9347,*(K,*(M40316,f32765))) => +*(M9347,f32765,*(K,M40316))
+														hi = _applyRewrite42(hi); // +(M9347,*(*(f32765,K),M40316)) => +*(M9347,f32765,*(K,M40316))
 													} else {
 														hi = _applyRewrite7(hi); // +(-(0.0,A),B) => -(B,A)
-														hi = _applyRewrite21(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
-														hi = _applyRewrite35(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
-														hi = _applyRewrite45(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
-														hi = _applyRewrite46(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
-														hi = _applyRewrite60(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
-													}
-												} else if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.DIV ) {
-													if ( hi_1.getInput().size() == 2 ) {
-														Hop hi_1_0 = hi_1.getInput(0);
-														Hop hi_1_1 = hi_1.getInput(1);
-														hi = _applyRewrite7(hi); // +(-(0.0,A),B) => -(B,A)
-														hi = _applyRewrite21(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
-														hi = _applyRewrite35(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
-														hi = _applyRewrite45(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
-														hi = _applyRewrite46(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
-														hi = _applyRewrite51(hi); // +(-(f45081,M73962),/(M72283,M59533)) => +(f45081,-(/(M72283,M59533),M73962))
-														hi = _applyRewrite60(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
-													} else {
-														hi = _applyRewrite7(hi); // +(-(0.0,A),B) => -(B,A)
-														hi = _applyRewrite21(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
-														hi = _applyRewrite35(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
-														hi = _applyRewrite45(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
-														hi = _applyRewrite46(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
-														hi = _applyRewrite60(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
+														hi = _applyRewrite20(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
+														hi = _applyRewrite31(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
+														hi = _applyRewrite37(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
+														hi = _applyRewrite38(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
+														hi = _applyRewrite41(hi); // +(-(f45081,A),B) => +(f45081,-(B,A))
+														hi = _applyRewrite46(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
 													}
 												} else {
 													hi = _applyRewrite7(hi); // +(-(0.0,A),B) => -(B,A)
-													hi = _applyRewrite21(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
-													hi = _applyRewrite35(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
-													hi = _applyRewrite45(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
-													hi = _applyRewrite46(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
-													hi = _applyRewrite60(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
+													hi = _applyRewrite20(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
+													hi = _applyRewrite31(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
+													hi = _applyRewrite37(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
+													hi = _applyRewrite38(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
+													hi = _applyRewrite41(hi); // +(-(f45081,A),B) => +(f45081,-(B,A))
+													hi = _applyRewrite46(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
 												}
 											} else if ( hi_1 instanceof AggBinaryOp ) {
 												if ( HopRewriteUtils.isMatrixMultiply(hi_1) ) {
@@ -103,41 +87,45 @@ public class GeneratedRewriteClass implements Function {
 														Hop hi_1_0 = hi_1.getInput(0);
 														Hop hi_1_1 = hi_1.getInput(1);
 														hi = _applyRewrite7(hi); // +(-(0.0,A),B) => -(B,A)
-														hi = _applyRewrite21(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
-														hi = _applyRewrite35(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
-														hi = _applyRewrite45(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
-														hi = _applyRewrite46(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
-														hi = _applyRewrite60(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
-														hi = _applyRewrite73(hi); // +(-(C,d),%*%(A,B)) => -(+(C,%*%(A,B)),d)
+														hi = _applyRewrite20(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
+														hi = _applyRewrite31(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
+														hi = _applyRewrite37(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
+														hi = _applyRewrite38(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
+														hi = _applyRewrite41(hi); // +(-(f45081,A),B) => +(f45081,-(B,A))
+														hi = _applyRewrite46(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
+														hi = _applyRewrite54(hi); // +(-(C,d),%*%(A,B)) => -(+(C,%*%(A,B)),d)
 													} else {
 														hi = _applyRewrite7(hi); // +(-(0.0,A),B) => -(B,A)
-														hi = _applyRewrite21(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
-														hi = _applyRewrite35(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
-														hi = _applyRewrite45(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
-														hi = _applyRewrite46(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
-														hi = _applyRewrite60(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
+														hi = _applyRewrite20(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
+														hi = _applyRewrite31(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
+														hi = _applyRewrite37(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
+														hi = _applyRewrite38(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
+														hi = _applyRewrite41(hi); // +(-(f45081,A),B) => +(f45081,-(B,A))
+														hi = _applyRewrite46(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
 													}
 												} else {
 													hi = _applyRewrite7(hi); // +(-(0.0,A),B) => -(B,A)
-													hi = _applyRewrite21(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
-													hi = _applyRewrite35(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
-													hi = _applyRewrite45(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
-													hi = _applyRewrite46(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
-													hi = _applyRewrite60(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
+													hi = _applyRewrite20(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
+													hi = _applyRewrite31(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
+													hi = _applyRewrite37(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
+													hi = _applyRewrite38(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
+													hi = _applyRewrite41(hi); // +(-(f45081,A),B) => +(f45081,-(B,A))
+													hi = _applyRewrite46(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
 												}
 											} else {
 												hi = _applyRewrite7(hi); // +(-(0.0,A),B) => -(B,A)
-												hi = _applyRewrite21(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
-												hi = _applyRewrite35(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
-												hi = _applyRewrite45(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
-												hi = _applyRewrite46(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
-												hi = _applyRewrite60(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
+												hi = _applyRewrite20(hi); // +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
+												hi = _applyRewrite31(hi); // +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
+												hi = _applyRewrite37(hi); // +(-(*(C,b),d),A) => -(+*(A,b,C),d)
+												hi = _applyRewrite38(hi); // +(-(*(D,c),B),A) => -(A,-*(B,c,D))
+												hi = _applyRewrite41(hi); // +(-(f45081,A),B) => +(f45081,-(B,A))
+												hi = _applyRewrite46(hi); // +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
 											}
 										}
 									} else {
 										hi = _applyRewrite2(hi); // +(A,0.0) => A
-										hi = _applyRewrite49(hi); // +(M9347,*(K,*(M40316,f32765))) => +*(M9347,f32765,*(K,M40316))
-										hi = _applyRewrite54(hi); // +(M9347,*(*(f32765,K),M40316)) => +*(M9347,f32765,*(K,M40316))
+										hi = _applyRewrite39(hi); // +(M9347,*(K,*(M40316,f32765))) => +*(M9347,f32765,*(K,M40316))
+										hi = _applyRewrite42(hi); // +(M9347,*(*(f32765,K),M40316)) => +*(M9347,f32765,*(K,M40316))
 									}
 								} else if ( (( BinaryOp ) hi_0 ).getOp() == Types.OpOp2.MULT ) {
 									if ( hi_0.getInput().size() == 2 ) {
@@ -146,44 +134,26 @@ public class GeneratedRewriteClass implements Function {
 										if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
 											hi = _applyRewrite2(hi); // +(A,0.0) => A
 										} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
-											if ( hi_1 instanceof BinaryOp ) {
-												if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.MULT ) {
-													if ( hi_1.getInput().size() == 2 ) {
-														Hop hi_1_0 = hi_1.getInput(0);
-														Hop hi_1_1 = hi_1.getInput(1);
-														hi = _applyRewrite18(hi); // +(*(*(y_corr,-(float599,is_zero_y_corr)),tmp8608),*(tmp20367,+(tmp23071,tmp55180))) => +(*(*(tmp8608,y_corr),-(float599,is_zero_y_corr)),*(tmp20367,+(tmp55180,tmp23071)))
-														hi = _applyRewrite19(hi); // +(*(/(tmp24377,tmp23360),tmp),tmp97984) => +(tmp97984,/(*(tmp24377,tmp),tmp23360))
-														hi = _applyRewrite36(hi); // +(*(tmp99142,missing_mask_Y),*(tmp58606,missing_mask_Y)) => *(missing_mask_Y,+(tmp99142,tmp58606))
-														hi = _applyRewrite55(hi); // +(*(*(K,f32765),M40316),M9347) => +*(M9347,f32765,*(K,M40316))
-														hi = _applyRewrite49(hi); // +(M9347,*(K,*(M40316,f32765))) => +*(M9347,f32765,*(K,M40316))
-														hi = _applyRewrite54(hi); // +(M9347,*(*(f32765,K),M40316)) => +*(M9347,f32765,*(K,M40316))
-													} else {
-														hi = _applyRewrite19(hi); // +(*(/(tmp24377,tmp23360),tmp),tmp97984) => +(tmp97984,/(*(tmp24377,tmp),tmp23360))
-														hi = _applyRewrite55(hi); // +(*(*(K,f32765),M40316),M9347) => +*(M9347,f32765,*(K,M40316))
-													}
-												} else {
-													hi = _applyRewrite19(hi); // +(*(/(tmp24377,tmp23360),tmp),tmp97984) => +(tmp97984,/(*(tmp24377,tmp),tmp23360))
-													hi = _applyRewrite55(hi); // +(*(*(K,f32765),M40316),M9347) => +*(M9347,f32765,*(K,M40316))
-												}
-											} else {
-												hi = _applyRewrite19(hi); // +(*(/(tmp24377,tmp23360),tmp),tmp97984) => +(tmp97984,/(*(tmp24377,tmp),tmp23360))
-												hi = _applyRewrite55(hi); // +(*(*(K,f32765),M40316),M9347) => +*(M9347,f32765,*(K,M40316))
-											}
+											hi = _applyRewrite18(hi); // +(*(*(y_corr,-(float599,is_zero_y_corr)),tmp8608),*(tmp20367,+(tmp23071,tmp55180))) => +(*(*(tmp8608,y_corr),-(float599,is_zero_y_corr)),*(tmp20367,+(tmp55180,tmp23071)))
+											hi = _applyRewrite32(hi); // +(*(tmp99142,missing_mask_Y),*(tmp58606,missing_mask_Y)) => *(missing_mask_Y,+(tmp99142,tmp58606))
+											hi = _applyRewrite39(hi); // +(M9347,*(K,*(M40316,f32765))) => +*(M9347,f32765,*(K,M40316))
+											hi = _applyRewrite42(hi); // +(M9347,*(*(f32765,K),M40316)) => +*(M9347,f32765,*(K,M40316))
+											hi = _applyRewrite43(hi); // +(*(*(K,f32765),M40316),M9347) => +*(M9347,f32765,*(K,M40316))
 										}
 									} else {
 										hi = _applyRewrite2(hi); // +(A,0.0) => A
-										hi = _applyRewrite49(hi); // +(M9347,*(K,*(M40316,f32765))) => +*(M9347,f32765,*(K,M40316))
-										hi = _applyRewrite54(hi); // +(M9347,*(*(f32765,K),M40316)) => +*(M9347,f32765,*(K,M40316))
+										hi = _applyRewrite39(hi); // +(M9347,*(K,*(M40316,f32765))) => +*(M9347,f32765,*(K,M40316))
+										hi = _applyRewrite42(hi); // +(M9347,*(*(f32765,K),M40316)) => +*(M9347,f32765,*(K,M40316))
 									}
 								} else {
 									hi = _applyRewrite2(hi); // +(A,0.0) => A
-									hi = _applyRewrite49(hi); // +(M9347,*(K,*(M40316,f32765))) => +*(M9347,f32765,*(K,M40316))
-									hi = _applyRewrite54(hi); // +(M9347,*(*(f32765,K),M40316)) => +*(M9347,f32765,*(K,M40316))
+									hi = _applyRewrite39(hi); // +(M9347,*(K,*(M40316,f32765))) => +*(M9347,f32765,*(K,M40316))
+									hi = _applyRewrite42(hi); // +(M9347,*(*(f32765,K),M40316)) => +*(M9347,f32765,*(K,M40316))
 								}
 							} else {
 								hi = _applyRewrite2(hi); // +(A,0.0) => A
-								hi = _applyRewrite49(hi); // +(M9347,*(K,*(M40316,f32765))) => +*(M9347,f32765,*(K,M40316))
-								hi = _applyRewrite54(hi); // +(M9347,*(*(f32765,K),M40316)) => +*(M9347,f32765,*(K,M40316))
+								hi = _applyRewrite39(hi); // +(M9347,*(K,*(M40316,f32765))) => +*(M9347,f32765,*(K,M40316))
+								hi = _applyRewrite42(hi); // +(M9347,*(*(f32765,K),M40316)) => +*(M9347,f32765,*(K,M40316))
 							}
 						} else if ( hi_0.getDataType() == Types.DataType.SCALAR ) {
 							hi = _applyRewrite3(hi); // +(0.0,A) => A
@@ -205,138 +175,57 @@ public class GeneratedRewriteClass implements Function {
 											hi = _applyRewrite4(hi); // -(A,0.0) => A
 											hi = _applyRewrite14(hi); // -(-(A,a),b) => -(A,+(b,a))
 											hi = _applyRewrite16(hi); // -(-(a,A),b) => -(-(a,b),A)
-											hi = _applyRewrite62(hi); // -(-(f43240,A),f67634) => -(-(f43240,f67634),A)
+											hi = _applyRewrite47(hi); // -(-(f43240,A),f67634) => -(-(f43240,f67634),A)
 										} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
 											if ( hi_1 instanceof BinaryOp ) {
 												if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.PLUS ) {
-													hi = _applyRewrite33(hi); // -(obj,+(tmp6500,tmp26035)) => -(-(obj,tmp6500),tmp26035)
-													hi = _applyRewrite50(hi); // -(y,+(%*%(X,B),intercept)) => -(-(y,%*%(X,B)),intercept)
-													hi = _applyRewrite34(hi); // -(-(tmp68530,tmp73960),tmp29113) => -(tmp68530,+(tmp73960,tmp29113))
-													hi = _applyRewrite72(hi); // -(-(f75306,*(A,M350)),M67233) => -(f75306,+(*(A,M350),M67233))
-												} else if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.DIV ) {
-													hi = _applyRewrite47(hi); // -(A,/(*(b,C),D)) => -*(A,b,/(C,D))
-													hi = _applyRewrite48(hi); // -(W1,/(*(f72208,M22221),M2747)) => -*(W1,f72208,/(M22221,M2747))
-													hi = _applyRewrite69(hi); // -(W1,/(*(f72208,M22221),M2747)) => -*(W1,f72208,/(M22221,M2747))
-													hi = _applyRewrite34(hi); // -(-(tmp68530,tmp73960),tmp29113) => -(tmp68530,+(tmp73960,tmp29113))
-													hi = _applyRewrite72(hi); // -(-(f75306,*(A,M350)),M67233) => -(f75306,+(*(A,M350),M67233))
+													hi = _applyRewrite29(hi); // -(obj,+(tmp6500,tmp26035)) => -(-(obj,tmp6500),tmp26035)
+													hi = _applyRewrite40(hi); // -(y,+(%*%(X,B),intercept)) => -(-(y,%*%(X,B)),intercept)
+													hi = _applyRewrite30(hi); // -(-(tmp68530,tmp73960),tmp29113) => -(tmp68530,+(tmp73960,tmp29113))
+													hi = _applyRewrite53(hi); // -(-(f75306,*(A,M350)),M67233) => -(f75306,+(*(A,M350),M67233))
 												} else if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.MULT ) {
-													hi = _applyRewrite67(hi); // -(M22650,*(*(f97734,M67673),M97683)) => -*(M22650,f97734,*(M97683,M67673))
-													hi = _applyRewrite71(hi); // -(-(f75306,M67233),*(A,M350)) => -(f75306,+(*(A,M350),M67233))
-													hi = _applyRewrite34(hi); // -(-(tmp68530,tmp73960),tmp29113) => -(tmp68530,+(tmp73960,tmp29113))
-													hi = _applyRewrite72(hi); // -(-(f75306,*(A,M350)),M67233) => -(f75306,+(*(A,M350),M67233))
+													hi = _applyRewrite51(hi); // -(M22650,*(*(f97734,M67673),M97683)) => -*(M22650,f97734,*(M97683,M67673))
+													hi = _applyRewrite52(hi); // -(-(f75306,M67233),*(A,M350)) => -(f75306,+(*(A,M350),M67233))
+													hi = _applyRewrite30(hi); // -(-(tmp68530,tmp73960),tmp29113) => -(tmp68530,+(tmp73960,tmp29113))
+													hi = _applyRewrite53(hi); // -(-(f75306,*(A,M350)),M67233) => -(f75306,+(*(A,M350),M67233))
 												} else {
-													hi = _applyRewrite34(hi); // -(-(tmp68530,tmp73960),tmp29113) => -(tmp68530,+(tmp73960,tmp29113))
-													hi = _applyRewrite72(hi); // -(-(f75306,*(A,M350)),M67233) => -(f75306,+(*(A,M350),M67233))
+													hi = _applyRewrite30(hi); // -(-(tmp68530,tmp73960),tmp29113) => -(tmp68530,+(tmp73960,tmp29113))
+													hi = _applyRewrite53(hi); // -(-(f75306,*(A,M350)),M67233) => -(f75306,+(*(A,M350),M67233))
 												}
 											} else {
-												hi = _applyRewrite34(hi); // -(-(tmp68530,tmp73960),tmp29113) => -(tmp68530,+(tmp73960,tmp29113))
-												hi = _applyRewrite72(hi); // -(-(f75306,*(A,M350)),M67233) => -(f75306,+(*(A,M350),M67233))
+												hi = _applyRewrite30(hi); // -(-(tmp68530,tmp73960),tmp29113) => -(tmp68530,+(tmp73960,tmp29113))
+												hi = _applyRewrite53(hi); // -(-(f75306,*(A,M350)),M67233) => -(f75306,+(*(A,M350),M67233))
 											}
 										}
 									} else {
-										if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
-											hi = _applyRewrite4(hi); // -(A,0.0) => A
-										} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
-											if ( hi_1 instanceof BinaryOp ) {
-												if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.PLUS ) {
-													hi = _applyRewrite33(hi); // -(obj,+(tmp6500,tmp26035)) => -(-(obj,tmp6500),tmp26035)
-													hi = _applyRewrite50(hi); // -(y,+(%*%(X,B),intercept)) => -(-(y,%*%(X,B)),intercept)
-												} else if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.DIV ) {
-													hi = _applyRewrite47(hi); // -(A,/(*(b,C),D)) => -*(A,b,/(C,D))
-													hi = _applyRewrite48(hi); // -(W1,/(*(f72208,M22221),M2747)) => -*(W1,f72208,/(M22221,M2747))
-													hi = _applyRewrite69(hi); // -(W1,/(*(f72208,M22221),M2747)) => -*(W1,f72208,/(M22221,M2747))
-												} else if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.MULT ) {
-													hi = _applyRewrite67(hi); // -(M22650,*(*(f97734,M67673),M97683)) => -*(M22650,f97734,*(M97683,M67673))
-												}
-											}
-										}
+										hi = _applyRewrite4(hi); // -(A,0.0) => A
+										hi = _applyRewrite29(hi); // -(obj,+(tmp6500,tmp26035)) => -(-(obj,tmp6500),tmp26035)
+										hi = _applyRewrite40(hi); // -(y,+(%*%(X,B),intercept)) => -(-(y,%*%(X,B)),intercept)
+										hi = _applyRewrite51(hi); // -(M22650,*(*(f97734,M67673),M97683)) => -*(M22650,f97734,*(M97683,M67673))
 									}
 								} else if ( (( BinaryOp ) hi_0 ).getOp() == Types.OpOp2.PLUS ) {
-									if ( hi_0.getInput().size() == 2 ) {
-										Hop hi_0_0 = hi_0.getInput(0);
-										Hop hi_0_1 = hi_0.getInput(1);
-										if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
-											hi = _applyRewrite4(hi); // -(A,0.0) => A
-										} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
-											if ( hi_1 instanceof BinaryOp ) {
-												if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.PLUS ) {
-													hi = _applyRewrite33(hi); // -(obj,+(tmp6500,tmp26035)) => -(-(obj,tmp6500),tmp26035)
-													hi = _applyRewrite50(hi); // -(y,+(%*%(X,B),intercept)) => -(-(y,%*%(X,B)),intercept)
-													hi = _applyRewrite31(hi); // -(+(a,tmp82242),tmp98488) => +(-(tmp82242,tmp98488),a)
-												} else if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.DIV ) {
-													hi = _applyRewrite47(hi); // -(A,/(*(b,C),D)) => -*(A,b,/(C,D))
-													hi = _applyRewrite48(hi); // -(W1,/(*(f72208,M22221),M2747)) => -*(W1,f72208,/(M22221,M2747))
-													hi = _applyRewrite69(hi); // -(W1,/(*(f72208,M22221),M2747)) => -*(W1,f72208,/(M22221,M2747))
-													hi = _applyRewrite31(hi); // -(+(a,tmp82242),tmp98488) => +(-(tmp82242,tmp98488),a)
-												} else if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.MULT ) {
-													hi = _applyRewrite67(hi); // -(M22650,*(*(f97734,M67673),M97683)) => -*(M22650,f97734,*(M97683,M67673))
-													hi = _applyRewrite31(hi); // -(+(a,tmp82242),tmp98488) => +(-(tmp82242,tmp98488),a)
-												} else {
-													hi = _applyRewrite31(hi); // -(+(a,tmp82242),tmp98488) => +(-(tmp82242,tmp98488),a)
-												}
-											} else {
-												hi = _applyRewrite31(hi); // -(+(a,tmp82242),tmp98488) => +(-(tmp82242,tmp98488),a)
-											}
-										}
-									} else {
-										if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
-											hi = _applyRewrite4(hi); // -(A,0.0) => A
-										} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
-											if ( hi_1 instanceof BinaryOp ) {
-												if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.PLUS ) {
-													hi = _applyRewrite33(hi); // -(obj,+(tmp6500,tmp26035)) => -(-(obj,tmp6500),tmp26035)
-													hi = _applyRewrite50(hi); // -(y,+(%*%(X,B),intercept)) => -(-(y,%*%(X,B)),intercept)
-												} else if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.DIV ) {
-													hi = _applyRewrite47(hi); // -(A,/(*(b,C),D)) => -*(A,b,/(C,D))
-													hi = _applyRewrite48(hi); // -(W1,/(*(f72208,M22221),M2747)) => -*(W1,f72208,/(M22221,M2747))
-													hi = _applyRewrite69(hi); // -(W1,/(*(f72208,M22221),M2747)) => -*(W1,f72208,/(M22221,M2747))
-												} else if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.MULT ) {
-													hi = _applyRewrite67(hi); // -(M22650,*(*(f97734,M67673),M97683)) => -*(M22650,f97734,*(M97683,M67673))
-												}
-											}
-										}
-									}
+									hi = _applyRewrite28(hi); // -(+(a,tmp82242),tmp98488) => +(-(tmp82242,tmp98488),a)
+									hi = _applyRewrite4(hi); // -(A,0.0) => A
+									hi = _applyRewrite29(hi); // -(obj,+(tmp6500,tmp26035)) => -(-(obj,tmp6500),tmp26035)
+									hi = _applyRewrite40(hi); // -(y,+(%*%(X,B),intercept)) => -(-(y,%*%(X,B)),intercept)
+									hi = _applyRewrite51(hi); // -(M22650,*(*(f97734,M67673),M97683)) => -*(M22650,f97734,*(M97683,M67673))
 								} else {
-									if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
-										hi = _applyRewrite4(hi); // -(A,0.0) => A
-									} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
-										if ( hi_1 instanceof BinaryOp ) {
-											if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.PLUS ) {
-												hi = _applyRewrite33(hi); // -(obj,+(tmp6500,tmp26035)) => -(-(obj,tmp6500),tmp26035)
-												hi = _applyRewrite50(hi); // -(y,+(%*%(X,B),intercept)) => -(-(y,%*%(X,B)),intercept)
-											} else if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.DIV ) {
-												hi = _applyRewrite47(hi); // -(A,/(*(b,C),D)) => -*(A,b,/(C,D))
-												hi = _applyRewrite48(hi); // -(W1,/(*(f72208,M22221),M2747)) => -*(W1,f72208,/(M22221,M2747))
-												hi = _applyRewrite69(hi); // -(W1,/(*(f72208,M22221),M2747)) => -*(W1,f72208,/(M22221,M2747))
-											} else if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.MULT ) {
-												hi = _applyRewrite67(hi); // -(M22650,*(*(f97734,M67673),M97683)) => -*(M22650,f97734,*(M97683,M67673))
-											}
-										}
-									}
+									hi = _applyRewrite4(hi); // -(A,0.0) => A
+									hi = _applyRewrite29(hi); // -(obj,+(tmp6500,tmp26035)) => -(-(obj,tmp6500),tmp26035)
+									hi = _applyRewrite40(hi); // -(y,+(%*%(X,B),intercept)) => -(-(y,%*%(X,B)),intercept)
+									hi = _applyRewrite51(hi); // -(M22650,*(*(f97734,M67673),M97683)) => -*(M22650,f97734,*(M97683,M67673))
 								}
 							} else {
-								if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
-									hi = _applyRewrite4(hi); // -(A,0.0) => A
-								} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
-									if ( hi_1 instanceof BinaryOp ) {
-										if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.PLUS ) {
-											hi = _applyRewrite33(hi); // -(obj,+(tmp6500,tmp26035)) => -(-(obj,tmp6500),tmp26035)
-											hi = _applyRewrite50(hi); // -(y,+(%*%(X,B),intercept)) => -(-(y,%*%(X,B)),intercept)
-										} else if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.DIV ) {
-											hi = _applyRewrite47(hi); // -(A,/(*(b,C),D)) => -*(A,b,/(C,D))
-											hi = _applyRewrite48(hi); // -(W1,/(*(f72208,M22221),M2747)) => -*(W1,f72208,/(M22221,M2747))
-											hi = _applyRewrite69(hi); // -(W1,/(*(f72208,M22221),M2747)) => -*(W1,f72208,/(M22221,M2747))
-										} else if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.MULT ) {
-											hi = _applyRewrite67(hi); // -(M22650,*(*(f97734,M67673),M97683)) => -*(M22650,f97734,*(M97683,M67673))
-										}
-									}
-								}
+								hi = _applyRewrite4(hi); // -(A,0.0) => A
+								hi = _applyRewrite29(hi); // -(obj,+(tmp6500,tmp26035)) => -(-(obj,tmp6500),tmp26035)
+								hi = _applyRewrite40(hi); // -(y,+(%*%(X,B),intercept)) => -(-(y,%*%(X,B)),intercept)
+								hi = _applyRewrite51(hi); // -(M22650,*(*(f97734,M67673),M97683)) => -*(M22650,f97734,*(M97683,M67673))
 							}
 						} else if ( hi_0.getDataType() == Types.DataType.SCALAR ) {
 							hi = _applyRewrite8(hi); // -(0.0,-(B,A)) => -(A,B)
 							hi = _applyRewrite15(hi); // -(a,-(A,b)) => -(+(a,b),A)
 							hi = _applyRewrite17(hi); // -(a,-(b,A)) => +(-(a,b),A)
-							hi = _applyRewrite22(hi); // -(tmp66496,cast.MATRIX(tmp91996)) => cast.MATRIX(-(tmp66496,tmp91996))
+							hi = _applyRewrite21(hi); // -(tmp66496,cast.MATRIX(tmp91996)) => cast.MATRIX(-(tmp66496,tmp91996))
 						}
 					}
 				} else if ( (( BinaryOp ) hi ).getOp() == Types.OpOp2.MULT ) {
@@ -350,210 +239,55 @@ public class GeneratedRewriteClass implements Function {
 										Hop hi_0_0 = hi_0.getInput(0);
 										Hop hi_0_1 = hi_0.getInput(1);
 										if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
-											hi = _applyRewrite20(hi); // *(/(1.0,tmp5995),tmp41945) => /(tmp41945,tmp5995)
-											hi = _applyRewrite24(hi); // *(/(tmp78731,i_process_item),tmp32523) => *(/(tmp32523,i_process_item),tmp78731)
-											hi = _applyRewrite42(hi); // *(/(1.0,B),a) => /(a,B)
-											hi = _applyRewrite53(hi); // *(/(parsertemp570372,f83755),f4825) => *(/(f4825,f83755),parsertemp570372)
-											hi = _applyRewrite68(hi); // *(/(f1993,M80697),f81698) => /(*(f1993,f81698),M80697)
 											hi = _applyRewrite5(hi); // *(A,0.0) => const(A,0.0)
-										} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
-											if ( hi_1 instanceof BinaryOp ) {
-												if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.DIV ) {
-													if ( hi_1.getInput().size() == 2 ) {
-														Hop hi_1_0 = hi_1.getInput(0);
-														Hop hi_1_1 = hi_1.getInput(1);
-														hi = _applyRewrite39(hi); // *(/(one_over_sqrt_two_pi,tmp76084),tmp14587) => /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-														hi = _applyRewrite40(hi); // *(/(d_r_rev,D_r_rev),tmp161) => /(*(tmp161,d_r_rev),D_r_rev)
-														hi = _applyRewrite52(hi); // *(/(f93935,M96942),M52203) => *(f93935,/(M52203,M96942))
-														hi = _applyRewrite57(hi); // *(/(1.0,M13119),A) => /(A,M13119)
-														hi = _applyRewrite9(hi); // *(A,/(1.0,B)) => /(A,B)
-														hi = _applyRewrite38(hi); // *(mean,/(%*%(tmp53095,X),tmp65672)) => /(*(mean,%*%(tmp53095,X)),tmp65672)
-														hi = _applyRewrite41(hi); // *(tmp14587,/(one_over_sqrt_two_pi,tmp76084)) => /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-														hi = _applyRewrite65(hi); // *(A,/(1.0,M13119)) => /(A,M13119)
-														hi = _applyRewrite70(hi); // *(M44015,/(mean,M36505)) => /(*(mean,M44015),M36505)
-													} else {
-														hi = _applyRewrite39(hi); // *(/(one_over_sqrt_two_pi,tmp76084),tmp14587) => /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-														hi = _applyRewrite40(hi); // *(/(d_r_rev,D_r_rev),tmp161) => /(*(tmp161,d_r_rev),D_r_rev)
-														hi = _applyRewrite52(hi); // *(/(f93935,M96942),M52203) => *(f93935,/(M52203,M96942))
-														hi = _applyRewrite57(hi); // *(/(1.0,M13119),A) => /(A,M13119)
-													}
-												} else {
-													hi = _applyRewrite39(hi); // *(/(one_over_sqrt_two_pi,tmp76084),tmp14587) => /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-													hi = _applyRewrite40(hi); // *(/(d_r_rev,D_r_rev),tmp161) => /(*(tmp161,d_r_rev),D_r_rev)
-													hi = _applyRewrite52(hi); // *(/(f93935,M96942),M52203) => *(f93935,/(M52203,M96942))
-													hi = _applyRewrite57(hi); // *(/(1.0,M13119),A) => /(A,M13119)
-												}
-											} else {
-												hi = _applyRewrite39(hi); // *(/(one_over_sqrt_two_pi,tmp76084),tmp14587) => /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-												hi = _applyRewrite40(hi); // *(/(d_r_rev,D_r_rev),tmp161) => /(*(tmp161,d_r_rev),D_r_rev)
-												hi = _applyRewrite52(hi); // *(/(f93935,M96942),M52203) => *(f93935,/(M52203,M96942))
-												hi = _applyRewrite57(hi); // *(/(1.0,M13119),A) => /(A,M13119)
-											}
-										}
-									} else {
-										if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
-											hi = _applyRewrite5(hi); // *(A,0.0) => const(A,0.0)
+											hi = _applyRewrite19(hi); // *(/(1.0,tmp5995),tmp41945) => /(tmp41945,tmp5995)
+											hi = _applyRewrite34(hi); // *(/(1.0,B),a) => /(a,B)
 										} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
 											hi = _applyRewrite9(hi); // *(A,/(1.0,B)) => /(A,B)
-											hi = _applyRewrite38(hi); // *(mean,/(%*%(tmp53095,X),tmp65672)) => /(*(mean,%*%(tmp53095,X)),tmp65672)
-											hi = _applyRewrite41(hi); // *(tmp14587,/(one_over_sqrt_two_pi,tmp76084)) => /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-											hi = _applyRewrite65(hi); // *(A,/(1.0,M13119)) => /(A,M13119)
-											hi = _applyRewrite70(hi); // *(M44015,/(mean,M36505)) => /(*(mean,M44015),M36505)
+											hi = _applyRewrite44(hi); // *(/(1.0,M13119),A) => /(A,M13119)
+											hi = _applyRewrite49(hi); // *(A,/(1.0,M13119)) => /(A,M13119)
 										}
+									} else {
+										hi = _applyRewrite5(hi); // *(A,0.0) => const(A,0.0)
+										hi = _applyRewrite9(hi); // *(A,/(1.0,B)) => /(A,B)
+										hi = _applyRewrite49(hi); // *(A,/(1.0,M13119)) => /(A,M13119)
 									}
 								} else if ( (( BinaryOp ) hi_0 ).getOp() == Types.OpOp2.MULT ) {
-									if ( hi_0.getInput().size() == 2 ) {
-										Hop hi_0_0 = hi_0.getInput(0);
-										Hop hi_0_1 = hi_0.getInput(1);
-										if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
-											hi = _applyRewrite5(hi); // *(A,0.0) => const(A,0.0)
-										} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
-											if ( hi_1 instanceof BinaryOp ) {
-												if ( (( BinaryOp ) hi_1 ).getOp() == Types.OpOp2.DIV ) {
-													if ( hi_1.getInput().size() == 2 ) {
-														Hop hi_1_0 = hi_1.getInput(0);
-														Hop hi_1_1 = hi_1.getInput(1);
-														hi = _applyRewrite28(hi); // *(*(y_corr,-(float599,is_zero_y_corr)),tmp8608) => *(*(y_corr,tmp8608),-(float599,is_zero_y_corr))
-														hi = _applyRewrite58(hi); // *(*(/(f51392,a),M94372),M72730) => *(/(f51392,a),*(M72730,M94372))
-														hi = _applyRewrite61(hi); // *(*(a,A),/(f44657,surv)) => /(*(*(a,f44657),A),surv)
-														hi = _applyRewrite9(hi); // *(A,/(1.0,B)) => /(A,B)
-														hi = _applyRewrite38(hi); // *(mean,/(%*%(tmp53095,X),tmp65672)) => /(*(mean,%*%(tmp53095,X)),tmp65672)
-														hi = _applyRewrite41(hi); // *(tmp14587,/(one_over_sqrt_two_pi,tmp76084)) => /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-														hi = _applyRewrite65(hi); // *(A,/(1.0,M13119)) => /(A,M13119)
-														hi = _applyRewrite70(hi); // *(M44015,/(mean,M36505)) => /(*(mean,M44015),M36505)
-													} else {
-														hi = _applyRewrite28(hi); // *(*(y_corr,-(float599,is_zero_y_corr)),tmp8608) => *(*(y_corr,tmp8608),-(float599,is_zero_y_corr))
-														hi = _applyRewrite58(hi); // *(*(/(f51392,a),M94372),M72730) => *(/(f51392,a),*(M72730,M94372))
-													}
-												} else {
-													hi = _applyRewrite28(hi); // *(*(y_corr,-(float599,is_zero_y_corr)),tmp8608) => *(*(y_corr,tmp8608),-(float599,is_zero_y_corr))
-													hi = _applyRewrite58(hi); // *(*(/(f51392,a),M94372),M72730) => *(/(f51392,a),*(M72730,M94372))
-												}
-											} else {
-												hi = _applyRewrite28(hi); // *(*(y_corr,-(float599,is_zero_y_corr)),tmp8608) => *(*(y_corr,tmp8608),-(float599,is_zero_y_corr))
-												hi = _applyRewrite58(hi); // *(*(/(f51392,a),M94372),M72730) => *(/(f51392,a),*(M72730,M94372))
-											}
-										}
-									} else {
-										if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
-											hi = _applyRewrite5(hi); // *(A,0.0) => const(A,0.0)
-										} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
-											hi = _applyRewrite9(hi); // *(A,/(1.0,B)) => /(A,B)
-											hi = _applyRewrite38(hi); // *(mean,/(%*%(tmp53095,X),tmp65672)) => /(*(mean,%*%(tmp53095,X)),tmp65672)
-											hi = _applyRewrite41(hi); // *(tmp14587,/(one_over_sqrt_two_pi,tmp76084)) => /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-											hi = _applyRewrite65(hi); // *(A,/(1.0,M13119)) => /(A,M13119)
-											hi = _applyRewrite70(hi); // *(M44015,/(mean,M36505)) => /(*(mean,M44015),M36505)
-										}
-									}
+									hi = _applyRewrite25(hi); // *(*(y_corr,-(float599,is_zero_y_corr)),tmp8608) => *(*(y_corr,tmp8608),-(float599,is_zero_y_corr))
+									hi = _applyRewrite5(hi); // *(A,0.0) => const(A,0.0)
+									hi = _applyRewrite9(hi); // *(A,/(1.0,B)) => /(A,B)
+									hi = _applyRewrite49(hi); // *(A,/(1.0,M13119)) => /(A,M13119)
 								} else {
-									if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
-										hi = _applyRewrite5(hi); // *(A,0.0) => const(A,0.0)
-									} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
-										hi = _applyRewrite9(hi); // *(A,/(1.0,B)) => /(A,B)
-										hi = _applyRewrite38(hi); // *(mean,/(%*%(tmp53095,X),tmp65672)) => /(*(mean,%*%(tmp53095,X)),tmp65672)
-										hi = _applyRewrite41(hi); // *(tmp14587,/(one_over_sqrt_two_pi,tmp76084)) => /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-										hi = _applyRewrite65(hi); // *(A,/(1.0,M13119)) => /(A,M13119)
-										hi = _applyRewrite70(hi); // *(M44015,/(mean,M36505)) => /(*(mean,M44015),M36505)
-									}
+									hi = _applyRewrite5(hi); // *(A,0.0) => const(A,0.0)
+									hi = _applyRewrite9(hi); // *(A,/(1.0,B)) => /(A,B)
+									hi = _applyRewrite49(hi); // *(A,/(1.0,M13119)) => /(A,M13119)
 								}
 							} else if ( hi_0 instanceof AggBinaryOp ) {
-								if ( HopRewriteUtils.isMatrixMultiply(hi_0) ) {
-									if ( hi_0.getInput().size() == 2 ) {
-										Hop hi_0_0 = hi_0.getInput(0);
-										Hop hi_0_1 = hi_0.getInput(1);
-										if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
-											hi = _applyRewrite5(hi); // *(A,0.0) => const(A,0.0)
-											hi = _applyRewrite29(hi); // *(%*%(scale_lambda,parsertemp150455),tmp43267) => {%*%(*(tmp43267,scale_lambda),parsertemp150455)}
-										} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
-											hi = _applyRewrite9(hi); // *(A,/(1.0,B)) => /(A,B)
-											hi = _applyRewrite38(hi); // *(mean,/(%*%(tmp53095,X),tmp65672)) => /(*(mean,%*%(tmp53095,X)),tmp65672)
-											hi = _applyRewrite41(hi); // *(tmp14587,/(one_over_sqrt_two_pi,tmp76084)) => /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-											hi = _applyRewrite65(hi); // *(A,/(1.0,M13119)) => /(A,M13119)
-											hi = _applyRewrite70(hi); // *(M44015,/(mean,M36505)) => /(*(mean,M44015),M36505)
-										}
-									} else {
-										if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
-											hi = _applyRewrite5(hi); // *(A,0.0) => const(A,0.0)
-										} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
-											hi = _applyRewrite9(hi); // *(A,/(1.0,B)) => /(A,B)
-											hi = _applyRewrite38(hi); // *(mean,/(%*%(tmp53095,X),tmp65672)) => /(*(mean,%*%(tmp53095,X)),tmp65672)
-											hi = _applyRewrite41(hi); // *(tmp14587,/(one_over_sqrt_two_pi,tmp76084)) => /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-											hi = _applyRewrite65(hi); // *(A,/(1.0,M13119)) => /(A,M13119)
-											hi = _applyRewrite70(hi); // *(M44015,/(mean,M36505)) => /(*(mean,M44015),M36505)
-										}
-									}
-								} else {
-									if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
-										hi = _applyRewrite5(hi); // *(A,0.0) => const(A,0.0)
-									} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
-										hi = _applyRewrite9(hi); // *(A,/(1.0,B)) => /(A,B)
-										hi = _applyRewrite38(hi); // *(mean,/(%*%(tmp53095,X),tmp65672)) => /(*(mean,%*%(tmp53095,X)),tmp65672)
-										hi = _applyRewrite41(hi); // *(tmp14587,/(one_over_sqrt_two_pi,tmp76084)) => /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-										hi = _applyRewrite65(hi); // *(A,/(1.0,M13119)) => /(A,M13119)
-										hi = _applyRewrite70(hi); // *(M44015,/(mean,M36505)) => /(*(mean,M44015),M36505)
-									}
-								}
+								hi = _applyRewrite26(hi); // *(%*%(scale_lambda,parsertemp150455),tmp43267) => {%*%(*(tmp43267,scale_lambda),parsertemp150455)}
+								hi = _applyRewrite5(hi); // *(A,0.0) => const(A,0.0)
+								hi = _applyRewrite9(hi); // *(A,/(1.0,B)) => /(A,B)
+								hi = _applyRewrite49(hi); // *(A,/(1.0,M13119)) => /(A,M13119)
 							} else {
-								if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
-									hi = _applyRewrite5(hi); // *(A,0.0) => const(A,0.0)
-								} else if ( hi_1.getDataType() == Types.DataType.MATRIX ) {
-									hi = _applyRewrite9(hi); // *(A,/(1.0,B)) => /(A,B)
-									hi = _applyRewrite38(hi); // *(mean,/(%*%(tmp53095,X),tmp65672)) => /(*(mean,%*%(tmp53095,X)),tmp65672)
-									hi = _applyRewrite41(hi); // *(tmp14587,/(one_over_sqrt_two_pi,tmp76084)) => /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-									hi = _applyRewrite65(hi); // *(A,/(1.0,M13119)) => /(A,M13119)
-									hi = _applyRewrite70(hi); // *(M44015,/(mean,M36505)) => /(*(mean,M44015),M36505)
-								}
+								hi = _applyRewrite5(hi); // *(A,0.0) => const(A,0.0)
+								hi = _applyRewrite9(hi); // *(A,/(1.0,B)) => /(A,B)
+								hi = _applyRewrite49(hi); // *(A,/(1.0,M13119)) => /(A,M13119)
 							}
 						} else if ( hi_0.getDataType() == Types.DataType.SCALAR ) {
 							hi = _applyRewrite6(hi); // *(0.0,A) => const(A,0.0)
-							hi = _applyRewrite37(hi); // *(tmp43267,%*%(scale_lambda,parsertemp150455)) => {%*%(*(tmp43267,scale_lambda),parsertemp150455)}
-							hi = _applyRewrite44(hi); // *(a,cast.MATRIX(b)) => cast.MATRIX(*(a,b))
-							hi = _applyRewrite66(hi); // *(f68833,-(0.0,M48693)) => *(M48693,-(0.0,f68833))
+							hi = _applyRewrite33(hi); // *(tmp43267,%*%(scale_lambda,parsertemp150455)) => {%*%(*(tmp43267,scale_lambda),parsertemp150455)}
+							hi = _applyRewrite36(hi); // *(a,cast.MATRIX(b)) => cast.MATRIX(*(a,b))
+							hi = _applyRewrite50(hi); // *(f68833,-(0.0,M48693)) => *(M48693,-(0.0,f68833))
 						}
 					}
 				} else if ( (( BinaryOp ) hi ).getOp() == Types.OpOp2.DIV ) {
-					if ( hi.getInput().size() == 2 ) {
-						Hop hi_0 = hi.getInput(0);
-						Hop hi_1 = hi.getInput(1);
-						if ( hi_0.getDataType() == Types.DataType.MATRIX ) {
-							if ( hi_0 instanceof BinaryOp ) {
-								if ( (( BinaryOp ) hi_0 ).getOp() == Types.OpOp2.MULT ) {
-									if ( hi_0.getInput().size() == 2 ) {
-										Hop hi_0_0 = hi_0.getInput(0);
-										Hop hi_0_1 = hi_0.getInput(1);
-										if ( hi_1.getDataType() == Types.DataType.SCALAR ) {
-											hi = _applyRewrite25(hi); // /(*(tmp32523,tmp78731),i_process_item) => *(/(tmp32523,i_process_item),tmp78731)
-											hi = _applyRewrite32(hi); // /(*(tmp78731,tmp32523),i_process_item) => *(/(tmp32523,i_process_item),tmp78731)
-											hi = _applyRewrite56(hi); // /(*(f4825,parsertemp570372),f83755) => *(/(f4825,f83755),parsertemp570372)
-											hi = _applyRewrite63(hi); // /(*(parsertemp570372,f4825),f83755) => *(/(f4825,f83755),parsertemp570372)
-											hi = _applyRewrite59(hi); // /(M43656,2.0) => *(0.5,M43656)
-											hi = _applyRewrite64(hi); // /(M62235,2000.0) => *(5.0E-4,M62235)
-										}
-									} else {
-										hi = _applyRewrite59(hi); // /(M43656,2.0) => *(0.5,M43656)
-										hi = _applyRewrite64(hi); // /(M62235,2000.0) => *(5.0E-4,M62235)
-									}
-								} else if ( (( BinaryOp ) hi_0 ).getOp() == Types.OpOp2.DIV ) {
-									hi = _applyRewrite74(hi); // /(/(f7640,A),f60078) => /(/(f7640,f60078),A)
-									hi = _applyRewrite59(hi); // /(M43656,2.0) => *(0.5,M43656)
-									hi = _applyRewrite64(hi); // /(M62235,2000.0) => *(5.0E-4,M62235)
-								} else {
-									hi = _applyRewrite59(hi); // /(M43656,2.0) => *(0.5,M43656)
-									hi = _applyRewrite64(hi); // /(M62235,2000.0) => *(5.0E-4,M62235)
-								}
-							} else {
-								hi = _applyRewrite59(hi); // /(M43656,2.0) => *(0.5,M43656)
-								hi = _applyRewrite64(hi); // /(M62235,2000.0) => *(5.0E-4,M62235)
-							}
-						} else if ( hi_0.getDataType() == Types.DataType.SCALAR ) {
-							hi = _applyRewrite43(hi); // /(a,cast.MATRIX(b)) => cast.MATRIX(/(a,b))
-						}
-					}
+					hi = _applyRewrite35(hi); // /(a,cast.MATRIX(b)) => cast.MATRIX(/(a,b))
+					hi = _applyRewrite45(hi); // /(M43656,2.0) => *(0.5,M43656)
+					hi = _applyRewrite48(hi); // /(M62235,2000.0) => *(5.0E-4,M62235)
 				}
 			} else if ( hi instanceof ReorgOp ) {
-				hi = _applyRewrite23(hi); // t(==(key_unique,t(key))) => ==(key,t(key_unique))
+				hi = _applyRewrite22(hi); // t(==(key_unique,t(key))) => ==(key,t(key_unique))
 			} else if ( hi instanceof AggBinaryOp ) {
-				hi = _applyRewrite27(hi); // %*%(t(X_batch),tmp92007) => {t(%*%(t(tmp92007),X_batch))}
+				hi = _applyRewrite24(hi); // %*%(t(X_batch),tmp92007) => {t(%*%(t(tmp92007),X_batch))}
 			}
 		}
 		return hi;
@@ -606,6 +340,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: *(0.0,a) => 0.0");
 		return newRoot;
 	}
 
@@ -656,6 +391,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 
+		DMLExecutor.println("Applying rewrite: *(a,0.0) => 0.0");
 		return newRoot;
 	}
 
@@ -706,6 +442,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: +(A,0.0) => A");
 		return newRoot;
 	}
 
@@ -756,6 +493,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 
+		DMLExecutor.println("Applying rewrite: +(0.0,A) => A");
 		return newRoot;
 	}
 
@@ -806,6 +544,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: -(A,0.0) => A");
 		return newRoot;
 	}
 
@@ -856,6 +595,7 @@ public class GeneratedRewriteClass implements Function {
 		// Remove old unreferenced Hops
 		HopRewriteUtils.cleanupUnreferenced(hi);
 
+		DMLExecutor.println("Applying rewrite: *(A,0.0) => const(A,0.0)");
 		return newRoot;
 	}
 
@@ -906,6 +646,7 @@ public class GeneratedRewriteClass implements Function {
 		// Remove old unreferenced Hops
 		HopRewriteUtils.cleanupUnreferenced(hi);
 
+		DMLExecutor.println("Applying rewrite: *(0.0,A) => const(A,0.0)");
 		return newRoot;
 	}
 
@@ -977,6 +718,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_0_0);
 
+		DMLExecutor.println("Applying rewrite: +(-(0.0,A),B) => -(B,A)");
 		return newRoot;
 	}
 
@@ -1048,6 +790,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: -(0.0,-(B,A)) => -(A,B)");
 		return newRoot;
 	}
 
@@ -1119,6 +862,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 		HopRewriteUtils.cleanupUnreferenced(hi_1_0);
 
+		DMLExecutor.println("Applying rewrite: *(A,/(1.0,B)) => /(A,B)");
 		return newRoot;
 	}
 
@@ -1180,6 +924,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 
+		DMLExecutor.println("Applying rewrite: +(-(A,a),b) => +(A,-(b,a))");
 		return newRoot;
 	}
 
@@ -1241,6 +986,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: +(a,-(A,b)) => +(A,-(a,b))");
 		return newRoot;
 	}
 
@@ -1302,6 +1048,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 
+		DMLExecutor.println("Applying rewrite: +(-(a,A),b) => -(+(a,b),A)");
 		return newRoot;
 	}
 
@@ -1363,6 +1110,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: +(a,-(b,A)) => -(+(a,b),A)");
 		return newRoot;
 	}
 
@@ -1424,6 +1172,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 
+		DMLExecutor.println("Applying rewrite: -(-(A,a),b) => -(A,+(b,a))");
 		return newRoot;
 	}
 
@@ -1485,6 +1234,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: -(a,-(A,b)) => -(+(a,b),A)");
 		return newRoot;
 	}
 
@@ -1546,6 +1296,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 
+		DMLExecutor.println("Applying rewrite: -(-(a,A),b) => -(-(a,b),A)");
 		return newRoot;
 	}
 
@@ -1607,6 +1358,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: -(a,-(b,A)) => +(-(a,b),A)");
 		return newRoot;
 	}
 
@@ -1752,95 +1504,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 		HopRewriteUtils.cleanupUnreferenced(hi_1_1);
 
-		return newRoot;
-	}
-
-	// Implementation of the rule +(*(/(tmp24377,tmp23360),tmp),tmp97984) => +(tmp97984,/(*(tmp24377,tmp),tmp23360))
-	private static Hop _applyRewrite19(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.PLUS || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if (hi_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0 = (BinaryOp) hi_0;
-
-		if ( c_hi_0.getOp() != Types.OpOp2.MULT || !c_hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0 = hi_0.getInput(0);
-
-		if (hi_0_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0_0 = (BinaryOp) hi_0_0;
-
-		if ( c_hi_0_0.getOp() != Types.OpOp2.DIV || !c_hi_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0_0 = hi_0_0.getInput(0);
-
-		if ( hi_0_0_0.getDataType() != Types.DataType.MATRIX || !hi_0_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0_1 = hi_0_0.getInput(1);
-
-		if ( hi_0_0_1.getDataType() != Types.DataType.SCALAR || !hi_0_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_1 = hi_0.getInput(1);
-
-		if ( hi_0_1.getDataType() != Types.DataType.MATRIX || !hi_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if ( hi_1.getDataType() != Types.DataType.MATRIX || !hi_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: +(tmp97984,/(*(tmp24377,tmp),tmp23360))
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(hi_0_0_0, hi_0_1) )
-			return hi;
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_0_0_0, hi_0_1, Types.OpOp2.MULT);
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(v1, hi_0_0_1, Types.OpOp2.DIV);
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(hi_1, v2) )
-			return hi;
-		BinaryOp v3 = HopRewriteUtils.createAutoGeneratedBinary(hi_1, v2, Types.OpOp2.PLUS);
-
-		Hop newRoot = v3;
-		if ( v3.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_0);
-		HopRewriteUtils.cleanupUnreferenced(hi_0_0);
-
+		DMLExecutor.println("Applying rewrite: +(*(*(y_corr,-(float599,is_zero_y_corr)),tmp8608),*(tmp20367,+(tmp23071,tmp55180))) => +(*(*(tmp8608,y_corr),-(float599,is_zero_y_corr)),*(tmp20367,+(tmp55180,tmp23071)))");
 		return newRoot;
 	}
 
 	// Implementation of the rule *(/(1.0,tmp5995),tmp41945) => /(tmp41945,tmp5995)
-	private static Hop _applyRewrite20(Hop hi) {
+	private static Hop _applyRewrite19(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -1905,11 +1574,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_0_0);
 
+		DMLExecutor.println("Applying rewrite: *(/(1.0,tmp5995),tmp41945) => /(tmp41945,tmp5995)");
 		return newRoot;
 	}
 
 	// Implementation of the rule +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)
-	private static Hop _applyRewrite21(Hop hi) {
+	private static Hop _applyRewrite20(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -1968,11 +1638,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 
+		DMLExecutor.println("Applying rewrite: +(-(tmp80035,f12880),tmp63699) => -(+(tmp63699,tmp80035),f12880)");
 		return newRoot;
 	}
 
 	// Implementation of the rule -(tmp66496,cast.MATRIX(tmp91996)) => cast.MATRIX(-(tmp66496,tmp91996))
-	private static Hop _applyRewrite22(Hop hi) {
+	private static Hop _applyRewrite21(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -2024,11 +1695,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: -(tmp66496,cast.MATRIX(tmp91996)) => cast.MATRIX(-(tmp66496,tmp91996))");
 		return newRoot;
 	}
 
 	// Implementation of the rule t(==(key_unique,t(key))) => ==(key,t(key_unique))
-	private static Hop _applyRewrite23(Hop hi) {
+	private static Hop _applyRewrite22(Hop hi) {
 		if ( !(hi instanceof ReorgOp) )
 			return hi;
 
@@ -2095,133 +1767,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_0_1);
 
-		return newRoot;
-	}
-
-	// Implementation of the rule *(/(tmp78731,i_process_item),tmp32523) => *(/(tmp32523,i_process_item),tmp78731)
-	private static Hop _applyRewrite24(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.MULT || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if (hi_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0 = (BinaryOp) hi_0;
-
-		if ( c_hi_0.getOp() != Types.OpOp2.DIV || !c_hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0 = hi_0.getInput(0);
-
-		if ( hi_0_0.getDataType() != Types.DataType.MATRIX || !hi_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_1 = hi_0.getInput(1);
-
-		if ( hi_0_1.getDataType() != Types.DataType.SCALAR || !hi_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if ( hi_1.getDataType() != Types.DataType.SCALAR || !hi_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: *(/(tmp32523,i_process_item),tmp78731)
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_1, hi_0_1, Types.OpOp2.DIV);
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(v1, hi_0_0, Types.OpOp2.MULT);
-
-		Hop newRoot = v2;
-		if ( v2.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_0);
-
-		return newRoot;
-	}
-
-	// Implementation of the rule /(*(tmp32523,tmp78731),i_process_item) => *(/(tmp32523,i_process_item),tmp78731)
-	private static Hop _applyRewrite25(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.DIV || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if (hi_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0 = (BinaryOp) hi_0;
-
-		if ( c_hi_0.getOp() != Types.OpOp2.MULT || !c_hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0 = hi_0.getInput(0);
-
-		if ( hi_0_0.getDataType() != Types.DataType.SCALAR || !hi_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_1 = hi_0.getInput(1);
-
-		if ( hi_0_1.getDataType() != Types.DataType.MATRIX || !hi_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if ( hi_1.getDataType() != Types.DataType.SCALAR || !hi_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: *(/(tmp32523,i_process_item),tmp78731)
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_0_0, hi_1, Types.OpOp2.DIV);
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(v1, hi_0_1, Types.OpOp2.MULT);
-
-		Hop newRoot = v2;
-		if ( v2.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_0);
-
+		DMLExecutor.println("Applying rewrite: t(==(key_unique,t(key))) => ==(key,t(key_unique))");
 		return newRoot;
 	}
 
 	// Implementation of the rule sum(/(tmp83271,tmp60732)) => /(sum(tmp83271),tmp60732)
-	private static Hop _applyRewrite26(Hop hi) {
+	private static Hop _applyRewrite23(Hop hi) {
 		if ( !(hi instanceof AggUnaryOp) )
 			return hi;
 
@@ -2276,11 +1827,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 
+		DMLExecutor.println("Applying rewrite: sum(/(tmp83271,tmp60732)) => /(sum(tmp83271),tmp60732)");
 		return newRoot;
 	}
 
 	// Implementation of the rule %*%(t(X_batch),tmp92007) => {t(%*%(t(tmp92007),X_batch))}
-	private static Hop _applyRewrite27(Hop hi) {
+	private static Hop _applyRewrite24(Hop hi) {
 		if ( !HopRewriteUtils.isMatrixMultiply(hi) )
 			return hi;
 
@@ -2307,13 +1859,13 @@ public class GeneratedRewriteClass implements Function {
 			return hi;
 
 
-		if ( hi_1.getDim2() == -1 || hi_1.getNnz() == -1 || hi_0_0.getNnz() == -1 || hi_0_0.getDim2() == -1 || hi_1.getDim1() == -1 )
+		if ( hi_1.getDim2() == -1 || hi_0_0.getDim1() == -1 || hi_1.getNnz() == -1 || hi_0_0.getNnz() == -1 || hi_0_0.getDim2() == -1 )
 			return hi;
 
 
 		double[] costs = new double[2];
-		costs[0] = (hi_0_0.getNnz() + (Math.min(hi_0_0.getNnz(), hi_1.getNnz()) * hi_1.getDim1() * 3.0) + 20020.0);
-		costs[1] = (hi_1.getNnz() + (Math.min(hi_1.getNnz(), hi_0_0.getNnz()) * hi_1.getDim1() * 3.0) + (Math.min((hi_1.getNnz() * (1.0 / hi_1.getDim2())), 1.0) * Math.min((hi_0_0.getNnz() * (1.0 / hi_0_0.getDim2())), 1.0) * hi_1.getDim2() * hi_0_0.getDim2()) + 30030.0);
+		costs[0] = (hi_0_0.getNnz() + (Math.min(hi_0_0.getNnz(), hi_1.getNnz()) * hi_0_0.getDim1() * 3.0) + 20020.0);
+		costs[1] = (hi_1.getNnz() + (Math.min(hi_1.getNnz(), hi_0_0.getNnz()) * hi_0_0.getDim1() * 3.0) + (Math.min((hi_1.getNnz() * (1.0 / hi_1.getDim2())), 1.0) * Math.min((hi_0_0.getNnz() * (1.0 / hi_0_0.getDim2())), 1.0) * hi_1.getDim2() * hi_0_0.getDim2()) + 30030.0);
 		int minIdx = minIdx(costs);
 
 		switch( minIdx ) {
@@ -2339,6 +1891,7 @@ public class GeneratedRewriteClass implements Function {
 				HopRewriteUtils.cleanupUnreferenced(hi);
 				HopRewriteUtils.cleanupUnreferenced(hi_0);
 
+				DMLExecutor.println("Applying rewrite: %*%(t(X_batch),tmp92007) => {t(%*%(t(tmp92007),X_batch))}");
 				return newRoot;
 			}
 		}
@@ -2346,7 +1899,7 @@ public class GeneratedRewriteClass implements Function {
 	}
 
 	// Implementation of the rule *(*(y_corr,-(float599,is_zero_y_corr)),tmp8608) => *(*(y_corr,tmp8608),-(float599,is_zero_y_corr))
-	private static Hop _applyRewrite28(Hop hi) {
+	private static Hop _applyRewrite25(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -2426,11 +1979,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_0_1);
 
+		DMLExecutor.println("Applying rewrite: *(*(y_corr,-(float599,is_zero_y_corr)),tmp8608) => *(*(y_corr,tmp8608),-(float599,is_zero_y_corr))");
 		return newRoot;
 	}
 
 	// Implementation of the rule *(%*%(scale_lambda,parsertemp150455),tmp43267) => {%*%(*(tmp43267,scale_lambda),parsertemp150455)}
-	private static Hop _applyRewrite29(Hop hi) {
+	private static Hop _applyRewrite26(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -2493,6 +2047,7 @@ public class GeneratedRewriteClass implements Function {
 				HopRewriteUtils.cleanupUnreferenced(hi);
 				HopRewriteUtils.cleanupUnreferenced(hi_0);
 
+				DMLExecutor.println("Applying rewrite: *(%*%(scale_lambda,parsertemp150455),tmp43267) => {%*%(*(tmp43267,scale_lambda),parsertemp150455)}");
 				return newRoot;
 			}
 		}
@@ -2500,7 +2055,7 @@ public class GeneratedRewriteClass implements Function {
 	}
 
 	// Implementation of the rule sum(*(*(tmp8790,tmp30390),tmp97178)) => *(tmp30390,sum(*(tmp97178,tmp8790)))
-	private static Hop _applyRewrite30(Hop hi) {
+	private static Hop _applyRewrite27(Hop hi) {
 		if ( !(hi instanceof AggUnaryOp) )
 			return hi;
 
@@ -2576,11 +2131,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_0_0);
 
+		DMLExecutor.println("Applying rewrite: sum(*(*(tmp8790,tmp30390),tmp97178)) => *(tmp30390,sum(*(tmp97178,tmp8790)))");
 		return newRoot;
 	}
 
 	// Implementation of the rule -(+(a,tmp82242),tmp98488) => +(-(tmp82242,tmp98488),a)
-	private static Hop _applyRewrite31(Hop hi) {
+	private static Hop _applyRewrite28(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -2639,72 +2195,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 
-		return newRoot;
-	}
-
-	// Implementation of the rule /(*(tmp78731,tmp32523),i_process_item) => *(/(tmp32523,i_process_item),tmp78731)
-	private static Hop _applyRewrite32(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.DIV || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if (hi_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0 = (BinaryOp) hi_0;
-
-		if ( c_hi_0.getOp() != Types.OpOp2.MULT || !c_hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0 = hi_0.getInput(0);
-
-		if ( hi_0_0.getDataType() != Types.DataType.MATRIX || !hi_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_1 = hi_0.getInput(1);
-
-		if ( hi_0_1.getDataType() != Types.DataType.SCALAR || !hi_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if ( hi_1.getDataType() != Types.DataType.SCALAR || !hi_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: *(/(tmp32523,i_process_item),tmp78731)
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_0_1, hi_1, Types.OpOp2.DIV);
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(v1, hi_0_0, Types.OpOp2.MULT);
-
-		Hop newRoot = v2;
-		if ( v2.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_0);
-
+		DMLExecutor.println("Applying rewrite: -(+(a,tmp82242),tmp98488) => +(-(tmp82242,tmp98488),a)");
 		return newRoot;
 	}
 
 	// Implementation of the rule -(obj,+(tmp6500,tmp26035)) => -(-(obj,tmp6500),tmp26035)
-	private static Hop _applyRewrite33(Hop hi) {
+	private static Hop _applyRewrite29(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -2763,11 +2259,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: -(obj,+(tmp6500,tmp26035)) => -(-(obj,tmp6500),tmp26035)");
 		return newRoot;
 	}
 
 	// Implementation of the rule -(-(tmp68530,tmp73960),tmp29113) => -(tmp68530,+(tmp73960,tmp29113))
-	private static Hop _applyRewrite34(Hop hi) {
+	private static Hop _applyRewrite30(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -2826,11 +2323,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 
+		DMLExecutor.println("Applying rewrite: -(-(tmp68530,tmp73960),tmp29113) => -(tmp68530,+(tmp73960,tmp29113))");
 		return newRoot;
 	}
 
 	// Implementation of the rule +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)
-	private static Hop _applyRewrite35(Hop hi) {
+	private static Hop _applyRewrite31(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -2889,11 +2387,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 
+		DMLExecutor.println("Applying rewrite: +(-(a,tmp98488),tmp82242) => +(-(tmp82242,tmp98488),a)");
 		return newRoot;
 	}
 
 	// Implementation of the rule +(*(tmp99142,missing_mask_Y),*(tmp58606,missing_mask_Y)) => *(missing_mask_Y,+(tmp99142,tmp58606))
-	private static Hop _applyRewrite36(Hop hi) {
+	private static Hop _applyRewrite32(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -2968,11 +2467,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: +(*(tmp99142,missing_mask_Y),*(tmp58606,missing_mask_Y)) => *(missing_mask_Y,+(tmp99142,tmp58606))");
 		return newRoot;
 	}
 
 	// Implementation of the rule *(tmp43267,%*%(scale_lambda,parsertemp150455)) => {%*%(*(tmp43267,scale_lambda),parsertemp150455)}
-	private static Hop _applyRewrite37(Hop hi) {
+	private static Hop _applyRewrite33(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -3035,284 +2535,15 @@ public class GeneratedRewriteClass implements Function {
 				HopRewriteUtils.cleanupUnreferenced(hi);
 				HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+				DMLExecutor.println("Applying rewrite: *(tmp43267,%*%(scale_lambda,parsertemp150455)) => {%*%(*(tmp43267,scale_lambda),parsertemp150455)}");
 				return newRoot;
 			}
 		}
 		return hi;
 	}
 
-	// Implementation of the rule *(mean,/(%*%(tmp53095,X),tmp65672)) => /(*(mean,%*%(tmp53095,X)),tmp65672)
-	private static Hop _applyRewrite38(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.MULT || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if ( hi_0.getDataType() != Types.DataType.MATRIX || !hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if (hi_1.getParent().size() > 1)
-			return hi;
-		if ( !(hi_1 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_1 = (BinaryOp) hi_1;
-
-		if ( c_hi_1.getOp() != Types.OpOp2.DIV || !c_hi_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_0 = hi_1.getInput(0);
-
-		if (hi_1_0.getParent().size() > 1)
-			return hi;
-		if ( !HopRewriteUtils.isMatrixMultiply(hi_1_0) )
-			return hi;
-
-		Hop hi_1_0_0 = hi_1_0.getInput(0);
-
-		if ( hi_1_0_0.getDataType() != Types.DataType.MATRIX || !hi_1_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_0_1 = hi_1_0.getInput(1);
-
-		if ( hi_1_0_1.getDataType() != Types.DataType.MATRIX || !hi_1_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_1 = hi_1.getInput(1);
-
-		if ( hi_1_1.getDataType() != Types.DataType.MATRIX || !hi_1_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: /(*(mean,%*%(tmp53095,X)),tmp65672)
-		AggBinaryOp v1 = HopRewriteUtils.createMatrixMultiply(hi_1_0_0, hi_1_0_1);
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(hi_0, v1) )
-			return hi;
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(hi_0, v1, Types.OpOp2.MULT);
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(v2, hi_1_1) )
-			return hi;
-		BinaryOp v3 = HopRewriteUtils.createAutoGeneratedBinary(v2, hi_1_1, Types.OpOp2.DIV);
-
-		Hop newRoot = v3;
-		if ( v3.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_1);
-		HopRewriteUtils.cleanupUnreferenced(hi_1_0);
-
-		return newRoot;
-	}
-
-	// Implementation of the rule *(/(one_over_sqrt_two_pi,tmp76084),tmp14587) => /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-	private static Hop _applyRewrite39(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.MULT || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if (hi_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0 = (BinaryOp) hi_0;
-
-		if ( c_hi_0.getOp() != Types.OpOp2.DIV || !c_hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0 = hi_0.getInput(0);
-
-		if ( hi_0_0.getDataType() != Types.DataType.SCALAR || !hi_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_1 = hi_0.getInput(1);
-
-		if ( hi_0_1.getDataType() != Types.DataType.MATRIX || !hi_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if ( hi_1.getDataType() != Types.DataType.MATRIX || !hi_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_0_0, hi_1, Types.OpOp2.MULT);
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(v1, hi_0_1) )
-			return hi;
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(v1, hi_0_1, Types.OpOp2.DIV);
-
-		Hop newRoot = v2;
-		if ( v2.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_0);
-
-		return newRoot;
-	}
-
-	// Implementation of the rule *(/(d_r_rev,D_r_rev),tmp161) => /(*(tmp161,d_r_rev),D_r_rev)
-	private static Hop _applyRewrite40(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.MULT || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if (hi_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0 = (BinaryOp) hi_0;
-
-		if ( c_hi_0.getOp() != Types.OpOp2.DIV || !c_hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0 = hi_0.getInput(0);
-
-		if ( hi_0_0.getDataType() != Types.DataType.MATRIX || !hi_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_1 = hi_0.getInput(1);
-
-		if ( hi_0_1.getDataType() != Types.DataType.MATRIX || !hi_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if ( hi_1.getDataType() != Types.DataType.MATRIX || !hi_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: /(*(tmp161,d_r_rev),D_r_rev)
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(hi_1, hi_0_0) )
-			return hi;
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_1, hi_0_0, Types.OpOp2.MULT);
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(v1, hi_0_1) )
-			return hi;
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(v1, hi_0_1, Types.OpOp2.DIV);
-
-		Hop newRoot = v2;
-		if ( v2.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_0);
-
-		return newRoot;
-	}
-
-	// Implementation of the rule *(tmp14587,/(one_over_sqrt_two_pi,tmp76084)) => /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-	private static Hop _applyRewrite41(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.MULT || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if ( hi_0.getDataType() != Types.DataType.MATRIX || !hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if (hi_1.getParent().size() > 1)
-			return hi;
-		if ( !(hi_1 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_1 = (BinaryOp) hi_1;
-
-		if ( c_hi_1.getOp() != Types.OpOp2.DIV || !c_hi_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_0 = hi_1.getInput(0);
-
-		if ( hi_1_0.getDataType() != Types.DataType.SCALAR || !hi_1_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_1 = hi_1.getInput(1);
-
-		if ( hi_1_1.getDataType() != Types.DataType.MATRIX || !hi_1_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: /(*(one_over_sqrt_two_pi,tmp14587),tmp76084)
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_1_0, hi_0, Types.OpOp2.MULT);
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(v1, hi_1_1) )
-			return hi;
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(v1, hi_1_1, Types.OpOp2.DIV);
-
-		Hop newRoot = v2;
-		if ( v2.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_1);
-
-		return newRoot;
-	}
-
 	// Implementation of the rule *(/(1.0,B),a) => /(a,B)
-	private static Hop _applyRewrite42(Hop hi) {
+	private static Hop _applyRewrite34(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -3377,11 +2608,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_0_0);
 
+		DMLExecutor.println("Applying rewrite: *(/(1.0,B),a) => /(a,B)");
 		return newRoot;
 	}
 
 	// Implementation of the rule /(a,cast.MATRIX(b)) => cast.MATRIX(/(a,b))
-	private static Hop _applyRewrite43(Hop hi) {
+	private static Hop _applyRewrite35(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -3433,11 +2665,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: /(a,cast.MATRIX(b)) => cast.MATRIX(/(a,b))");
 		return newRoot;
 	}
 
 	// Implementation of the rule *(a,cast.MATRIX(b)) => cast.MATRIX(*(a,b))
-	private static Hop _applyRewrite44(Hop hi) {
+	private static Hop _applyRewrite36(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -3489,11 +2722,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: *(a,cast.MATRIX(b)) => cast.MATRIX(*(a,b))");
 		return newRoot;
 	}
 
 	// Implementation of the rule +(-(*(C,b),d),A) => -(+*(A,b,C),d)
-	private static Hop _applyRewrite45(Hop hi) {
+	private static Hop _applyRewrite37(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -3570,11 +2804,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_0_0);
 
+		DMLExecutor.println("Applying rewrite: +(-(*(C,b),d),A) => -(+*(A,b,C),d)");
 		return newRoot;
 	}
 
 	// Implementation of the rule +(-(*(D,c),B),A) => -(A,-*(B,c,D))
-	private static Hop _applyRewrite46(Hop hi) {
+	private static Hop _applyRewrite38(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -3653,177 +2888,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_0_0);
 
-		return newRoot;
-	}
-
-	// Implementation of the rule -(A,/(*(b,C),D)) => -*(A,b,/(C,D))
-	private static Hop _applyRewrite47(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.MINUS || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if ( hi_0.getDataType() != Types.DataType.MATRIX || !hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if (hi_1.getParent().size() > 1)
-			return hi;
-		if ( !(hi_1 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_1 = (BinaryOp) hi_1;
-
-		if ( c_hi_1.getOp() != Types.OpOp2.DIV || !c_hi_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_0 = hi_1.getInput(0);
-
-		if (hi_1_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_1_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_1_0 = (BinaryOp) hi_1_0;
-
-		if ( c_hi_1_0.getOp() != Types.OpOp2.MULT || !c_hi_1_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_0_0 = hi_1_0.getInput(0);
-
-		if ( hi_1_0_0.getDataType() != Types.DataType.SCALAR || !hi_1_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_0_1 = hi_1_0.getInput(1);
-
-		if ( hi_1_0_1.getDataType() != Types.DataType.MATRIX || !hi_1_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_1 = hi_1.getInput(1);
-
-		if ( hi_1_1.getDataType() != Types.DataType.MATRIX || !hi_1_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: -*(A,b,/(C,D))
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(hi_1_0_1, hi_1_1) )
-			return hi;
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_1_0_1, hi_1_1, Types.OpOp2.DIV);
-		if ( !RewriterRuntimeUtils.hasMatchingDims(hi_0, v1) )
-			return hi;
-		TernaryOp v2 = HopRewriteUtils.createTernary(hi_0, hi_1_0_0, v1,Types.OpOp3.MINUS_MULT);
-
-		Hop newRoot = v2;
-		if ( v2.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_1);
-		HopRewriteUtils.cleanupUnreferenced(hi_1_0);
-
-		return newRoot;
-	}
-
-	// Implementation of the rule -(W1,/(*(f72208,M22221),M2747)) => -*(W1,f72208,/(M22221,M2747))
-	private static Hop _applyRewrite48(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.MINUS || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if ( hi_0.getDataType() != Types.DataType.MATRIX || !hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if (hi_1.getParent().size() > 1)
-			return hi;
-		if ( !(hi_1 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_1 = (BinaryOp) hi_1;
-
-		if ( c_hi_1.getOp() != Types.OpOp2.DIV || !c_hi_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_0 = hi_1.getInput(0);
-
-		if (hi_1_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_1_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_1_0 = (BinaryOp) hi_1_0;
-
-		if ( c_hi_1_0.getOp() != Types.OpOp2.MULT || !c_hi_1_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_0_0 = hi_1_0.getInput(0);
-
-		if ( hi_1_0_0.getDataType() != Types.DataType.SCALAR || !hi_1_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_0_1 = hi_1_0.getInput(1);
-
-		if ( hi_1_0_1.getDataType() != Types.DataType.MATRIX || !hi_1_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_1 = hi_1.getInput(1);
-
-		if ( hi_1_1.getDataType() != Types.DataType.MATRIX || !hi_1_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: -*(W1,f72208,/(M22221,M2747))
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(hi_1_0_1, hi_1_1) )
-			return hi;
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_1_0_1, hi_1_1, Types.OpOp2.DIV);
-		if ( !RewriterRuntimeUtils.hasMatchingDims(hi_0, v1) )
-			return hi;
-		TernaryOp v2 = HopRewriteUtils.createTernary(hi_0, hi_1_0_0, v1,Types.OpOp3.MINUS_MULT);
-
-		Hop newRoot = v2;
-		if ( v2.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_1);
-		HopRewriteUtils.cleanupUnreferenced(hi_1_0);
-
+		DMLExecutor.println("Applying rewrite: +(-(*(D,c),B),A) => -(A,-*(B,c,D))");
 		return newRoot;
 	}
 
 	// Implementation of the rule +(M9347,*(K,*(M40316,f32765))) => +*(M9347,f32765,*(K,M40316))
-	private static Hop _applyRewrite49(Hop hi) {
+	private static Hop _applyRewrite39(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -3902,11 +2972,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 		HopRewriteUtils.cleanupUnreferenced(hi_1_1);
 
+		DMLExecutor.println("Applying rewrite: +(M9347,*(K,*(M40316,f32765))) => +*(M9347,f32765,*(K,M40316))");
 		return newRoot;
 	}
 
 	// Implementation of the rule -(y,+(%*%(X,B),intercept)) => -(-(y,%*%(X,B)),intercept)
-	private static Hop _applyRewrite50(Hop hi) {
+	private static Hop _applyRewrite40(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -3979,11 +3050,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 		HopRewriteUtils.cleanupUnreferenced(hi_1_0);
 
+		DMLExecutor.println("Applying rewrite: -(y,+(%*%(X,B),intercept)) => -(-(y,%*%(X,B)),intercept)");
 		return newRoot;
 	}
 
-	// Implementation of the rule +(-(f45081,M73962),/(M72283,M59533)) => +(f45081,-(/(M72283,M59533),M73962))
-	private static Hop _applyRewrite51(Hop hi) {
+	// Implementation of the rule +(-(f45081,A),B) => +(f45081,-(B,A))
+	private static Hop _applyRewrite41(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -4016,99 +3088,15 @@ public class GeneratedRewriteClass implements Function {
 
 		Hop hi_1 = hi.getInput(1);
 
-		if (hi_1.getParent().size() > 1)
-			return hi;
-		if ( !(hi_1 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_1 = (BinaryOp) hi_1;
-
-		if ( c_hi_1.getOp() != Types.OpOp2.DIV || !c_hi_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_0 = hi_1.getInput(0);
-
-		if ( hi_1_0.getDataType() != Types.DataType.MATRIX || !hi_1_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_1 = hi_1.getInput(1);
-
-		if ( hi_1_1.getDataType() != Types.DataType.MATRIX || !hi_1_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: +(f45081,-(/(M72283,M59533),M73962))
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(hi_1_0, hi_1_1) )
-			return hi;
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_1_0, hi_1_1, Types.OpOp2.DIV);
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(v1, hi_0_1) )
-			return hi;
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(v1, hi_0_1, Types.OpOp2.MINUS);
-		BinaryOp v3 = HopRewriteUtils.createAutoGeneratedBinary(hi_0_0, v2, Types.OpOp2.PLUS);
-
-		Hop newRoot = v3;
-		if ( v3.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_0);
-		HopRewriteUtils.cleanupUnreferenced(hi_1);
-
-		return newRoot;
-	}
-
-	// Implementation of the rule *(/(f93935,M96942),M52203) => *(f93935,/(M52203,M96942))
-	private static Hop _applyRewrite52(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.MULT || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if (hi_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0 = (BinaryOp) hi_0;
-
-		if ( c_hi_0.getOp() != Types.OpOp2.DIV || !c_hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0 = hi_0.getInput(0);
-
-		if ( hi_0_0.getDataType() != Types.DataType.SCALAR || !hi_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_1 = hi_0.getInput(1);
-
-		if ( hi_0_1.getDataType() != Types.DataType.MATRIX || !hi_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
 		if ( hi_1.getDataType() != Types.DataType.MATRIX || !hi_1.getValueType().isNumeric() )
 			return hi;
 
 
-		// Now, we start building the new HOP-DAG: *(f93935,/(M52203,M96942))
+		// Now, we start building the new HOP-DAG: +(f45081,-(B,A))
 		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(hi_1, hi_0_1) )
 			return hi;
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_1, hi_0_1, Types.OpOp2.DIV);
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(hi_0_0, v1, Types.OpOp2.MULT);
+		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_1, hi_0_1, Types.OpOp2.MINUS);
+		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(hi_0_0, v1, Types.OpOp2.PLUS);
 
 		Hop newRoot = v2;
 		if ( v2.getValueType() != hi.getValueType() ) {
@@ -4126,72 +3114,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 
-		return newRoot;
-	}
-
-	// Implementation of the rule *(/(parsertemp570372,f83755),f4825) => *(/(f4825,f83755),parsertemp570372)
-	private static Hop _applyRewrite53(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.MULT || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if (hi_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0 = (BinaryOp) hi_0;
-
-		if ( c_hi_0.getOp() != Types.OpOp2.DIV || !c_hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0 = hi_0.getInput(0);
-
-		if ( hi_0_0.getDataType() != Types.DataType.MATRIX || !hi_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_1 = hi_0.getInput(1);
-
-		if ( hi_0_1.getDataType() != Types.DataType.SCALAR || !hi_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if ( hi_1.getDataType() != Types.DataType.SCALAR || !hi_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: *(/(f4825,f83755),parsertemp570372)
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_1, hi_0_1, Types.OpOp2.DIV);
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(v1, hi_0_0, Types.OpOp2.MULT);
-
-		Hop newRoot = v2;
-		if ( v2.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_0);
-
+		DMLExecutor.println("Applying rewrite: +(-(f45081,A),B) => +(f45081,-(B,A))");
 		return newRoot;
 	}
 
 	// Implementation of the rule +(M9347,*(*(f32765,K),M40316)) => +*(M9347,f32765,*(K,M40316))
-	private static Hop _applyRewrite54(Hop hi) {
+	private static Hop _applyRewrite42(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -4270,11 +3198,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 		HopRewriteUtils.cleanupUnreferenced(hi_1_0);
 
+		DMLExecutor.println("Applying rewrite: +(M9347,*(*(f32765,K),M40316)) => +*(M9347,f32765,*(K,M40316))");
 		return newRoot;
 	}
 
 	// Implementation of the rule +(*(*(K,f32765),M40316),M9347) => +*(M9347,f32765,*(K,M40316))
-	private static Hop _applyRewrite55(Hop hi) {
+	private static Hop _applyRewrite43(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -4353,72 +3282,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_0_0);
 
-		return newRoot;
-	}
-
-	// Implementation of the rule /(*(f4825,parsertemp570372),f83755) => *(/(f4825,f83755),parsertemp570372)
-	private static Hop _applyRewrite56(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.DIV || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if (hi_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0 = (BinaryOp) hi_0;
-
-		if ( c_hi_0.getOp() != Types.OpOp2.MULT || !c_hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0 = hi_0.getInput(0);
-
-		if ( hi_0_0.getDataType() != Types.DataType.SCALAR || !hi_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_1 = hi_0.getInput(1);
-
-		if ( hi_0_1.getDataType() != Types.DataType.MATRIX || !hi_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if ( hi_1.getDataType() != Types.DataType.SCALAR || !hi_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: *(/(f4825,f83755),parsertemp570372)
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_0_0, hi_1, Types.OpOp2.DIV);
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(v1, hi_0_1, Types.OpOp2.MULT);
-
-		Hop newRoot = v2;
-		if ( v2.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_0);
-
+		DMLExecutor.println("Applying rewrite: +(*(*(K,f32765),M40316),M9347) => +*(M9347,f32765,*(K,M40316))");
 		return newRoot;
 	}
 
 	// Implementation of the rule *(/(1.0,M13119),A) => /(A,M13119)
-	private static Hop _applyRewrite57(Hop hi) {
+	private static Hop _applyRewrite44(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -4485,93 +3354,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_0_0);
 
-		return newRoot;
-	}
-
-	// Implementation of the rule *(*(/(f51392,a),M94372),M72730) => *(/(f51392,a),*(M72730,M94372))
-	private static Hop _applyRewrite58(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.MULT || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if (hi_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0 = (BinaryOp) hi_0;
-
-		if ( c_hi_0.getOp() != Types.OpOp2.MULT || !c_hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0 = hi_0.getInput(0);
-
-		if (hi_0_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0_0 = (BinaryOp) hi_0_0;
-
-		if ( c_hi_0_0.getOp() != Types.OpOp2.DIV || !c_hi_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0_0 = hi_0_0.getInput(0);
-
-		if ( hi_0_0_0.getDataType() != Types.DataType.SCALAR || !hi_0_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0_1 = hi_0_0.getInput(1);
-
-		if ( hi_0_0_1.getDataType() != Types.DataType.SCALAR || !hi_0_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_1 = hi_0.getInput(1);
-
-		if ( hi_0_1.getDataType() != Types.DataType.MATRIX || !hi_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if ( hi_1.getDataType() != Types.DataType.MATRIX || !hi_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: *(/(f51392,a),*(M72730,M94372))
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_0_0_0, hi_0_0_1, Types.OpOp2.DIV);
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(hi_1, hi_0_1) )
-			return hi;
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(hi_1, hi_0_1, Types.OpOp2.MULT);
-		BinaryOp v3 = HopRewriteUtils.createAutoGeneratedBinary(v1, v2, Types.OpOp2.MULT);
-
-		Hop newRoot = v3;
-		if ( v3.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_0);
-		HopRewriteUtils.cleanupUnreferenced(hi_0_0);
-
+		DMLExecutor.println("Applying rewrite: *(/(1.0,M13119),A) => /(A,M13119)");
 		return newRoot;
 	}
 
 	// Implementation of the rule /(M43656,2.0) => *(0.5,M43656)
-	private static Hop _applyRewrite59(Hop hi) {
+	private static Hop _applyRewrite45(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -4619,11 +3407,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: /(M43656,2.0) => *(0.5,M43656)");
 		return newRoot;
 	}
 
 	// Implementation of the rule +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))
-	private static Hop _applyRewrite60(Hop hi) {
+	private static Hop _applyRewrite46(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -4696,93 +3485,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_0_1);
 
-		return newRoot;
-	}
-
-	// Implementation of the rule *(*(a,A),/(f44657,surv)) => /(*(*(a,f44657),A),surv)
-	private static Hop _applyRewrite61(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.MULT || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if (hi_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0 = (BinaryOp) hi_0;
-
-		if ( c_hi_0.getOp() != Types.OpOp2.MULT || !c_hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0 = hi_0.getInput(0);
-
-		if ( hi_0_0.getDataType() != Types.DataType.SCALAR || !hi_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_1 = hi_0.getInput(1);
-
-		if ( hi_0_1.getDataType() != Types.DataType.MATRIX || !hi_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if (hi_1.getParent().size() > 1)
-			return hi;
-		if ( !(hi_1 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_1 = (BinaryOp) hi_1;
-
-		if ( c_hi_1.getOp() != Types.OpOp2.DIV || !c_hi_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_0 = hi_1.getInput(0);
-
-		if ( hi_1_0.getDataType() != Types.DataType.SCALAR || !hi_1_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_1 = hi_1.getInput(1);
-
-		if ( hi_1_1.getDataType() != Types.DataType.MATRIX || !hi_1_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: /(*(*(a,f44657),A),surv)
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_0_0, hi_1_0, Types.OpOp2.MULT);
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(v1, hi_0_1, Types.OpOp2.MULT);
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(v2, hi_1_1) )
-			return hi;
-		BinaryOp v3 = HopRewriteUtils.createAutoGeneratedBinary(v2, hi_1_1, Types.OpOp2.DIV);
-
-		Hop newRoot = v3;
-		if ( v3.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_0);
-		HopRewriteUtils.cleanupUnreferenced(hi_1);
-
+		DMLExecutor.println("Applying rewrite: +(-(b,%*%(C,D)),A) => +(b,-(A,%*%(C,D)))");
 		return newRoot;
 	}
 
 	// Implementation of the rule -(-(f43240,A),f67634) => -(-(f43240,f67634),A)
-	private static Hop _applyRewrite62(Hop hi) {
+	private static Hop _applyRewrite47(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -4839,72 +3547,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 
-		return newRoot;
-	}
-
-	// Implementation of the rule /(*(parsertemp570372,f4825),f83755) => *(/(f4825,f83755),parsertemp570372)
-	private static Hop _applyRewrite63(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.DIV || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if (hi_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0 = (BinaryOp) hi_0;
-
-		if ( c_hi_0.getOp() != Types.OpOp2.MULT || !c_hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0 = hi_0.getInput(0);
-
-		if ( hi_0_0.getDataType() != Types.DataType.MATRIX || !hi_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_1 = hi_0.getInput(1);
-
-		if ( hi_0_1.getDataType() != Types.DataType.SCALAR || !hi_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if ( hi_1.getDataType() != Types.DataType.SCALAR || !hi_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: *(/(f4825,f83755),parsertemp570372)
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_0_1, hi_1, Types.OpOp2.DIV);
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(v1, hi_0_0, Types.OpOp2.MULT);
-
-		Hop newRoot = v2;
-		if ( v2.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_0);
-
+		DMLExecutor.println("Applying rewrite: -(-(f43240,A),f67634) => -(-(f43240,f67634),A)");
 		return newRoot;
 	}
 
 	// Implementation of the rule /(M62235,2000.0) => *(5.0E-4,M62235)
-	private static Hop _applyRewrite64(Hop hi) {
+	private static Hop _applyRewrite48(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -4952,11 +3600,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: /(M62235,2000.0) => *(5.0E-4,M62235)");
 		return newRoot;
 	}
 
 	// Implementation of the rule *(A,/(1.0,M13119)) => /(A,M13119)
-	private static Hop _applyRewrite65(Hop hi) {
+	private static Hop _applyRewrite49(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -5023,11 +3672,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 		HopRewriteUtils.cleanupUnreferenced(hi_1_0);
 
+		DMLExecutor.println("Applying rewrite: *(A,/(1.0,M13119)) => /(A,M13119)");
 		return newRoot;
 	}
 
 	// Implementation of the rule *(f68833,-(0.0,M48693)) => *(M48693,-(0.0,f68833))
-	private static Hop _applyRewrite66(Hop hi) {
+	private static Hop _applyRewrite50(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -5092,11 +3742,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: *(f68833,-(0.0,M48693)) => *(M48693,-(0.0,f68833))");
 		return newRoot;
 	}
 
 	// Implementation of the rule -(M22650,*(*(f97734,M67673),M97683)) => -*(M22650,f97734,*(M97683,M67673))
-	private static Hop _applyRewrite67(Hop hi) {
+	private static Hop _applyRewrite51(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -5175,220 +3826,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 		HopRewriteUtils.cleanupUnreferenced(hi_1_0);
 
-		return newRoot;
-	}
-
-	// Implementation of the rule *(/(f1993,M80697),f81698) => /(*(f1993,f81698),M80697)
-	private static Hop _applyRewrite68(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.MULT || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if (hi_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0 = (BinaryOp) hi_0;
-
-		if ( c_hi_0.getOp() != Types.OpOp2.DIV || !c_hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0 = hi_0.getInput(0);
-
-		if ( hi_0_0.getDataType() != Types.DataType.SCALAR || !hi_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_1 = hi_0.getInput(1);
-
-		if ( hi_0_1.getDataType() != Types.DataType.MATRIX || !hi_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if ( hi_1.getDataType() != Types.DataType.SCALAR || !hi_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: /(*(f1993,f81698),M80697)
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_0_0, hi_1, Types.OpOp2.MULT);
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(v1, hi_0_1, Types.OpOp2.DIV);
-
-		Hop newRoot = v2;
-		if ( v2.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_0);
-
-		return newRoot;
-	}
-
-	// Implementation of the rule -(W1,/(*(f72208,M22221),M2747)) => -*(W1,f72208,/(M22221,M2747))
-	private static Hop _applyRewrite69(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.MINUS || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if ( hi_0.getDataType() != Types.DataType.MATRIX || !hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if (hi_1.getParent().size() > 1)
-			return hi;
-		if ( !(hi_1 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_1 = (BinaryOp) hi_1;
-
-		if ( c_hi_1.getOp() != Types.OpOp2.DIV || !c_hi_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_0 = hi_1.getInput(0);
-
-		if (hi_1_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_1_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_1_0 = (BinaryOp) hi_1_0;
-
-		if ( c_hi_1_0.getOp() != Types.OpOp2.MULT || !c_hi_1_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_0_0 = hi_1_0.getInput(0);
-
-		if ( hi_1_0_0.getDataType() != Types.DataType.SCALAR || !hi_1_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_0_1 = hi_1_0.getInput(1);
-
-		if ( hi_1_0_1.getDataType() != Types.DataType.MATRIX || !hi_1_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_1 = hi_1.getInput(1);
-
-		if ( hi_1_1.getDataType() != Types.DataType.MATRIX || !hi_1_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: -*(W1,f72208,/(M22221,M2747))
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(hi_1_0_1, hi_1_1) )
-			return hi;
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_1_0_1, hi_1_1, Types.OpOp2.DIV);
-		if ( !RewriterRuntimeUtils.hasMatchingDims(hi_0, v1) )
-			return hi;
-		TernaryOp v2 = HopRewriteUtils.createTernary(hi_0, hi_1_0_0, v1,Types.OpOp3.MINUS_MULT);
-
-		Hop newRoot = v2;
-		if ( v2.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_1);
-		HopRewriteUtils.cleanupUnreferenced(hi_1_0);
-
-		return newRoot;
-	}
-
-	// Implementation of the rule *(M44015,/(mean,M36505)) => /(*(mean,M44015),M36505)
-	private static Hop _applyRewrite70(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.MULT || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if ( hi_0.getDataType() != Types.DataType.MATRIX || !hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if (hi_1.getParent().size() > 1)
-			return hi;
-		if ( !(hi_1 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_1 = (BinaryOp) hi_1;
-
-		if ( c_hi_1.getOp() != Types.OpOp2.DIV || !c_hi_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_0 = hi_1.getInput(0);
-
-		if ( hi_1_0.getDataType() != Types.DataType.MATRIX || !hi_1_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1_1 = hi_1.getInput(1);
-
-		if ( hi_1_1.getDataType() != Types.DataType.MATRIX || !hi_1_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: /(*(mean,M44015),M36505)
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(hi_1_0, hi_0) )
-			return hi;
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_1_0, hi_0, Types.OpOp2.MULT);
-		if ( !RewriterRuntimeUtils.validateBinaryBroadcasting(v1, hi_1_1) )
-			return hi;
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(v1, hi_1_1, Types.OpOp2.DIV);
-
-		Hop newRoot = v2;
-		if ( v2.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_1);
-
+		DMLExecutor.println("Applying rewrite: -(M22650,*(*(f97734,M67673),M97683)) => -*(M22650,f97734,*(M97683,M67673))");
 		return newRoot;
 	}
 
 	// Implementation of the rule -(-(f75306,M67233),*(A,M350)) => -(f75306,+(*(A,M350),M67233))
-	private static Hop _applyRewrite71(Hop hi) {
+	private static Hop _applyRewrite52(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -5468,11 +3911,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
+		DMLExecutor.println("Applying rewrite: -(-(f75306,M67233),*(A,M350)) => -(f75306,+(*(A,M350),M67233))");
 		return newRoot;
 	}
 
 	// Implementation of the rule -(-(f75306,*(A,M350)),M67233) => -(f75306,+(*(A,M350),M67233))
-	private static Hop _applyRewrite72(Hop hi) {
+	private static Hop _applyRewrite53(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -5552,11 +3996,12 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_0_1);
 
+		DMLExecutor.println("Applying rewrite: -(-(f75306,*(A,M350)),M67233) => -(f75306,+(*(A,M350),M67233))");
 		return newRoot;
 	}
 
 	// Implementation of the rule +(-(C,d),%*%(A,B)) => -(+(C,%*%(A,B)),d)
-	private static Hop _applyRewrite73(Hop hi) {
+	private static Hop _applyRewrite54(Hop hi) {
 		if ( !(hi instanceof BinaryOp) )
 			return hi;
 
@@ -5629,67 +4074,7 @@ public class GeneratedRewriteClass implements Function {
 		HopRewriteUtils.cleanupUnreferenced(hi_0);
 		HopRewriteUtils.cleanupUnreferenced(hi_1);
 
-		return newRoot;
-	}
-
-	// Implementation of the rule /(/(f7640,A),f60078) => /(/(f7640,f60078),A)
-	private static Hop _applyRewrite74(Hop hi) {
-		if ( !(hi instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi = (BinaryOp) hi;
-
-		if ( c_hi.getOp() != Types.OpOp2.DIV || !c_hi.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0 = hi.getInput(0);
-
-		if (hi_0.getParent().size() > 1)
-			return hi;
-		if ( !(hi_0 instanceof BinaryOp) )
-			return hi;
-
-		BinaryOp c_hi_0 = (BinaryOp) hi_0;
-
-		if ( c_hi_0.getOp() != Types.OpOp2.DIV || !c_hi_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_0 = hi_0.getInput(0);
-
-		if ( hi_0_0.getDataType() != Types.DataType.SCALAR || !hi_0_0.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_0_1 = hi_0.getInput(1);
-
-		if ( hi_0_1.getDataType() != Types.DataType.MATRIX || !hi_0_1.getValueType().isNumeric() )
-			return hi;
-
-		Hop hi_1 = hi.getInput(1);
-
-		if ( hi_1.getDataType() != Types.DataType.SCALAR || !hi_1.getValueType().isNumeric() )
-			return hi;
-
-
-		// Now, we start building the new HOP-DAG: /(/(f7640,f60078),A)
-		BinaryOp v1 = HopRewriteUtils.createAutoGeneratedBinary(hi_0_0, hi_1, Types.OpOp2.DIV);
-		BinaryOp v2 = HopRewriteUtils.createAutoGeneratedBinary(v1, hi_0_1, Types.OpOp2.DIV);
-
-		Hop newRoot = v2;
-		if ( v2.getValueType() != hi.getValueType() ) {
-			newRoot = castIfNecessary(newRoot, hi);
-			if ( newRoot == null )
-				return hi;
-		}
-
-		ArrayList<Hop> parents = new ArrayList<>(hi.getParent());
-
-		for ( Hop p : parents )
-			HopRewriteUtils.replaceChildReference(p, hi, newRoot);
-
-		// Remove old unreferenced Hops
-		HopRewriteUtils.cleanupUnreferenced(hi);
-		HopRewriteUtils.cleanupUnreferenced(hi_0);
-
+		DMLExecutor.println("Applying rewrite: +(-(C,d),%*%(A,B)) => -(+(C,%*%(A,B)),d)");
 		return newRoot;
 	}
 

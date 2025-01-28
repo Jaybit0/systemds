@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.ArrayStack;
 import org.apache.commons.io.FileUtils;
@@ -114,9 +115,9 @@ import scala.Tuple4;
  */
 public abstract class AutomatedTestBase {
 	protected static final boolean BENCHMARK = true;
-	protected static final int BENCHMARK_WARMUP_RUNS = 0;
+	protected static final int BENCHMARK_WARMUP_RUNS = 1;
 	protected static final int BENCHMARK_REPETITIONS = 1;
-	protected static final boolean ALLOW_GENERATED_REWRITES = false;
+	protected static final boolean ALLOW_GENERATED_REWRITES = true;
 	protected static final String BASE_DATA_DIR = "/Users/janniklindemann/Dev/MScThesis/NGramAnalysis/";
 
 
@@ -606,6 +607,7 @@ public abstract class AutomatedTestBase {
 		cleanupDir(baseDirectory + INPUT_DIR + name, bIncludeR);
 
 		TestUtils.writeTestMatrix(completePath, matrix);
+		System.out.println("Writing: " + completePath);
 		if(bIncludeR) {
 			TestUtils.writeTestMatrix(completeRPath, matrix, true);
 			inputRFiles.add(completeRPath);
@@ -1636,6 +1638,7 @@ public abstract class AutomatedTestBase {
 	 * @throws IOException if an IOException occurs in the hadoop GenericOptionsParser
 	 */
 	public static void main(String[] args) throws IOException, ParseException, DMLScriptException {
+		System.out.println(Arrays.stream(args).collect(Collectors.toList()));
 		DMLScript.executeScript(args);
 	}
 

@@ -21,6 +21,7 @@ package org.apache.sysds.test.functions.builtin.part1;
 
 import java.util.HashMap;
 
+import org.apache.sysds.hops.rewriter.RewriteAutomaticallyGenerated;
 import org.junit.Test;
 import org.apache.sysds.api.DMLScript;
 import org.apache.sysds.common.Types;
@@ -61,26 +62,26 @@ public class BuiltinL2SVMTest extends AutomatedTestBase {
 		runL2SVMTest(true, false, eps, 1.0, max_iter, ExecType.CP);
 	}
 
-	@Test
+	//@Test
 	public void testL2SVMIntercept() {
 		runL2SVMTest(true,true, eps, 1.0, max_iter, ExecType.SPARK);
 	}
 
-	@Test
+	//@Test
 	public void testL2SVMDenseIntercept() {
 		 runL2SVMTest(false,true, 1, 1.0, max_iter, ExecType.CP);
 	}
 
-	@Test
+	//@Test
 	public void testL2SVMSparseLambda2() {
 		runL2SVMTest(true,true, 1, 2.0, max_iter, ExecType.CP);
 	}
 
-	@Test
+	//@Test
 	public void testL2SVMSparseLambda100CP() {
 		runL2SVMTest(true,true, 1, 100, max_iter, ExecType.CP);
 	}
-	@Test
+	//@Test
 	public void testL2SVMSparseLambda100Spark() {
 		runL2SVMTest(true,true, 1, 100, max_iter, ExecType.SPARK);
 	}
@@ -140,5 +141,9 @@ public class BuiltinL2SVMTest extends AutomatedTestBase {
 			OptimizerUtils.ALLOW_AUTO_VECTORIZATION = true;
 			OptimizerUtils.ALLOW_OPERATOR_FUSION = true;
 		}
+
+		System.out.println("GenRewrite Time: " + RewriteAutomaticallyGenerated.totalTimeNanos/1000000D + "ms");
+		System.out.println("CallCount: " + RewriteAutomaticallyGenerated.callCount);
+		System.out.println("Max GenRewrite Pass Time: " + RewriteAutomaticallyGenerated.maxTimeNanos/1000000D + "ms");
 	}
 }

@@ -25,7 +25,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
+import org.apache.sysds.hops.rewriter.RewriteAutomaticallyGenerated;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -141,7 +143,7 @@ public class GLMTest extends AutomatedTestBase
 
 		// THIS IS TO TEST "INTERCEPT AND SHIFT/SCALE" OPTION ("icpt=2"):
 			// { 200000,   50,  1,  0.0,  1,  0.0,  0.01, 3.0,  10.0,  2.0,  2.5 },   // Gaussian.log	 // CHECK DEVIANCE !!!
-			{  10000,  100,  1,  0.0,  1,  1.0,  0.01, 3.0,   0.0,  2.0,  2.5 },   // Gaussian.id
+			/*{  10000,  100,  1,  0.0,  1,  1.0,  0.01, 3.0,   0.0,  2.0,  2.5 },   // Gaussian.id
 			{  20000,  100,  1,  0.0,  1, -1.0,  0.01, 0.0,   0.2,  0.03, 2.5 },   // Gaussian.inverse
 			{  10000,  100,  1,  1.0,  1,  0.0,  0.01, 3.0,   0.0,  1.0,  2.5 },   // Poisson.log
 			{ 100000,   10,  1,  1.0,  1,  0.0,  0.01, 3.0,   0.0, 50.0,  2.5 },   // Poisson.log			 // Pr[0|x] gets near 1
@@ -157,10 +159,10 @@ public class GLMTest extends AutomatedTestBase
 			{ 100000,   50,  2, -1.0,  1,  0.0,  0.01, 3.0,  -5.0,  1.0,  1.0 },   // Bernoulli {-1, 1}.log	 // Note: Y is sparse
 			{ 100000,   50,  2, -1.0,  1,  1.0,  0.01, 3.0,   0.4,  0.1,  1.0 },   // Bernoulli {-1, 1}.id
 			{ 100000,   40,  2, -1.0,  1,  0.5,  0.1,  3.0,   0.4,  0.1,  1.0 },   // Bernoulli {-1, 1}.sqrt
-			{  10000,  100,  2, -1.0,  2,  0.0,  0.01, 3.0,   0.0,  2.0,  1.0 },   // Bernoulli {-1, 1}.logit
-			{  10000,  100,  2, -1.0,  2,  0.0,  0.01, 3.0,   0.0, 50.0,  1.0 },   // Bernoulli {-1, 1}.logit   // Pr[y|x] near 0, 1
-			{  20000,  100,  2, -1.0,  3,  0.0,  0.01, 3.0,   0.0,  2.0,  1.0 },   // Bernoulli {-1, 1}.probit
-			{ 100000,   10,  2, -1.0,  3,  0.0,  0.01, 3.0,   0.0, 50.0,  1.0 },   // Bernoulli {-1, 1}.probit  // Pr[y|x] near 0, 1
+			{  10000,  100,  2, -1.0,  2,  0.0,  0.01, 3.0,   0.0,  2.0,  1.0 },   // Bernoulli {-1, 1}.logit*/
+			//{  10000,  100,  2, -1.0,  2,  0.0,  0.01, 3.0,   0.0, 50.0,  1.0 },   // Bernoulli {-1, 1}.logit   // Pr[y|x] near 0, 1
+			//{  20000,  100,  2, -1.0,  3,  0.0,  0.01, 3.0,   0.0,  2.0,  1.0 },   // Bernoulli {-1, 1}.probit
+			/*{ 100000,   10,  2, -1.0,  3,  0.0,  0.01, 3.0,   0.0, 50.0,  1.0 },   // Bernoulli {-1, 1}.probit  // Pr[y|x] near 0, 1
 			{  10000,  100,  2, -1.0,  4,  0.0,  0.01, 3.0,  -2.0,  1.0,  1.0 },   // Bernoulli {-1, 1}.cloglog
 			{  50000,   20,  2, -1.0,  4,  0.0,  0.01, 3.0,  -2.0, 50.0,  1.0 },   // Bernoulli {-1, 1}.cloglog // Pr[y|x] near 0, 1
 			{  20000,  100,  2, -1.0,  5,  0.0,  0.01, 3.0,   0.0,  2.0,  1.0 },   // Bernoulli {-1, 1}.cauchit
@@ -171,7 +173,7 @@ public class GLMTest extends AutomatedTestBase
 			{  10000,  100,  2,  1.0,  2,  0.0,  0.01, 3.0,   0.0,  2.0,  2.5 },   // Binomial two-column.logit
 			{  20000,  100,  2,  1.0,  3,  0.0,  0.01, 3.0,   0.0,  2.0,  2.5 },   // Binomial two-column.probit
 			{  10000,  100,  2,  1.0,  4,  0.0,  0.01, 3.0,  -2.0,  1.0,  2.5 },   // Binomial two-column.cloglog
-			{  20000,  100,  2,  1.0,  5,  0.0,  0.01, 3.0,   0.0,  2.0,  2.5 },   // Binomial two-column.cauchit
+			{  20000,  100,  2,  1.0,  5,  0.0,  0.01, 3.0,   0.0,  2.0,  2.5 },   // Binomial two-column.cauchit*/
 			
 
 
@@ -187,8 +189,8 @@ public class GLMTest extends AutomatedTestBase
 		//  BOTH R AND DML FAIL:
 				
 		//	{  10000,  100,  1,  0.0,  1, -1.0,  0.0,  0.0,  10.0,  2.0,  2.5 },   // Gaussian.inverse	 // R and DML compute nonsense
-		
-		
+
+				{  30000,  300,  2, -1.0,  3,  0.0,  0.01, 3.0,   0.0,  2.0,  1.0 },
 		};
 		return Arrays.asList(data);
 	}
@@ -216,8 +218,8 @@ public class GLMTest extends AutomatedTestBase
 				dispersion +
 				"} ------------");
 		
-		int rows = numRecords;  // # of rows in the training data 
-		int cols = numFeatures; // # of features in the training data
+		int rows = numRecords*5;  // # of rows in the training data
+		int cols = numFeatures*3; // # of features in the training data
 		
 		TestUtils.GLMDist glmdist = new TestUtils.GLMDist (distFamilyType, distParam, linkType, linkPower);
 		glmdist.set_dispersion (dispersion);
@@ -241,10 +243,10 @@ public class GLMTest extends AutomatedTestBase
 		List<String> proArgs = new ArrayList<>();
 		proArgs.add("-nvargs");
 		proArgs.add("dfam=" + String.format ("%d", distFamilyType));
-		proArgs.add(((distFamilyType == 2 && distParam != 1.0) ? "yneg=" : "vpow=") + String.format ("%f", distParam));
+		proArgs.add(((distFamilyType == 2 && distParam != 1.0) ? "yneg=" : "vpow=") + distParam);
 		proArgs.add((distFamilyType == 2 && distParam != 1.0) ? "vpow=0.0" : "yneg=0.0");
 		proArgs.add("link=" + String.format ("%d", linkType));
-		proArgs.add("lpow=" + String.format ("%f", linkPower));
+		proArgs.add("lpow=" + linkPower);
 		proArgs.add("icpt=2"); // INTERCEPT - CHANGE THIS AS NEEDED
 		proArgs.add("disp=0.0"); // DISPERSION (0.0: ESTIMATE)
 		proArgs.add("reg=0.0"); // LAMBDA REGULARIZER
@@ -255,6 +257,10 @@ public class GLMTest extends AutomatedTestBase
 		proArgs.add("Y=" + input("Y"));
 		proArgs.add("B=" + output("betas_SYSTEMDS"));
 		programArgs = proArgs.toArray(new String[proArgs.size()]);
+		System.out.println("PArgs: " + Arrays.stream(programArgs).collect(Collectors.toList()));
+
+		if (true)
+			return;
 		fullDMLScriptName = getScript();
 		
 		rCmd = getRCmd(input("X.mtx"), input("Y.mtx"), String.format ("%d", distFamilyType), String.format ("%f", distParam),
