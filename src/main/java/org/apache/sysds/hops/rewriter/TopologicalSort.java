@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-// For now, we assume that _argList() will have one unique parent
+// We assume that _argList() will have one unique parent
 public class TopologicalSort {
 	public static boolean DEBUG = false;
 
@@ -210,12 +210,6 @@ public class TopologicalSort {
 		return uncertainParents;
 	}
 
-	/*private static void setupAddresses(Set<UnorderedSet> sets) {
-		for (UnorderedSet set : sets)
-			for (RewriterStatement stmt : set.contents)
-				stmt.unsafePutMeta("_addresses", new ArrayList<>());
-	}*/
-
 	private static int introduceFacts(Collection<UnorderedSet> sets, int factCtr) {
 		for (RewriterStatement stmt : allChildren(sets)) {
 			if (stmt.isLiteral())
@@ -235,7 +229,25 @@ public class TopologicalSort {
 	private static Set<UnorderedSet> findLowestUncertainties(RewriterStatement root) {
 		Set<UnorderedSet> set = new HashSet<>();
 		recursivelyFindLowestUncertainties(root, set);
-		return set;
+
+		List<UnorderedSet> tmpList = new ArrayList<>(set);
+		Set<UnorderedSet> minSet = new HashSet<>();
+		// We have the issue that uncertainties might still depend on each other (e.g. {a,b}, {inv(a),inv(b)}), even if they are the lowest entries
+		// Theoretically, this comparison might still lead to amgibuities, but never occurred in our examples
+		int minCumSize = Integer.MAX_VALUE;
+		for (int i = 0; i < tmpList.size(); i++) {
+			int cumSize = tmpList.get(i).contents.stream().map(RewriterStatement::countInstructions).reduce(0, Integer::sum);
+
+			if (cumSize < minCumSize) {
+				minSet.clear();
+				minCumSize = cumSize;
+			}
+
+			if (cumSize <= minCumSize)
+				minSet.add(tmpList.get(i));
+		}
+
+		return minSet;
 	}
 
 	// All children in post order and unique
@@ -376,9 +388,6 @@ public class TopologicalSort {
 		for (int i = 1; i < set.contents.size(); i++) {
 			if (compareTo.equals(set.contents.get(i)))
 				continue; // Ignore same instances
-
-			//String compAddress = getAddress(compareTo);
-			//String mAddress = getAddress(set.contents.get(i));
 
 			if (compare(set.contents.get(i), compareTo, ctx) == 0)
 				return false; // Then there are still some ambiguities

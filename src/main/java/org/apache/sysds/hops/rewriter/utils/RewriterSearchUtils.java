@@ -1,6 +1,28 @@
-package org.apache.sysds.hops.rewriter;
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 
-import org.apache.sysds.hops.rewriter.utils.RewriterUtils;
+package org.apache.sysds.hops.rewriter.utils;
+
+import org.apache.sysds.hops.rewriter.RewriterDataType;
+import org.apache.sysds.hops.rewriter.RewriterInstruction;
+import org.apache.sysds.hops.rewriter.RewriterStatement;
+import org.apache.sysds.hops.rewriter.RuleContext;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -8,11 +30,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class RewriterAlphabetEncoder {
+public class RewriterSearchUtils {
 	public static final List<String> ALL_TYPES = List.of("MATRIX", "FLOAT");
 	public static final List<String> SCALAR = List.of("FLOAT");
 	public static final List<String> MATRIX = List.of("MATRIX");
@@ -50,15 +73,10 @@ public class RewriterAlphabetEncoder {
 			new Operand("ncol", 0, true, MATRIX),
 			new Operand("nrow", 0, true, MATRIX),
 			new Operand("length", 0, true, MATRIX),
-			/*new Operand("fncol", 1, true, MATRIX),
-			new Operand("fnrow", 1, true, MATRIX),
-			new Operand("flength", 1, true, MATRIX),*/
 
 			new Operand("!=", 2, ALL_TYPES, ALL_TYPES),
 			new Operand("!=0", 1, MATRIX),
 			new Operand("0!=", 1, MATRIX),
-			//new Operand("!=", 2, SCALAR, MATRIX),
-			//new Operand("!=", 2, MATRIX,MATRIX),
 
 			new Operand("cast.MATRIX",1, SCALAR),
 			new Operand("cast.FLOAT", 1, MATRIX),
@@ -67,7 +85,6 @@ public class RewriterAlphabetEncoder {
 			new Operand("+*", 3, MATRIX, SCALAR, MATRIX),
 			new Operand("-*", 3, MATRIX, SCALAR, MATRIX),
 			new Operand("*2", 1, MATRIX),
-			//new Operand("^2", 1, MATRIX),
 			new Operand("_nnz", 1, MATRIX),
 			new Operand("sumSq", 1, MATRIX),
 			new Operand("sq", 1, MATRIX),
@@ -80,9 +97,9 @@ public class RewriterAlphabetEncoder {
 			new Operand("c_-1", 1, ALL_TYPES),
 
 			// ncol / nrow / length stuff
-			new Operand("c_length*", 2, MATRIX, ALL_TYPES),
-			new Operand("c_ncol*", 2, MATRIX, ALL_TYPES),
-			new Operand("c_nrow*", 2, MATRIX, ALL_TYPES),
+			new Operand("c_length*", 1, ALL_TYPES),
+			new Operand("c_ncol*", 1, ALL_TYPES),
+			new Operand("c_nrow*", 1, ALL_TYPES),
 
 			new Operand("log_nz", 1, MATRIX),
 
@@ -123,7 +140,7 @@ public class RewriterAlphabetEncoder {
 	}
 
 	// To include structures like row/column vectors etc.
-	public static List<RewriterStatement> buildAssertionVariations(RewriterStatement root, final RuleContext ctx, boolean increasedVariance) {
+	public static List<RewriterStatement> buildAssertionVariations(RewriterStatement root, final RuleContext ctx) {
 		List<RewriterStatement> interestingLeaves = new ArrayList<>();
 		root.forEachPreOrder(cur -> {
 			if (!cur.isInstruction() && !cur.isLiteral() && cur.getResultingDataType(ctx).equals("MATRIX"))
@@ -135,7 +152,6 @@ public class RewriterAlphabetEncoder {
 			return Collections.emptyList();
 
 		List<RewriterStatement> out = new ArrayList<>();
-		//out.add(root);
 
 		for (int i = 0; i < interestingLeaves.size(); i++) {
 			RewriterStatement from = interestingLeaves.get(i);
@@ -228,7 +244,6 @@ public class RewriterAlphabetEncoder {
 			return Collections.emptyList();
 
 		List<RewriterStatement> out = new ArrayList<>();
-		//out.add(root);
 
 		for (int i = 0; i < interestingLeaves.size(); i++) {
 			RewriterStatement to = interestingLeaves.get(i);
@@ -253,12 +268,12 @@ public class RewriterAlphabetEncoder {
 		if (operands == null)
 			return Collections.emptyList();
 
-		RewriterAlphabetEncoder.ctx = ctx;
+		RewriterSearchUtils.ctx = ctx;
 
 		List<RewriterStatement> allStmts = recursivelyFindAllCombinations(operands, null, ALL_TYPES);
 
 		if (rename)
-			allStmts.forEach(RewriterAlphabetEncoder::rename);
+			allStmts.forEach(RewriterSearchUtils::rename);
 
 		if (ctx.metaPropagator != null)
 			allStmts = allStmts.stream().map(stmt -> ctx.metaPropagator.apply(stmt)).collect(Collectors.toList());
@@ -335,8 +350,7 @@ public class RewriterAlphabetEncoder {
 					RewriterStatement stmt = buildStmt(operands.get(0), stack);
 					possibleStmts.add(stmt);
 				} catch (Exception e) {
-					// Might fail, as there could be wrong types
-					//e.printStackTrace();
+					// Might fail as there could be wrong types
 				}
 				return true; // Should continue
 			});
@@ -393,15 +407,15 @@ public class RewriterAlphabetEncoder {
 				break;
 			}
 			case "c_length*": {
-				stmt = new RewriterInstruction("*", ctx, new RewriterInstruction("length", ctx, stack[0]), stack[1]);
+				stmt = new RewriterInstruction("*", ctx, new RewriterInstruction("length", ctx, new RewriterDataType().as(UUID.randomUUID().toString()).ofType("MATRIX").consolidate(ctx)), stack[0]);
 				break;
 			}
 			case "c_nrow*": {
-				stmt = new RewriterInstruction("*", ctx, new RewriterInstruction("nrow", ctx, stack[0]), stack[1]);
+				stmt = new RewriterInstruction("*", ctx, new RewriterInstruction("nrow", ctx, new RewriterDataType().as(UUID.randomUUID().toString()).ofType("MATRIX").consolidate(ctx)), stack[0]);
 				break;
 			}
 			case "c_col*": {
-				stmt = new RewriterInstruction("*", ctx, new RewriterInstruction("ncol", ctx, stack[0]), stack[1]);
+				stmt = new RewriterInstruction("*", ctx, new RewriterInstruction("ncol", ctx, new RewriterDataType().as(UUID.randomUUID().toString()).ofType("MATRIX").consolidate(ctx)), stack[0]);
 				break;
 			}
 			default: {
@@ -409,21 +423,6 @@ public class RewriterAlphabetEncoder {
 				break;
 			}
 		}
-
-		/*if (op.op.equals("!=0")) {
-			stmt.withInstruction("!=").addOp(stack[0]).addOp(RewriterStatement.literal(ctx, 0.0D));
-		} else if (op.op.equals("0!=")) {
-			stmt.withInstruction("!=").addOp(RewriterStatement.literal(ctx, 0.0D)).addOp(stack[0]);
-		} else if (op.op.equals("fncol") || op.op.equals("fnrow") || op.op.equals("flength")) {
-			String actualOp = op.op.substring(1);
-			stmt.withInstruction(actualOp).withOps(stack).consolidate(ctx);
-			stmt = (RewriterInstruction) RewriterStatement.castFloat(ctx, stmt);
-		} else if (op.op.equals("*sum")) {
-			RewriterStatement old = stmt.withInstruction("sum").withOps(stack[0]).consolidate(ctx);
-			stmt = new RewriterInstruction("*", ctx, old, stack[1]);
-		} else {
-			stmt.withInstruction(op.op).withOps(stack);
-		}*/
 
 		stmt.consolidate(ctx);
 		return stmt;
@@ -449,12 +448,8 @@ public class RewriterAlphabetEncoder {
 	public static List<Operand> decodeOrderedStatements(int stmt) {
 		int[] instructions = fromBaseNNumber(stmt, instructionAlphabet.length);
 		List<Operand> out = new ArrayList<>(instructions.length);
-		//System.out.println("StmtIdx: " + stmt);
 
 		for (int i = 0; i < instructions.length; i++) {
-			/*System.out.println("Idx: " + i);
-			System.out.println("digits[" + i + "]: " + instructions[i]);
-			System.out.println("As op: " + instructionAlphabet[instructions[i]]);*/
 			Operand toAdd = instructionAlphabet[instructions[i]];
 			if (toAdd == null)
 				return null;
@@ -468,26 +463,13 @@ public class RewriterAlphabetEncoder {
 		if (l == 0)
 			return new int[0];
 
-		// We put 1 as the last bit to signalize end of sequence
-		/*int m = Integer.numberOfTrailingZeros(Integer.highestOneBit(l));
-		int maxRepr = 1 << (m - 1);
-		l = l ^ (1 << m);
-
-		System.out.println("Bin: " + Integer.toBinaryString(l));
-		System.out.println("m: " + m);
-		System.out.println("l: " + l);*/
-
 		int numDigits = (int)(Math.log(l) / Math.log(n)) + 1;
 		int[] digits = new int[numDigits];
 
 		for (int i = numDigits - 1; i >= 0; i--) {
-			//System.out.println(l + " % " + n);
 			digits[i] = l % n;
 			l = l / n;
 		}
-
-		/*System.out.println("numDigits: " + numDigits);
-		System.out.println("digits[0]: " + digits[0]);*/
 
 		return digits;
 	}
@@ -498,16 +480,110 @@ public class RewriterAlphabetEncoder {
 
 		int multiplicator = 1;
 		int out = 0;
-		//int maxPossible = 0;
 
 		for (int i = digits.length - 1; i >= 0; i--) {
 			out += multiplicator * digits[i];
-			//maxPossible += multiplicator * (n - 1);
 			multiplicator *= n;
 		}
 
-		/*int m = Integer.numberOfTrailingZeros(Integer.highestOneBit(maxPossible));
-		out |= (1 << m);*/
+		return out;
+	}
+
+	public static List<RewriterStatement> mergeSubtreeCombinations(RewriterStatement stmt, List<Integer> indices, List<List<RewriterStatement>> mList, final RuleContext ctx, int maximumCombinations) {
+		if (indices.isEmpty())
+			return List.of(stmt);
+
+		List<RewriterStatement> mergedTreeCombinations = new ArrayList<>();
+		RewriterUtils.cartesianProduct(mList, new RewriterStatement[mList.size()], stack -> {
+			RewriterStatement cpy = stmt.copyNode();
+			for (int i = 0; i < stack.length; i++)
+				cpy.getOperands().set(indices.get(i), stack[i]);
+			cpy.consolidate(ctx);
+			cpy.prepareForHashing();
+			cpy.recomputeHashCodes(ctx);
+			mergedTreeCombinations.add(cpy);
+			return mergedTreeCombinations.size() < maximumCombinations;
+		});
+
+		return mergedTreeCombinations;
+	}
+
+	public static List<RewriterStatement> generateSubtrees(RewriterStatement stmt, final RuleContext ctx, int maximumCombinations) {
+		List<RewriterStatement> l = generateSubtrees(stmt, new HashMap<>(), ctx, maximumCombinations);
+
+		if (ctx.metaPropagator != null)
+			l.forEach(subtree -> ctx.metaPropagator.apply(subtree));
+
+		return l.stream().map(subtree -> {
+			if (ctx.metaPropagator != null)
+				subtree = ctx.metaPropagator.apply(subtree);
+
+			subtree.prepareForHashing();
+			subtree.recomputeHashCodes(ctx);
+			return subtree;
+		}).collect(Collectors.toList());
+	}
+
+	private static Random rd = new Random();
+
+	private static List<RewriterStatement> generateSubtrees(RewriterStatement stmt, Map<RewriterStatement, List<RewriterStatement>> visited, final RuleContext ctx, int maxCombinations) {
+		if (stmt == null)
+			return Collections.emptyList();
+
+		RewriterStatement is = stmt;
+		List<RewriterStatement> alreadyVisited = visited.get(is);
+
+		if (alreadyVisited != null)
+			return alreadyVisited;
+
+		if (stmt.getOperands().size() == 0)
+			return List.of(stmt);
+
+		// Scan if operand is not a DataType
+		List<Integer> indices = new ArrayList<>();
+		for (int i = 0; i < stmt.getOperands().size(); i++) {
+			if (stmt.getChild(i).isInstruction() || stmt.getChild(i).isLiteral())
+				indices.add(i);
+		}
+
+		int n = indices.size();
+		int totalSubsets = 1 << n;
+
+		List<RewriterStatement> mList = new ArrayList<>();
+
+		visited.put(is, mList);
+
+		List<List<RewriterStatement>> mOptions = indices.stream().map(i -> generateSubtrees(stmt.getOperands().get(i), visited, ctx, maxCombinations)).collect(Collectors.toList());
+		List<RewriterStatement> out = new ArrayList<>();
+
+		for (int subsetMask = 0; subsetMask < totalSubsets; subsetMask++) {
+			List<List<RewriterStatement>> mOptionCpy = new ArrayList<>(mOptions);
+
+			for (int i = 0; i < n; i++) {
+				// Check if the i-th child is included in the current subset
+				if ((subsetMask & (1 << i)) == 0) {
+					String dt = stmt.getOperands().get(indices.get(i)).getResultingDataType(ctx);
+					String namePrefix = "tmp";
+					if (dt.equals("MATRIX"))
+						namePrefix = "M";
+					else if (dt.equals("FLOAT"))
+						namePrefix = "f";
+					else if (dt.equals("INT"))
+						namePrefix = "i";
+					else if (dt.equals("BOOL"))
+						namePrefix = "b";
+					RewriterDataType mT = new RewriterDataType().as(namePrefix + rd.nextInt(100000)).ofType(dt);
+					mT.consolidate(ctx);
+					mOptionCpy.set(i, List.of(mT));
+				}
+			}
+
+			out.addAll(mergeSubtreeCombinations(stmt, indices, mOptionCpy, ctx, maxCombinations));
+			if (out.size() > maxCombinations) {
+				System.out.println("Aborting early due to too many combinations");
+				return out;
+			}
+		}
 
 		return out;
 	}

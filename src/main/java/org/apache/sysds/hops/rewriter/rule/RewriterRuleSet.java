@@ -1,8 +1,30 @@
-package org.apache.sysds.hops.rewriter;
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.sysds.hops.rewriter.rule;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.sysds.hops.Hop;
+import org.apache.sysds.hops.rewriter.RewriterInstruction;
+import org.apache.sysds.hops.rewriter.RewriterStatement;
+import org.apache.sysds.hops.rewriter.RuleContext;
 import org.apache.sysds.hops.rewriter.codegen.RewriterCodeGen;
 import org.apache.sysds.hops.rewriter.utils.RewriterUtils;
 import scala.Tuple2;
@@ -81,47 +103,6 @@ public class RewriterRuleSet {
 		return rules;
 	}
 
-	/*public ApplicableRule findFirstApplicableRule(RewriterStatement stmt) {
-		ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
-
-		for (RewriterRule rule : rules) {
-			//if (rule.getStmt1().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, true, null, rule.getForwardLinks())) {
-			if (rule.matchStmt1(stmt, matches, true)) {
-				return new ApplicableRule(matches, rule, true);
-			}
-
-			if (!rule.isUnidirectional()) {
-				//if (rule.getStmt2().matchSubexpr(ctx, instr, null, -1, matches, new DualHashBidiMap<>(), true, false, true, null, rule.getBackwardLinks())) {
-				if (rule.matchStmt2(stmt, matches, true)) {
-					return new ApplicableRule(matches, rule, false);
-				}
-			}
-		}
-
-		return null;
-	}*/
-
-	/*public ArrayList<ApplicableRule> findApplicableRules(RewriterStatement instr) {
-		ArrayList<ApplicableRule> applicableRules = new ArrayList<>();
-		ArrayList<RewriterStatement.MatchingSubexpression> matches = new ArrayList<>();
-
-		for (RewriterRule rule : rules) {
-			if (rule.matchStmt1(instr, matches, false)) {
-				applicableRules.add(new ApplicableRule(matches, rule, true));
-				matches = new ArrayList<>();
-			}
-
-			if (!rule.isUnidirectional()) {
-				if (rule.matchStmt2(instr, matches, false)) {
-					applicableRules.add(new ApplicableRule(matches, rule, false));
-					matches = new ArrayList<>();
-				}
-			}
-		}
-
-		return applicableRules;
-	}*/
-
 	public ApplicableRule acceleratedFindFirst(RewriterStatement root) {
 		return acceleratedFindFirst(root, false);
 	}
@@ -141,7 +122,6 @@ public class RewriterRuleSet {
 		MutableObject<Map<RewriterStatement, RewriterRule.LinkObject>> linkObjects = new MutableObject<>(new HashMap<>());
 
 		root.forEachPreOrder((el, pred) -> {
-			// TODO: invariant type checks
 			String typedStr = el.isInstruction() ? el.trueTypedInstruction(allowImplicitTypeConversions, ctx) : RewriterUtils.convertImplicitly(el.getResultingDataType(ctx), allowImplicitTypeConversions);
 			Set<String> props = el instanceof RewriterInstruction ? ((RewriterInstruction)el).getProperties(ctx) : Collections.emptySet();
 			boolean found = acceleratedMatch(root, el, matches, typedStr, RewriterUtils.convertImplicitly(el.getResultingDataType(ctx), allowImplicitTypeConversions), props, pred, dependencyMap, links, linkObjects, findFirst, allowImplicitTypeConversions);
@@ -258,14 +238,10 @@ public class RewriterRuleSet {
 
 	@Override
 	public String toString() {
-		RuleContext.currentContext = ctx;
-		StringBuilder builder = new StringBuilder("RuleSet:\n");
-		for (RewriterRule rule : rules)
-			builder.append(rule.toString() + "\n");
-		return builder.toString();
+		return serialize();
 	}
 
-	public String serialize(final RuleContext ctx) {
+	public String serialize() {
 		StringBuilder sb = new StringBuilder();
 
 		for (RewriterRule rule : rules) {
@@ -288,20 +264,14 @@ public class RewriterRuleSet {
 		if (f == null)
 			return null; // Then, the code could not compile
 
-		//int origSize = rules.size();
 		Set<RewriterRule> removed = new HashSet<>();
 
 		for (int i = 0; i < rules.size(); i++) {
 			if (!RewriterRuleCreator.validateRuleApplicability(rules.get(i), ctx, print, f)) {
 				System.out.println("Faulty rule: " + rules.get(i));
 				removed.add(rules.get(i));
-				//rules.remove(i);
-				//i--;
 			}
 		}
-
-		//if (rules.size() != origSize)
-		//	accelerate();
 
 		return removed;
 	}
@@ -315,7 +285,6 @@ public class RewriterRuleSet {
 	}
 
 	public static RewriterRuleSet deserialize(String[] data, final RuleContext ctx) {
-		//String[] lines = data.split("\n");
 		List<String> currentLines = new ArrayList<>();
 		List<RewriterRule> rules = new ArrayList<>();
 
@@ -350,6 +319,11 @@ public class RewriterRuleSet {
 	public String toJavaCode(String className, boolean optimize, boolean includePackageInfo, boolean printErrors, boolean maintainStatistics) {
 		List<Tuple2<String, RewriterRule>> mRules = IntStream.range(0, rules.size()).mapToObj(i -> new Tuple2<>("_applyRewrite" + i, rules.get(i))).collect(Collectors.toList());
 		return RewriterCodeGen.generateClass(className, mRules, optimize, 2, includePackageInfo, ctx, true, printErrors, maintainStatistics);
+	}
+
+	public String toJavaCode(String className, boolean optimize) {
+		List<Tuple2<String, RewriterRule>> mRules = IntStream.range(0, rules.size()).mapToObj(i -> new Tuple2<>("_applyRewrite" + i, rules.get(i))).collect(Collectors.toList());
+		return RewriterCodeGen.generateClass(className, mRules, optimize, 2, true, ctx, true, true, false);
 	}
 
 	public String toJavaCode(String className, boolean optimize, int maxOptimizationDepth, boolean includePackageInfo, boolean printErrors, boolean maintainStatistics) {

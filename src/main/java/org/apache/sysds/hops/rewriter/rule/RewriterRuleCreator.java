@@ -1,8 +1,31 @@
-package org.apache.sysds.hops.rewriter;
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.sysds.hops.rewriter.rule;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.sysds.hops.Hop;
+import org.apache.sysds.hops.rewriter.RewriterDataType;
+import org.apache.sysds.hops.rewriter.RewriterRuntimeUtils;
+import org.apache.sysds.hops.rewriter.RewriterStatement;
+import org.apache.sysds.hops.rewriter.RuleContext;
 import org.apache.sysds.hops.rewriter.dml.DMLCodeGenerator;
 import org.apache.sysds.hops.rewriter.dml.DMLExecutor;
 import org.apache.sysds.hops.rewriter.estimators.RewriterCostEstimator;
@@ -239,7 +262,16 @@ public class RewriterRuleCreator {
 		String code = DMLCodeGenerator.generateRuleValidationDML(rule, sessionId, ctx);
 
 		MutableBoolean isValid = new MutableBoolean(false);
-		DMLExecutor.executeCode(code, DMLCodeGenerator.ruleValidationScript(rule.toParsableString(ctx), sessionId, isValid::setValue));
+		boolean successful = DMLExecutor.executeCode(code, DMLCodeGenerator.ruleValidationScript(rule.toParsableString(ctx), sessionId, isValid::setValue));
+
+		if (!isValid.booleanValue()) {
+			String errStr = "An invalid rule was found: " + rule + "\n\tReason: " + (successful ? "Assertion" : "Error");
+
+			if (!successful && !DMLExecutor.getLastErr().isEmpty())
+				errStr += " (" + DMLExecutor.getLastErr().get(0) + ")";
+
+			DMLExecutor.println(errStr);
+		}
 
 		return isValid.booleanValue();
 	}
@@ -354,10 +386,8 @@ public class RewriterRuleCreator {
 			if (stmt1ReplaceNCols.match(mCtx)) {
 				// Check if also the right variables are associated
 				boolean assocsMatching = true;
-				//DMLExecutor.println(mCtx.getDependencyMap());
 				if (mCtx.getDependencyMap() != null) {
 					for (RewriterStatement var : mVars) {
-						//DMLExecutor.println("Var: " + var);
 						RewriterStatement assoc = mCtx.getDependencyMap().get(var.isInstruction() && !var.trueInstruction().equals("const") ? var.getChild(0) : var);
 
 						if (assoc == null)
@@ -373,7 +403,6 @@ public class RewriterRuleCreator {
 				if (assocsMatching) {
 					// Then the rule matches, meaning that the statement is not rewritten by SystemDS
 					isRelevant.setValue(true);
-					//DMLExecutor.println("MATCH");
 				}
 			}
 
@@ -420,7 +449,6 @@ public class RewriterRuleCreator {
 
 	public static Tuple2<RewriterStatement, RewriterStatement> createCommonForm(RewriterStatement from, RewriterStatement to, RewriterStatement canonicalForm1, RewriterStatement canonicalForm2, final RuleContext ctx) {
 		from = from.nestedCopy(true);
-		//to = to.nestedCopy(true);
 		Map<RewriterStatement, RewriterStatement> assocs = getAssociations(from, to, canonicalForm1, canonicalForm2, ctx);
 		// Now, we replace all variables with a common element
 		from.forEachPreOrder((cur, pred) -> {
@@ -429,9 +457,6 @@ public class RewriterRuleCreator {
 
 				if (child instanceof RewriterDataType && !child.isLiteral()) {
 					RewriterStatement newRef = assocs.get(child);
-
-					//if (newRef == null)
-					//	throw new IllegalArgumentException("Null assoc for: " + child + "\nIn:\n" + fFrom.toParsableString(ctx) + "\n" + fTo.toParsableString(ctx) + "\n" + canonicalForm1.toParsableString(ctx));
 
 					if (newRef != null)
 						cur.getOperands().set(i, newRef);
@@ -442,7 +467,6 @@ public class RewriterRuleCreator {
 		}, false);
 
 		from = ctx.metaPropagator.apply(from);
-		//to = ctx.metaPropagator.apply(to);
 		return new Tuple2<>(from, to);
 	}
 
@@ -462,7 +486,7 @@ public class RewriterRuleCreator {
 			RewriterStatement newValue = toCanonicalLink.get(v);
 
 			if (newKey == null || newValue == null)
-				return;//throw new IllegalArgumentException("Null reference detected: " + k + ", " + v + "\nFromCanonicalLink: " + fromCanonicalLink + "\nToCanonicalLink: " + toCanonicalLink);
+				return;
 
 			assocs.put(newKey, newValue);
 		});
@@ -493,7 +517,6 @@ public class RewriterRuleCreator {
 
 			if (ref == null) {
 				assoc.put(ref, ref);
-				//throw new IllegalArgumentException("Unknown variable reference name '" + cur.getId() + "' in: " + cur.toParsableString(RuleContext.currentContext));
 			}
 
 			if (reversed)
@@ -511,11 +534,6 @@ public class RewriterRuleCreator {
 					ref.rename("u_" + rd.nextInt(100000));
 			}
 		});
-
-		// TODO: If there are some dead references, replace it with an any.<TYPE>() function
-		// TODO: Or: just replace var id with '?' to signalize that there is something weird happening
-		//if (namedVariables.size() != assoc.size())
-		//	throw new IllegalArgumentException("Some variables are not referenced!");
 
 		return assoc;
 	}
