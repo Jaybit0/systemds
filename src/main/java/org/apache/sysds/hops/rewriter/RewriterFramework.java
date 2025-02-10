@@ -33,7 +33,10 @@ import org.apache.sysds.hops.rewriter.utils.RewriterUtils;
 import scala.Tuple2;
 import scala.Tuple4;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -43,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -50,24 +54,53 @@ import java.util.stream.IntStream;
 
 public class RewriterFramework {
 
+	public static boolean DEBUG = false;
+
 	// To test the framework
 	public static void main(String[] args) {
 		String dbPath = "./src/test/resources/rewriterframework/expressions.db";
 		RewriterFramework rwf = new RewriterFramework(dbPath);
-		rwf.init(true,true);
-		rwf.dataDrivenSearch(1000);
-		rwf.systematicSearch(3);
-		//rwf.randomSearch(4, 4, 5000);
-		rwf.createRules(true);
-		rwf.removeInvalidRules();
+		rwf.init(true,false);
+		long dds = System.currentTimeMillis();
+		int ddsN = rwf.dataDrivenSearch(1000);
+		long sys = System.currentTimeMillis();
+		int sysN = rwf.systematicSearch(3);
+		long rs = System.currentTimeMillis();
+		int rsN = rwf.randomSearch(4, 4, 10000);
+		long ruleCreation = System.currentTimeMillis();
+		int ruleCreationN = rwf.createRules(true);
+
+		long invalidRuleRemoval = System.currentTimeMillis();
+		int invalidRuleRemovalN = rwf.removeInvalidRules();
+		long invalidRuleRemovalEnd = System.currentTimeMillis();
+		saveRuleSet("<file-path>", rwf.getUnconditionalRuleSet());
+		saveRuleSet("<file-path>", rwf.getConditionalRuleSet());
+		
 		// Note that unconditional rules are not 'static' rules.
 		// It is a set of equivalences that have a single optimal expression
-		System.out.println(rwf.getUnconditionalRuleSet());
-		//rwf.removeInapplicableRules();
+		//System.out.println(rwf.getUnconditionalRuleSet());
+		long inapplicableRuleRemoval = System.currentTimeMillis();
+		int inapplicableRuleRemovalN = rwf.removeInapplicableRules();
+		long end = System.currentTimeMillis();
+		//saveRuleSet("<file-path>", rwf.getUnconditionalRuleSet());
+
+		System.out.println("DDS: " + (sys-dds)/1000D + "s");
+		System.out.println("SYS: " + (rs-sys)/1000D + "s");
+		System.out.println("RdS: " + (ruleCreation-rs)/1000D + "s");
+		System.out.println("RCr: " + (invalidRuleRemoval-ruleCreation)/1000D + "s");
+		System.out.println("IRR: " + (invalidRuleRemovalEnd-invalidRuleRemoval)/1000D + "s");
+		System.out.println("ARR: " + (end-inapplicableRuleRemoval)/1000D + "s");
+
+		System.out.println("DDS_N: " + ddsN);
+		System.out.println("SYS_N: " + sysN);
+		System.out.println("RdS_N: " + rsN);
+		System.out.println("RCr_N: " + ruleCreationN);
+		System.out.println("IRR_N: " + invalidRuleRemovalN);
+		System.out.println("ARR_N: " + inapplicableRuleRemovalN);
 		//System.out.println(rwf.getUnconditionalRuleSet().toJavaCode("GeneratedRewriteClass", true));
 
-		/*RewriterRuleSet rs = loadRuleSet(rPath);
-		saveJavaCode(sPath, rs, "GeneratedRewriteClass", true);*/
+		//RewriterRuleSet rs = loadRuleSet(rPath);
+		//saveJavaCode(sPath, rs, "GeneratedRewriteClass", true);
 	}
 
 
@@ -122,18 +155,19 @@ public class RewriterFramework {
 	/**
 	 * Performs a data-driven search where existing expressions and their subexpressions are considered
 	 * @param exprPruningThreshold the maximum number of generated subexpressions (to avoid exploding numbers of subgraphs for big graphs)
+	 * @return the number of canonicalized statements
 	 */
-	public void dataDrivenSearch(int exprPruningThreshold) {
+	public int dataDrivenSearch(int exprPruningThreshold) {
 		setupDataDrivenSearch(); // Load the expression DB
 
 		int size = db.size();
 		RewriterDatabase exactExprDB = new RewriterDatabase();
 
-		MutableInt ctr = new MutableInt(0);
-		MutableInt failures = new MutableInt(0);
-		MutableInt generatedExpressions = new MutableInt(0);
-		MutableInt evaluatedExpressions = new MutableInt(0);
-		MutableInt totalCanonicalizationMillis = new MutableInt(0);
+		AtomicInteger ctr = new AtomicInteger(0);
+		AtomicInteger failures = new AtomicInteger(0);
+		AtomicInteger generatedExpressions = new AtomicInteger(0);
+		AtomicInteger evaluatedExpressions = new AtomicInteger(0);
+		AtomicInteger totalCanonicalizationMillis = new AtomicInteger(0);
 		db.parForEach(expr -> {
 			if (ctr.incrementAndGet() % 10 == 0)
 				System.out.println("Done: " + ctr.intValue() + " / " + size);
@@ -145,8 +179,8 @@ public class RewriterFramework {
 				System.out.println("Skipping subtrees...");
 				subExprs = List.of(expr);
 			}
-			long evaluationCtr = 0;
-			long mCanonicalizationMillis = 0;
+			int evaluationCtr = 0;
+			int mCanonicalizationMillis = 0;
 
 			for (RewriterStatement subExpr : subExprs) {
 				try {
@@ -173,11 +207,13 @@ public class RewriterFramework {
 							foundEquivalences.add(entry);
 					}
 				} catch (Exception e) {
-					try {
-						System.err.println("Error from expression: " + subExpr.toParsableString(ctx));
-					} catch (Exception e2) {
+					if (DEBUG) {
+						try {
+							System.err.println("Error from expression: " + subExpr.toParsableString(ctx));
+						} catch (Exception e2) {
+						}
+						e.printStackTrace();
 					}
-					e.printStackTrace();
 					failures.incrementAndGet();
 				}
 			}
@@ -186,23 +222,27 @@ public class RewriterFramework {
 			evaluatedExpressions.addAndGet(evaluationCtr);
 			totalCanonicalizationMillis.addAndGet(mCanonicalizationMillis);
 		});
+
+		return evaluatedExpressions.intValue();
 	}
 
 	/**
 	 * Performs a systematic search
 	 * @param maxDepth the maximum number of (virtual) operands
+	 * @return the number of canonicalized statements
 	 */
-	public void systematicSearch(int maxDepth) {
-		systematicSearch(0, RewriterSearchUtils.getMaxSearchNumberForNumOps(maxDepth), true, false);
+	public int systematicSearch(int maxDepth) {
+		return systematicSearch(0, RewriterSearchUtils.getMaxSearchNumberForNumOps(maxDepth), true, false);
 	}
 
 	/**
 	 * Performs a systematic search
 	 * @param maxDepth the maximum number of (virtual) operands
 	 * @param includeDuplicateReferences if the search space should be extended to contain a shared variable (e.g. +(A,B) =&gt; [+(A,B), +(A,A)])
+	 * @return the number of canonicalized statements
 	 */
-	public void systematicSearch(int maxDepth, boolean includeDuplicateReferences) {
-		systematicSearch(0, RewriterSearchUtils.getMaxSearchNumberForNumOps(maxDepth), includeDuplicateReferences, false);
+	public int systematicSearch(int maxDepth, boolean includeDuplicateReferences) {
+		return systematicSearch(0, RewriterSearchUtils.getMaxSearchNumberForNumOps(maxDepth), includeDuplicateReferences, false);
 	}
 
 	/**
@@ -211,20 +251,22 @@ public class RewriterFramework {
 	 * @param toIdx the end index
 	 * @param includeDuplicateReferences if the search space should be extended to contain a shared variable (e.g. +(A,B) =&gt; [+(A,B), +(A,A)])
 	 * @param includeRowColVectors if row-vectors and col-vectors should be included in the search (note that the data-driven approach does not support this)
+	 * @return the number of canonicalized statements
 	 */
-	public void systematicSearch(int fromIdx, int toIdx, boolean includeDuplicateReferences, boolean includeRowColVectors) {
+	public int systematicSearch(int fromIdx, int toIdx, boolean includeDuplicateReferences, boolean includeRowColVectors) {
 		int diff = toIdx - fromIdx;
 		int maxN = toIdx;
+		AtomicInteger evaluatedExpressions = new AtomicInteger(0);
 
-		for (int batch = 0; batch < 10000 && batch * BATCH_SIZE < diff; batch++) {
+		for (int batch = 0; batch * BATCH_SIZE < diff; batch++) {
 			List<Integer> indices = IntStream.range(fromIdx + batch * BATCH_SIZE, fromIdx + Math.min((batch + 1) * BATCH_SIZE - 1, maxN)).boxed().collect(Collectors.toList());
 			Collections.shuffle(indices);
-			MutableInt ctr2 = new MutableInt(0);
+			AtomicInteger ctr = new AtomicInteger(0);
 			int maxSize = indices.size();
 			final int mBATCH = batch;
 			indices.parallelStream().forEach(idx -> {
-				if (ctr2.incrementAndGet() % 10 == 0)
-					System.out.println("Done: " + (mBATCH * BATCH_SIZE + ctr2.intValue()) + " / " + (mBATCH * BATCH_SIZE + maxSize));
+				if (ctr.incrementAndGet() % 10 == 0)
+					System.out.println("Done: " + (mBATCH * BATCH_SIZE + ctr.intValue()) + " / " + (mBATCH * BATCH_SIZE + maxSize));
 
 
 				List<RewriterSearchUtils.Operand> ops = RewriterSearchUtils.decodeOrderedStatements(idx);
@@ -240,12 +282,16 @@ public class RewriterFramework {
 
 					insertEquivalences(expanded);
 				}
+
+				evaluatedExpressions.addAndGet(stmts.size());
 			});
 		}
+
+		return evaluatedExpressions.intValue();
 	}
 
-	public void randomSearch(int minExprSize, int maxExprSize, int numSamples) {
-		randomSearchFromIndex(RewriterSearchUtils.getMaxSearchNumberForNumOps(minExprSize-1)+1, RewriterSearchUtils.getMaxSearchNumberForNumOps(maxExprSize), numSamples, true, false);
+	public int randomSearch(int minExprSize, int maxExprSize, int numSamples) {
+		return randomSearchFromIndex(RewriterSearchUtils.getMaxSearchNumberForNumOps(minExprSize-1)+1, RewriterSearchUtils.getMaxSearchNumberForNumOps(maxExprSize), numSamples, true, false);
 	}
 
 	/**
@@ -255,11 +301,14 @@ public class RewriterFramework {
 	 * @param numSamples the number of sampmles
 	 * @param includeDuplicateReferences if expressions such as +(A,A) should be included in the search
 	 * @param includeRowColVectors if row-col vectors should be included in the search
+	 * @return the number of canonicalized statements
 	 */
-	public void randomSearchFromIndex(int fromIdx, int toIdx, int numSamples, boolean includeDuplicateReferences, boolean includeRowColVectors) {
+	public int randomSearchFromIndex(int fromIdx, int toIdx, int numSamples, boolean includeDuplicateReferences, boolean includeRowColVectors) {
 		// Now we will just do random sampling for a few rounds
 		Random rd = new Random(42);
-		for (int batch = 0; batch < 200 && batch * BATCH_SIZE < numSamples; batch++) {
+		AtomicInteger evaluatedExpressions = new AtomicInteger(0);
+
+		for (int batch = 0; batch * BATCH_SIZE < numSamples; batch++) {
 			List<Integer> indices = IntStream.range(batch * BATCH_SIZE, (batch + 1) * BATCH_SIZE - 1).boxed().map(v -> fromIdx + rd.nextInt(toIdx-fromIdx)).collect(Collectors.toList());
 			MutableInt ctr2 = new MutableInt(0);
 			int maxSize = indices.size();
@@ -281,8 +330,12 @@ public class RewriterFramework {
 
 					insertEquivalences(expanded);
 				}
+
+				evaluatedExpressions.addAndGet(stmts.size());
 			});
 		}
+
+		return evaluatedExpressions.intValue();
 	}
 
 	private void insertEquivalences(List<RewriterStatement> stmts) {
@@ -315,8 +368,9 @@ public class RewriterFramework {
 	/**
 	 * Create rules from all observed equivalences
 	 * @param freeDBMemory if all the stored equivalences that are not needed for rule creation should be dropped immediately
+	 * @return the number of registered rules
 	 */
-	public void createRules(boolean freeDBMemory) {
+	public int createRules(boolean freeDBMemory) {
 		System.out.println("===== SUGGESTED REWRITES =====");
 		List<Tuple4<RewriterStatement, List<RewriterStatement>, Long, Boolean>> rewrites = findSuggestedRewrites(foundEquivalences, MAX_COST_SAMPLES);
 
@@ -342,11 +396,13 @@ public class RewriterFramework {
 
 				allRules.add(new Tuple4<>(rule, rewrite._3(), rule.getStmt1().countInstructions(), rewrite._4()));
 			} catch (Exception e) {
-				System.err.println("An error occurred while trying to create a rule:");
-				System.err.println(rewrite._1().toParsableString(ctx, true));
-				for (RewriterStatement stmt : rewrite._2())
-					System.err.println(stmt.toParsableString(ctx, true));
-				e.printStackTrace();
+				if (DEBUG) {
+					System.err.println("An error occurred while trying to create a rule:");
+					System.err.println(rewrite._1().toParsableString(ctx, true));
+					for (RewriterStatement stmt : rewrite._2())
+						System.err.println(stmt.toParsableString(ctx, true));
+					e.printStackTrace();
+				}
 			}
 		}
 
@@ -374,19 +430,26 @@ public class RewriterFramework {
 					conditionalRules.add(t._1());
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				if (DEBUG)
+					e.printStackTrace();
+				conditionalRules.add(t._1());
 			}
 		}
 
 		conditionalRuleSet = new RewriterRuleSet(ctx, conditionalRules);
+
+		return unconditionalRuleCreator.getRuleSet().getRules().size() + conditionalRules.size();
 	}
 
 	/**
 	 * This function removes rules where the output of the origin expression does not match
 	 * the output of the target expression.
+	 * @return the number of validated rules (incl. invalidated rules)
 	 */
-	public void removeInvalidRules() {
+	public int removeInvalidRules() {
+		int ruleCount = unconditionalRuleCreator.getRuleSet().getRules().size();
 		unconditionalRuleCreator.throwOutInvalidRules(true, false);
+		return ruleCount;
 	}
 
 	/**
@@ -395,9 +458,12 @@ public class RewriterFramework {
 	 * We disable operator fusion and sum-product rewrites during execution.
 	 * However, we throw away any rule that does not match our expected DAG structure, which may affect
 	 * valid rules that are not correctly extracted during runtime.
+	 * @return the number of validated rules (incl. invalidated rules)
 	 */
-	public void removeInapplicableRules() {
+	public int removeInapplicableRules() {
+		int ruleCount = unconditionalRuleCreator.getRuleSet().getRules().size();
 		unconditionalRuleCreator.throwOutInvalidRules(false, true);
+		return ruleCount;
 	}
 
 	/**
@@ -439,7 +505,7 @@ public class RewriterFramework {
 
 	public static boolean saveJavaCode(String filePath, RewriterRuleSet ruleSet, String className, boolean optimize) {
 		try (FileWriter writer = new FileWriter(filePath)) {
-			writer.write(ruleSet.toJavaCode(className, optimize));
+			writer.write(ruleSet.toJavaCode(className, optimize, 1, true, true, true));
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			return false;
@@ -467,7 +533,7 @@ public class RewriterFramework {
 				for (int i = 1; i < mEq.size(); i++)
 					RewriterAssertionUtils.buildImplicitAssertions(mEq.get(i), assertions, ctx);
 
-				List<Tuple2<List<Number>, List<Long>>> costs = RewriterCostEstimator.compareCosts(mEq, assertions, ctx, true, 0);
+				List<Tuple2<List<Number>, List<Long>>> costs = RewriterCostEstimator.compareCosts(mEq, assertions, ctx, true, sample_size);
 
 				Set<Tuple2<Integer, Integer>> rewriteProposals = RewriterCostEstimator.findOptima(costs);
 				long mId = idCtr.incrementAndGet();

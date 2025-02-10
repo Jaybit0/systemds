@@ -121,6 +121,7 @@ public class RewriterSparsityEstimator {
 			case "*2(MATRIX)":
 			case "sq(MATRIX)":
 			case "t(MATRIX)":
+			case "rev(MATRIX)":
 				return RewriterStatement.nnz(stmt.getChild(0), ctx);
 			case "1-*(MATRIX,MATRIX)":
 				return StatementUtils.length(ctx, stmt);
@@ -129,6 +130,12 @@ public class RewriterSparsityEstimator {
 				if (stmt.getChild(1).isLiteral() && ConstantFoldingUtils.isNeutralElement(stmt.getChild(1).getLiteral(), "+"))
 					return RewriterStatement.nnz(stmt.getChild(0), ctx);
 				return StatementUtils.min(ctx, RewriterStatement.multiArgInstr(ctx, "+", RewriterStatement.nnz(stmt.getChild(0), ctx), RewriterStatement.nnz(stmt.getChild(2), ctx)), StatementUtils.length(ctx, stmt));
+			case "const(MATRIX,FLOAT)":
+				if (stmt.getChild(1).isLiteral() && ConstantFoldingUtils.isNeutralElement(stmt.getChild(1).getLiteral(), "+"))
+					return RewriterStatement.literal(ctx, 0L);
+			case "rowSums(MATRIX)":
+			case "colSums(MATRIX)":
+				StatementUtils.min(ctx, RewriterStatement.nnz(stmt.getChild(0), ctx), StatementUtils.length(ctx, stmt));
 		}
 
 		return StatementUtils.length(ctx, stmt);

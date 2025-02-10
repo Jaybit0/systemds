@@ -20,6 +20,8 @@
 package org.apache.sysds.hops.rewriter.utils;
 
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.sysds.hops.DataGenOp;
+import org.apache.sysds.hops.rewrite.HopRewriteUtils;
 import org.apache.sysds.hops.rewriter.assertions.RewriterAssertions;
 import org.apache.sysds.hops.rewriter.RewriterStatement;
 import org.apache.sysds.hops.rewriter.RuleContext;
@@ -30,12 +32,34 @@ import java.util.Map;
 import java.util.Optional;
 
 public class CodeGenUtils {
+	// Function to access child statement (which are not neccessarily through .getInput(n))
+	public static String getChildAccessor(String parentVar, RewriterStatement stmt, int childIdx) {
+		switch (stmt.trueInstruction()) {
+			case "const":
+				if (childIdx != 1)
+					return null;
+
+				if (stmt.getChild(1).isLiteral() && Math.abs(stmt.getChild(1).floatLiteral()) == 0.0)
+					return "new LiteralOp(0.0D)"; // as this might be nnz = 0 and not DataGenOp
+				return "((DataGenOp)" + parentVar + ").getConstantValue()";
+		}
+
+		return parentVar + ".getInput(" + childIdx + ")";
+	}
+
 	public static String getSpecialOpCheck(RewriterStatement stmt, final RuleContext ctx, String hopVar) {
 		if (!stmt.isInstruction())
 			return null;
 		switch (stmt.trueInstruction()) {
 			case "%*%":
 				return "HopRewriteUtils.isMatrixMultiply(" + hopVar + ")";
+			case "const":
+				if (stmt.getChild(1).isLiteral()) {
+					if (Math.abs(stmt.getChild(1).floatLiteral()) == 0.0) // Then this also holds for nnz=0
+						return "HopRewriteUtils.isDataGenOpWithConstantValue(" + hopVar + ", " + stmt.getChild(1).floatLiteral() + ") || " + hopVar + ".getNnz() == 0";
+					return "HopRewriteUtils.isDataGenOpWithConstantValue(" + hopVar + ", " + stmt.getChild(1).floatLiteral() + ")";
+				} else
+					return "HopRewriteUtils.isDataGenOpWithConstantValue(" + hopVar + ")";
 		}
 
 		return null;
@@ -60,7 +84,6 @@ public class CodeGenUtils {
 	public static String getOpCode(RewriterStatement stmt, final RuleContext ctx) {
 		if (stmt.getOperands().size() == 1) {
 			// Handle unary ops
-			// TODO: nrow, ncol, length
 			switch (stmt.trueInstruction()) {
 				case "t":
 					return "Types.ReOrgOp.TRANS";
@@ -70,18 +93,24 @@ public class CodeGenUtils {
 					return "Types.OpOp1.NOT";
 				case "sqrt":
 					return "Types.OpOp1.SQRT";
-				case "sq":
-					return "Types.OpOp1.POW2";
+				//case "sq":
+				//	return "Types.OpOp1.POW2"; // POW2 does not seem to work in all cases when applying the rewrite (e.g., LinearLogRegTest)
 				case "log":
 					return "Types.OpOp1.LOG";
+				case "log_nz":
+					return "Types.OpOp1.LOG_NZ";
 				case "abs":
 					return "Types.OpOp1.ABS";
 				case "round":
 					return "Types.OpOp1.ROUND";
+				case "exp":
+					return "Types.OpOp1.EXP";
 				case "rowSums":
 				case "colSums":
 				case "sum":
 					return "Types.AggOp.SUM";
+				case "sumSq":
+					return "Types.AggOp.SUM_SQ";
 				case "trace":
 					return "Types.AggOp.TRACE";
 				case "*2":
@@ -248,6 +277,7 @@ public class CodeGenUtils {
 			case "!":
 			case "sqrt":
 			case "log":
+			case "log_nz":
 			case "abs":
 			case "round":
 			case "*2":
@@ -256,12 +286,14 @@ public class CodeGenUtils {
 			case "nrow":
 			case "ncol":
 			case "length":
-			case "sq":
+			//case "sq": // SQ does not appear to work in some cases
+			case "exp":
 				return "UnaryOp";
 
 			case "rowSums":
 			case "colSums":
 			case "sum":
+			case "sumSq":
 			case "trace":
 				return "AggUnaryOp";
 
@@ -350,6 +382,10 @@ public class CodeGenUtils {
 		String opClass = getOpClass(cur, ctx);
 		String opCode = null;
 
+		for (int i = 0; i < children.length; i++)
+			if (children[i] == null)
+				throw new IllegalArgumentException("The argument " + i + " is null: " + cur.toParsableString(ctx));
+
 		// Special instructions
 		switch (cur.trueInstruction()) {
 			case "%*%":
@@ -386,6 +422,11 @@ public class CodeGenUtils {
 
 				return "HopRewriteUtils.createAggUnaryOp(" + children[0] + ", Types.AggOp.SUM, Types.Direction.RowCol)";
 
+			case "sumSq":
+				if (children.length != 1)
+					throw new IllegalArgumentException();
+
+				return "HopRewriteUtils.createAggUnaryOp(" + children[0] + ", Types.AggOp.SUM_SQ, Types.Direction.RowCol)";
 			case "trace":
 				if (children.length != 1)
 					throw new IllegalArgumentException();
@@ -434,12 +475,13 @@ public class CodeGenUtils {
 
 							if (mappedName != null) {
 								nrowContent = getHopConstructor(stmt, assertions, varNameMapping, ctx, mappedName);
-								break;
+								if (nrowContent != null)
+									break;
 							}
 						}
 
 						if (nrowContent == null)
-							throw new IllegalArgumentException();
+							throw new IllegalArgumentException(nrowAssertion.toString());
 					}
 
 					if (ncolLiteral.isPresent()) {
@@ -467,6 +509,9 @@ public class CodeGenUtils {
 					nrowContent = getHopConstructor(cur.getChild(0).getNRow(), assertions, varNameMapping, ctx, referredVarName);
 					ncolContent = getHopConstructor(cur.getChild(0).getNCol(), assertions, varNameMapping, ctx, referredVarName);
 				}
+
+				if (!cur.getChild(1).isLiteral())
+					throw new IllegalArgumentException("Constant operator only supports literals!");
 
 				return "((DataGenOp) HopRewriteUtils.createDataGenOpFromDims(" + nrowContent + "," + ncolContent + "," + cur.getChild(1).getLiteral() + "D))";
 		}

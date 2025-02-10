@@ -23,6 +23,7 @@ import java.lang.ref.SoftReference;
 
 public abstract class ACachingMBDictionary extends ADictionary {
 
+	private static final long serialVersionUID = 7035552219254994595L;
 	/** A Cache to contain a materialized version of the identity matrix. */
 	protected volatile SoftReference<MatrixBlockDictionary> cache = null;
 
